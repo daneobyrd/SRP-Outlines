@@ -4,10 +4,7 @@ This is a **Unity 2021.2.0b13** project using the **Universal Render Pipeline** 
 
 The important files can be found in `Assets/Shaders/CustomColorBufferOutlines/`.
 
-
-I've moved some files around and added some for reference.
-
-The example assets included in the URP template have been moved to `Assets/Plugins`.
+The assets included in the URP template have been moved to `Assets/Plugins/ExampleAssets`.
 
 [v3.0](https://github.com/UnityTechnologies/PhotoMode/releases/tag/v3.0) of Unity's [PhotoMode](https://github.com/UnityTechnologies/PhotoMode) package can be found in `Assets/Plugins/PhotoMode`.
 

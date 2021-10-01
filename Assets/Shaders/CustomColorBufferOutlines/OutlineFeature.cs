@@ -25,7 +25,7 @@ namespace Shaders.CustomColorBufferOutlines
         /// <summary>
         /// List containing all ShaderPassToTextureSubClass scriptable objects.
         /// </summary>
-        public List<ShaderPassToTextureSubClass> outlinePassSubClassList;
+        public List<ShaderPassToTextureSubPass> outlinePassSubPassList;
 
         public RenderQueueType renderQueueType;
         public RenderPassEvent renderPassEvent;
@@ -45,10 +45,10 @@ namespace Shaders.CustomColorBufferOutlines
         [Tooltip("Inner LUT.")] public Texture2D innerLUT;
 
         // Initialize outline settings.
-        public OutlineSettings(string profilerTag, List<ShaderPassToTextureSubClass> list, RenderQueueType type, RenderPassEvent passEvent,
+        public OutlineSettings(string profilerTag, List<ShaderPassToTextureSubPass> list, RenderQueueType type, RenderPassEvent passEvent,
             Material blitMat, Shader outlineEncode)
         {
-            this.outlinePassSubClassList = list;
+            this.outlinePassSubPassList = list;
             this.profilerTag = profilerTag;
             renderQueueType = type;
             renderPassEvent = passEvent;
@@ -84,12 +84,12 @@ namespace Shaders.CustomColorBufferOutlines
         public override void Create()
         {
             var s = outlineSettings;
-            if (s.outlinePassSubClassList is null or { Count: 0 })
+            if (s.outlinePassSubPassList is null or { Count: 0 })
             {
-                s.outlinePassSubClassList = new List<ShaderPassToTextureSubClass> { CreateInstance<ShaderPassToTextureSubClass>() };
+                s.outlinePassSubPassList = new List<ShaderPassToTextureSubPass> { CreateInstance<ShaderPassToTextureSubPass>() };
             }
 
-            LineworkPass = new ShaderPassToTextureRenderer(s.profilerTag, s.outlinePassSubClassList, s.renderQueueType, s.renderPassEvent);
+            LineworkPass = new ShaderPassToTextureRenderer(s.profilerTag, s.outlinePassSubPassList, s.renderQueueType, s.renderPassEvent);
             ComputeLinesAndBlitPass = new FullscreenQuadRenderer("Outline Encoder");
             GetMaterial();
         }

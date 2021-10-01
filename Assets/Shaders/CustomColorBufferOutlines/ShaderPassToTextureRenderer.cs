@@ -26,7 +26,7 @@ namespace Shaders.CustomColorBufferOutlines
 
     public class ShaderPassToTextureRenderer : ScriptableRenderPass
     {
-        private List<ShaderPassToTextureSubClass> m_OutlinePassSubClass = new();
+        private List<ShaderPassToTextureSubPass> m_OutlinePassSubPass = new();
 
         RenderQueueType m_RenderQueueType;
         FilteringSettings m_FilteringSettings;
@@ -45,10 +45,10 @@ namespace Shaders.CustomColorBufferOutlines
         private int[] m_TextureDepthBits = { };
         private RenderTextureFormat[] m_TextureFormats = { };
 
-        private List<SubClassTargetType> m_TargetType = new();
+        private List<SubPassTargetType> m_TargetType = new();
         private ConfigureTargetEnum configureTargetEnum;
 
-        public ShaderPassToTextureRenderer(string profilerTag, List<ShaderPassToTextureSubClass> outlinePassSubClass, RenderQueueType renderQueueType,
+        public ShaderPassToTextureRenderer(string profilerTag, List<ShaderPassToTextureSubPass> outlinePassSubPass, RenderQueueType renderQueueType,
             RenderPassEvent renderPassEvent)
         {
             bool hasDepth = false;
@@ -63,23 +63,23 @@ namespace Shaders.CustomColorBufferOutlines
                 : RenderQueueRange.transparent;
             m_FilteringSettings = new FilteringSettings(renderQueueRange);
 
-            while (outlinePassSubClass is { Count: > 0 })
+            while (outlinePassSubPass is { Count: > 0 })
             {
-                for (var i = 0; i < outlinePassSubClass.Count; i++)
+                for (var i = 0; i < outlinePassSubPass.Count; i++)
                 {
-                    m_OutlinePassSubClass[i] = outlinePassSubClass[i];
-                    m_ShaderTagIdList[i] = new ShaderTagId(outlinePassSubClass[i].shaderName);
-                    m_TextureId[i] = Shader.PropertyToID(outlinePassSubClass[i].textureName);
-                    m_TargetType[i] = outlinePassSubClass[i].targetType;
+                    m_OutlinePassSubPass[i] = outlinePassSubPass[i];
+                    m_ShaderTagIdList[i] = new ShaderTagId(outlinePassSubPass[i].shaderName);
+                    m_TextureId[i] = Shader.PropertyToID(outlinePassSubPass[i].textureName);
+                    m_TargetType[i] = outlinePassSubPass[i].targetType;
                     switch (m_TargetType[i])
                     {
-                        case SubClassTargetType.Color:
+                        case SubPassTargetType.Color:
                             // TODO switch to using List.Add? 
                             m_ColorAttachments[i] = new RenderTargetIdentifier(m_TextureId[i]);
                             m_ColorAttachments[i] = colorAttachments[i];
                             m_ColorAttachments[0] = colorAttachment;
                             break;
-                        case SubClassTargetType.Depth:
+                        case SubPassTargetType.Depth:
                             if (hasDepth) break;
                             m_DepthAttachment = new RenderTargetIdentifier(m_TextureId[i]);
                             m_DepthAttachment = depthAttachment;
@@ -90,9 +90,9 @@ namespace Shaders.CustomColorBufferOutlines
                             break;
                     }
 
-                    m_CreateTexture[i] = outlinePassSubClass[i].createTexture;
-                    m_TextureDepthBits[i] = outlinePassSubClass[i].texDepthBits;
-                    m_TextureFormats[i] = outlinePassSubClass[i].format;
+                    m_CreateTexture[i] = outlinePassSubPass[i].createTexture;
+                    m_TextureDepthBits[i] = outlinePassSubPass[i].texDepthBits;
+                    m_TextureFormats[i] = outlinePassSubPass[i].format;
                 }
             }
 
