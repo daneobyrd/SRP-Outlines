@@ -45,11 +45,11 @@ namespace Shaders.CustomColorBufferOutlines
         [Tooltip("Inner LUT.")] public Texture2D innerLUT;
 
         // Initialize outline settings.
-        public OutlineSettings(string profilerTag, List<ShaderPassToTextureSubPass> list, RenderQueueType type, RenderPassEvent passEvent,
+        public OutlineSettings(List<ShaderPassToTextureSubPass> list, RenderQueueType type, RenderPassEvent passEvent,
             Material blitMat, Shader outlineEncode)
         {
+            this.profilerTag = nameof(OutlineFeature);
             this.outlinePassSubPassList = list;
-            this.profilerTag = profilerTag;
             renderQueueType = type;
             renderPassEvent = passEvent;
             blitMaterial = blitMat;

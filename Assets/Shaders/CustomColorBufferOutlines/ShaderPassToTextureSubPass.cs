@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using Unity.Collections;
+using UnityEngine;
 using UnityEngine.Rendering;
-
 using static UnityEngine.RenderTextureFormat;
 
 
@@ -26,8 +27,8 @@ namespace Shaders.CustomColorBufferOutlines
             public string textureName = "_OutlineOpaqueTexture";
             public bool createTexture = true;
             public int texDepthBits = 24;
-            public RenderTextureFormat format = Default;
-            public SubPassTargetType targetType = SubPassTargetType.Color;
+            public RenderTextureFormat format = ARGBFloat;
+            [ReadOnly] public SubPassTargetType targetType = SubPassTargetType.Color;
         }
 
         ///<summary>
@@ -52,6 +53,18 @@ namespace Shaders.CustomColorBufferOutlines
             texDepthBits = sub.texDepthBits;
             format = sub.format;
             targetType = sub.targetType;
+        }
+
+        private void OnValidate()
+        {
+            if (format is Depth)
+            {
+                targetType = SubPassTargetType.Depth;
+            }
+            else if (format is not Shadowmap)
+            {
+                targetType = SubPassTargetType.Color;
+            }
         }
     }
 }
