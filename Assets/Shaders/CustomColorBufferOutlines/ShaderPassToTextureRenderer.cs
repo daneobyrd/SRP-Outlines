@@ -13,11 +13,6 @@ using UnityEngine.Rendering.Universal;
 
 namespace Shaders.CustomColorBufferOutlines
 {
-    public struct PassDataToCompute
-    {
-    }
-
-
     ///<summary>
     /// Enum to control which version of ConfigureTarget() to use in ScriptableRenderPass Configure. Changes in response to SubClassTargetType. 
     /// </summary> 
@@ -68,7 +63,7 @@ namespace Shaders.CustomColorBufferOutlines
                 : RenderQueueRange.transparent;
             m_FilteringSettings = new FilteringSettings(renderQueueRange);
 
-            while (outlinePassSubPass is { Count: > 0 })
+            if (outlinePassSubPass is not null)
             {
                 for (var i = 0; i < outlinePassSubPass.Count; i++)
                 {

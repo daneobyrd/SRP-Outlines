@@ -59,20 +59,8 @@ namespace Shaders.CustomColorBufferOutlines
             rotations = 8;
             depthPush = 1e-6f;
         }
-
-        // public OutlineSettings()
-        // {
-        //     throw new System.NotImplementedException();
-        // }
-
-        private void OnValidate()
-        {
-            if (outlinePassSubPassList is null or { Count: 0 })
-            {
-                outlinePassSubPassList = new List<ShaderPassToTextureSubPass> { ScriptableObject.CreateInstance<ShaderPassToTextureSubPass>() };
-            }
-        }
     }
+
     public class OutlineFeature : ScriptableRendererFeature
     {
         public OutlineSettings _outlineSettings;
