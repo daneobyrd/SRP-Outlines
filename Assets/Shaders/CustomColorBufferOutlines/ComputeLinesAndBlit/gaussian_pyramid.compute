@@ -3,27 +3,26 @@
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
 
-#include "sampling_kernels.hlsl"
-
 float _gaussian_sigma;
 uint _source_width;
 uint _source_height;
 Texture2D<float4> source;
+Texture2D<float> depth_source;
 RWTexture2D<float4> blur_result;
 
-#define Tau  6.283185307
+#define TAU  6.283185307
 
-// -----------------------------------------------------------------------------------------------------------------------------------------------------
-
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
 
 SamplerState sampler_source;
+SamplerState sampler_blur_result;
 
-// -----------------------------------------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
 
 float gaussian(float x, float y)
 {
     float sigma2 = _gaussian_sigma * _gaussian_sigma;
-    return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / sqrt(Tau * _gaussian_sigma));
+    return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / sqrt(TAU * _gaussian_sigma));
 }
 
 [numthreads(8,8,1)]
@@ -32,7 +31,7 @@ void CS_gaussian_pyramid(uint3 id : SV_DispatchThreadID)
     float3 pixel_value = float3(0., 0., 0.);
 
     float2 step = float2(1.0 / _source_width, 1.0 / _source_height);
-    float2 texture_uv = float2(id.x * step.x, id.y * step.y);
+    const float2 texture_uv = float2(id.x * step.x, id.y * step.y);
 
     float sum = 0.0f;
     for (int x = -1; x <= 1; ++x)
@@ -51,5 +50,14 @@ void CS_gaussian_pyramid(uint3 id : SV_DispatchThreadID)
 [numthreads(8,8,1)]
 void CS_compute_lines(uint3 id: SV_DispatchThreadID)
 {
-    
+    float4 discontinuity_source = sampler_blur_result(blur_result);
+
+    float2 step = float2(1.0 / _source_width, 1.0 / _source_height);
+    float2 texture_uv = float2(id.x * step.x, id.y * step.y);
+
+    float2 offsets[8] = {
+        float2(-1, -1), float2(-1, 0), float2(-1, 1),
+        float2(0, -1),                 float2(0, 1),
+        float2(1, -1),  float2(1, 0),  float2(1, 1)
+    };
 }

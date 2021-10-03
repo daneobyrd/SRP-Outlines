@@ -20,7 +20,7 @@ namespace Shaders.CustomColorBufferOutlines
     [System.Serializable]
     public class OutlineSettings
     {
-        public string profilerTag;
+        [ReadOnly] public string profilerTag;
 
         /// <summary>
         /// List containing all ShaderPassToTextureSubClass scriptable objects.
@@ -45,11 +45,11 @@ namespace Shaders.CustomColorBufferOutlines
         [Tooltip("Inner LUT.")] public Texture2D innerLUT;
 
         // Initialize outline settings.
-        public OutlineSettings(List<ShaderPassToTextureSubPass> list, RenderQueueType type, RenderPassEvent passEvent,
+        private OutlineSettings(List<ShaderPassToTextureSubPass> list, RenderQueueType type, RenderPassEvent passEvent,
             Material blitMat, Shader outlineEncode)
         {
-            this.profilerTag = nameof(OutlineFeature);
-            this.outlinePassSubPassList = list;
+            profilerTag = nameof(OutlineFeature);
+            outlinePassSubPassList = list;
             renderQueueType = type;
             renderPassEvent = passEvent;
             blitMaterial = blitMat;
@@ -59,18 +59,30 @@ namespace Shaders.CustomColorBufferOutlines
             rotations = 8;
             depthPush = 1e-6f;
         }
-    }
 
+        // public OutlineSettings()
+        // {
+        //     throw new System.NotImplementedException();
+        // }
+
+        private void OnValidate()
+        {
+            if (outlinePassSubPassList is null or { Count: 0 })
+            {
+                outlinePassSubPassList = new List<ShaderPassToTextureSubPass> { ScriptableObject.CreateInstance<ShaderPassToTextureSubPass>() };
+            }
+        }
+    }
     public class OutlineFeature : ScriptableRendererFeature
     {
-        public OutlineSettings outlineSettings;
+        public OutlineSettings _outlineSettings;
 
         ShaderPassToTextureRenderer LineworkPass;
 
         FullscreenQuadRenderer ComputeLinesAndBlitPass;
 
         private Material outlineEncoderMaterial;
-        private Shader OutlineEncoderShader => outlineSettings.outlineEncoder;
+        private Shader OutlineEncoderShader => _outlineSettings.outlineEncoder;
 
         private static readonly int HhoOuterThreshold = Shader.PropertyToID("_HHO_OuterThreshold");
 
@@ -83,11 +95,7 @@ namespace Shaders.CustomColorBufferOutlines
 
         public override void Create()
         {
-            var s = outlineSettings;
-            if (s.outlinePassSubPassList is null or { Count: 0 })
-            {
-                s.outlinePassSubPassList = new List<ShaderPassToTextureSubPass> { CreateInstance<ShaderPassToTextureSubPass>() };
-            }
+            var s = _outlineSettings;
 
             LineworkPass = new ShaderPassToTextureRenderer(s.profilerTag, s.outlinePassSubPassList, s.renderQueueType, s.renderPassEvent);
             ComputeLinesAndBlitPass = new FullscreenQuadRenderer("Outline Encoder");
@@ -104,12 +112,12 @@ namespace Shaders.CustomColorBufferOutlines
                 return;
             }
 
-            Shader.SetGlobalFloat(HhoOuterThreshold, outlineSettings.outerThreshold);
-            Shader.SetGlobalFloat(HhoInnerThreshold, outlineSettings.innerThreshold);
-            Shader.SetGlobalInt(HhoRotations, outlineSettings.rotations);
-            Shader.SetGlobalFloat(HhoDepthPush, outlineSettings.depthPush);
-            Shader.SetGlobalTexture(HhoOuterLut, outlineSettings.outerLUT);
-            Shader.SetGlobalTexture(HhoInnerLut, outlineSettings.innerLUT);
+            Shader.SetGlobalFloat(HhoOuterThreshold, _outlineSettings.outerThreshold);
+            Shader.SetGlobalFloat(HhoInnerThreshold, _outlineSettings.innerThreshold);
+            Shader.SetGlobalInt(HhoRotations, _outlineSettings.rotations);
+            Shader.SetGlobalFloat(HhoDepthPush, _outlineSettings.depthPush);
+            Shader.SetGlobalTexture(HhoOuterLut, _outlineSettings.outerLUT);
+            Shader.SetGlobalTexture(HhoInnerLut, _outlineSettings.innerLUT);
 
             renderer.EnqueuePass(LineworkPass);
             ComputeLinesAndBlitPass.Init(outlineEncoderMaterial, "_OutlineTexture", true);
@@ -118,12 +126,12 @@ namespace Shaders.CustomColorBufferOutlines
 
         private bool GetMaterial()
         {
-            if (outlineEncoderMaterial && outlineSettings.blitMaterial)
+            if (outlineEncoderMaterial && _outlineSettings.blitMaterial)
             {
                 return true;
             }
 
-            if (OutlineEncoderShader == null || !outlineSettings.blitMaterial) return false;
+            if (OutlineEncoderShader == null || !_outlineSettings.blitMaterial) return false;
             outlineEncoderMaterial = new Material(OutlineEncoderShader);
             return true;
         }

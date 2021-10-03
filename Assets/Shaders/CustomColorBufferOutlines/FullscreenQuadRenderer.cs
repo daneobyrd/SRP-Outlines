@@ -14,7 +14,7 @@ namespace Shaders.CustomColorBufferOutlines
     public class FullscreenQuadRenderer : ScriptableRenderPass
     {
         public OutlineSettings settings;
-        
+
         string m_ProfilerTag;
         private Material m_Material;
 
@@ -23,7 +23,7 @@ namespace Shaders.CustomColorBufferOutlines
 
         int m_TextureId = -1;
         RenderTargetIdentifier m_Source;
-        
+
         RenderTargetHandle m_TemporaryColorTexture;
         RenderTargetHandle m_DestinationTexture;
         bool m_newTexture;
@@ -74,10 +74,9 @@ namespace Shaders.CustomColorBufferOutlines
             CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
             RenderTextureDescriptor textureDescriptor = renderingData.cameraData.cameraTargetDescriptor;
             textureDescriptor.depthBufferBits = 0;
-            
+
             Camera camera = renderingData.cameraData.camera;
 
-// Blitter.
             cmd.SetGlobalTexture("_MainTex", m_Source);
             cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
             cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_Material);

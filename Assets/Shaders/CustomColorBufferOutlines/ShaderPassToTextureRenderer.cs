@@ -13,6 +13,11 @@ using UnityEngine.Rendering.Universal;
 
 namespace Shaders.CustomColorBufferOutlines
 {
+    public struct PassDataToCompute
+    {
+    }
+
+
     ///<summary>
     /// Enum to control which version of ConfigureTarget() to use in ScriptableRenderPass Configure. Changes in response to SubClassTargetType. 
     /// </summary> 
@@ -26,7 +31,7 @@ namespace Shaders.CustomColorBufferOutlines
 
     public class ShaderPassToTextureRenderer : ScriptableRenderPass
     {
-        private List<ShaderPassToTextureSubPass> m_OutlinePassSubPass = new();
+        public List<ShaderPassToTextureSubPass> m_OutlinePassSubPass = new();
 
         RenderQueueType m_RenderQueueType;
         FilteringSettings m_FilteringSettings;
@@ -74,7 +79,7 @@ namespace Shaders.CustomColorBufferOutlines
                     switch (m_TargetType[i])
                     {
                         case SubPassTargetType.Color:
-                            // TODO switch to using List.Add? 
+                            // TODO: switch to using List.Add? 
                             m_ColorAttachments[i] = new RenderTargetIdentifier(m_TextureId[i]);
                             m_ColorAttachments[i] = colorAttachments[i];
                             m_ColorAttachments[0] = colorAttachment;
@@ -142,6 +147,8 @@ namespace Shaders.CustomColorBufferOutlines
             {
                 if (m_CreateTexture[i]) ConfigureClear(ClearFlag.All, Color.black);
             }
+            // cmd.SetComputeBufferParam(CS_gaussian_pyramid, 0, "_MainTex", );
+            // cmd.SetComputeTextureParam("gaussian_pyramid.compute",);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -17,25 +18,6 @@ namespace Shaders.CustomColorBufferOutlines
     [CreateAssetMenu(fileName = "ShaderPassToTextureSubclass", menuName = "Rendering/Universal Render Pipeline/ShaderPassToTextureSubClass")]
     public class ShaderPassToTextureSubPass : ScriptableObject
     {
-        /// <summary>
-        /// Settings to be exposed in the inspector for each ShaderPassToTextureSubClass.
-        /// </summary>
-        [System.Serializable]
-        public class ShaderPassToTextureSubPassSettings
-        {
-            public string shaderName = "Outline Post Process";
-            public string textureName = "_OutlineOpaqueTexture";
-            public bool createTexture = true;
-            public int texDepthBits = 24;
-            public RenderTextureFormat format = ARGBFloat;
-            [ReadOnly] public SubPassTargetType targetType = SubPassTargetType.Color;
-        }
-
-        ///<summary>
-        /// Create new SubPassSettings instance.
-        /// </summary>
-        private ShaderPassToTextureSubPassSettings _subpassSettings = new();
-
         public string shaderName;
         public string textureName;
         public bool createTexture;
@@ -43,17 +25,33 @@ namespace Shaders.CustomColorBufferOutlines
         public RenderTextureFormat format;
         public SubPassTargetType targetType;
 
-        public ShaderPassToTextureSubPass()
+        [Serializable]
+        private class ShaderPassToTextureSubPassSettings
         {
-            var sub = _subpassSettings;
-            shaderName = sub.shaderName;
-            shaderName = sub.shaderName;
-            textureName = sub.textureName;
-            createTexture = sub.createTexture;
-            texDepthBits = sub.texDepthBits;
-            format = sub.format;
-            targetType = sub.targetType;
+            public string _shaderName = "Outline Post Process";
+            public string _textureName = "_OutlineOpaqueTexture";
+            public bool _createTexture = true;
+            public int _texDepthBits = 24;
+            public RenderTextureFormat _format = ARGBFloat;
+            [ReadOnly] public SubPassTargetType _targetType = SubPassTargetType.Color;
         }
+
+        ///<summary>
+        /// Create new SubPassSettings instance.
+        /// </summary>
+        private ShaderPassToTextureSubPassSettings _subpassSettings = new();
+
+
+        // public ShaderPassToTextureSubPass()
+        // {
+        //     var sub = _subpassSettings;
+        // shaderName = sub.shaderName;
+        // textureName = sub.textureName;
+        // createTexture = sub.createTexture;
+        // texDepthBits = sub.texDepthBits;
+        // format = sub.format;
+        // targetType = sub.targetType;
+        // }
 
         private void OnValidate()
         {

@@ -19,9 +19,10 @@
         {
             Name "Outline"
             HLSLPROGRAM
+            #pragma prefer_hlslcc gles
+            #pragma target 5.0
             #pragma vertex vert
             #pragma fragment frag
-            #pragma target 5.0
 
             // Includes Unity includes and shared Attributes and Varyings
             #include "OutlineShared.hlsl"
@@ -55,7 +56,7 @@
             ENDHLSL
         }
 
-/*
+
         Tags
         {
             "LightMode" = "OutlinePost"
@@ -70,7 +71,6 @@
 
 
             #include "OutlineShared.hlsl"
-            #include "SamplingKernels.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
             Texture2D<float4> _OutlineOpaqueTexture;
@@ -123,7 +123,6 @@
             }
             ENDHLSL
         }
-*/
 
     }
 }

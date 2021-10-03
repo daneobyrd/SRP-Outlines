@@ -1,5 +1,5 @@
-﻿#ifndef SAMPLINGKERNELS_INCLUDED
-#define SAMPLINGKERNELS_INCLUDED
+﻿#ifndef SAMPLING_KERNELS_INCLUDED
+#define SAMPLING_KERNELS_INCLUDED
 
 //These are some different kernel arrays I gathered from online. I plan on using a gaussian pyramid + laplace kernel for edge detection.
 
@@ -49,10 +49,10 @@ static float laplace_matrix[5] = { 0.05, 0.25, 0.4, 0.25, 0.05 }
 
 // Discrete approximation to Gaussian function with standard dev=1.0 
 static float gaussian_matrix[25] = {
-    1,  4,  7,  4, 1,
+    1, 4, 7, 4, 1,
     4, 16, 26, 16, 4,
     7, 26, 41, 26, 7,
-    1,  4,  7,  4, 1,
+    1, 4, 7, 4, 1,
     4, 16, 26, 16, 4
 };
 #elif GAUSSIAN_KERNEL == 1
@@ -72,8 +72,8 @@ static float gaussian_matrix[7] = {
 const static int kTapCount = 3;
 const static float kOffsets[] = {
     -1.33333333,
-     0.00000000,
-     1.33333333
+    0.00000000,
+    1.33333333
 };
 const static half kCoeffs[] = {
     0.35294118,
