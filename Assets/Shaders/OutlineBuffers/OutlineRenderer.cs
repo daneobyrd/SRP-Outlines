@@ -6,12 +6,11 @@
 
 using Shaders.CustomColorBufferOutlines;
 using UnityEngine;
-using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 // ReSharper disable MemberInitializerValueIgnored
 
-namespace Shaders.New
+namespace Shaders.OutlineBuffers
 {
     public enum RenderQueueType
     {
@@ -34,19 +33,20 @@ namespace Shaders.New
         public RenderQueueType renderQueueType;
 
         [Space(10)] [Header("Linework Settings")]
-        public PassSubTarget colorTarget = new("Outline", true, RenderTextureFormat.ARGBFloat);
+        public PassSubTarget colorTarget = new("Outline", true, false, RenderTextureFormat.ARGBFloat);
 
-        public PassSubTarget depthTarget = new("Outline", true, isDepth: true);
-
-        // -----------------------------------------------------------------------------------------------------------------------------------------------------
-
-        [Space(10)] [Header("ComputeLines")]
-        public ComputeShader computeBlur;
+        public PassSubTarget depthTarget = new("Outline", true, true, RenderTextureFormat.Depth);
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
 
-        [Space(10)] [Header("Blit")]
-        public Material blitMaterial;
+        [Space(10)] [Header("ComputeLines")] public ComputeShader computeBlur;
+
+        public bool blurDebugView;
+        // private ComputeBuffer _computeBuffer;
+
+        // -----------------------------------------------------------------------------------------------------------------------------------------------------
+
+        [Space(10)] [Header("Blit")] public Material blitMaterial;
         public Shader outlineEncoder;
 
 
@@ -64,9 +64,8 @@ namespace Shaders.New
         [Tooltip("Inner LUT.")] public Texture2D innerLUT;
 
         // Initialize outline settings.
-        private OutlineSettings(string name, PassSubTarget color, PassSubTarget depth, ComputeShader gaussianBlur, RenderQueueType type,
-            RenderPassEvent passEvent,
-            Material blitMat, Shader outlineEncode)
+        public OutlineSettings(string name, PassSubTarget color, PassSubTarget depth, ComputeShader gaussianBlur,
+            RenderQueueType type, RenderPassEvent passEvent, Material blitMat, Shader outlineEncode)
         {
             profilerTag = name;
             colorTarget = color;
@@ -81,6 +80,10 @@ namespace Shaders.New
             rotations = 8;
             depthPush = 1e-6f;
         }
+
+        public OutlineSettings()
+        {
+        }
     }
 
     public class OutlineRenderer : ScriptableRendererFeature
@@ -88,8 +91,7 @@ namespace Shaders.New
         public OutlineSettings outlineSettings;
 
         private ShaderPassToRT _lineworkPass;
-
-        private FullscreenQuadRenderer _computeLinesAndBlitPass;
+        private FullscreenEdgeDetectionBlit _computeLinesAndBlitPass;
 
         private Material _outlineEncoderMaterial;
         private Shader outlineEncoderShader => outlineSettings.outlineEncoder;
@@ -103,17 +105,13 @@ namespace Shaders.New
         private static readonly int HhoOuterLut = Shader.PropertyToID("_HHO_OuterLUT");
         private static readonly int HhoInnerLut = Shader.PropertyToID("_HHO_InnerLUT");
 
-        public OutlineRenderer()
-        {
-        }
-
-
         public override void Create()
         {
-            var s = outlineSettings;
+            // var outSet = outlineSettings;
+            // _lineworkPass = new ShaderPassToRT(outSet, outSet.profilerTag, outSet.colorTarget, outSet.depthTarget, outSet.renderPassEvent, outSet.renderQueueType, 24);
 
-            _lineworkPass = new ShaderPassToRT(s.profilerTag, s.colorTarget, s.depthTarget, s.renderPassEvent, s.renderQueueType, 24);
-            _computeLinesAndBlitPass = new FullscreenQuadRenderer("Outline Encoder");
+            _lineworkPass = new ShaderPassToRT(outlineSettings, 24);
+            _computeLinesAndBlitPass = new FullscreenEdgeDetectionBlit("Outline Encoder");
             GetMaterial();
         }
 

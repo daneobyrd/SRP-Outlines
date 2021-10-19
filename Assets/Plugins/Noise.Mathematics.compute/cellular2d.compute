@@ -4,7 +4,7 @@
 // See LICENSE file for details.
 // https://github.com/stegu/webgl-noise
 
-#include "common.compute"
+#include "common.hlsl"
 #ifndef NOISE_COMMON_INCLUDED
 #include "./noise4D.compute"
 #endif
