@@ -28,6 +28,7 @@
 #pragma multi_compile _ COPY_MIP_0
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Assets/Plugins/RenderPass/XRInclude/TextureXR.hlsl"
 
 #if COPY_MIP_0
@@ -130,7 +131,7 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex)
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    // UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
+    // UNITY_XR_ASSIGN_VIEW_INDEX(dispatchThreadId.z);
 
     // Upper-left pixel coordinate of quad that this thread will read
     int2 threadUL = (groupThreadId << 1) + (groupId << 3) - 4;

@@ -1,12 +1,12 @@
 ﻿// This is a modified version of a Renderer Feature written by Harry Heath.
-// Twitter: https://twitter.com/harryh___h/status/1328024692431540224
-// Pastebin: https://pastebin.com/rvju9psM
-
+//      Twitter: https://twitter.com/harryh___h/status/1328024692431540224
+//      Pastebin: https://pastebin.com/rvju9psM
 // The original code was used in a recreation of a Mako illustration:
-// https://twitter.com/harryh___h/status/1328006632102526976
+//      https://twitter.com/harryh___h/status/1328006632102526976
 
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace Shaders.CustomColorBufferOutlines
@@ -20,21 +20,28 @@ namespace Shaders.CustomColorBufferOutlines
     [System.Serializable]
     public class OutlineSettings
     {
-        [ReadOnly] public string profilerTag;
-
-        /// <summary>
-        /// List containing all ShaderPassToTextureSubClass scriptable objects.
-        /// </summary>
+        public string profilerTag = nameof(OutlineFeature);
+        struct outline_obj
+        {
+            private Vector3 position;
+            private uint unity_InstanceID;
+        }
+        [Header("Linework Settings")]
         public List<ShaderPassToTextureSubPass> outlinePassSubPassList;
 
         public RenderQueueType renderQueueType;
         public RenderPassEvent renderPassEvent;
 
-        [Header("Blit Settings")] public Material blitMaterial;
+        
+        [Header("Blit Settings")]
+        public Material blitMaterial;
         public Shader outlineEncoder;
 
-        [Space(10)] [Header("Shader Properties")] [Tooltip("Object Threshold.")]
-        public float outerThreshold;
+
+        // -----------------------------------------------------------------------------------------------------------------------------------------------------
+
+        [Space(10)] [Header("Shader Properties")]
+        [Tooltip("Object Threshold.")] public float outerThreshold;
 
         [Tooltip("Inner Threshold.")] public float innerThreshold;
 
@@ -81,11 +88,16 @@ namespace Shaders.CustomColorBufferOutlines
         private static readonly int HhoOuterLut = Shader.PropertyToID("_HHO_OuterLUT");
         private static readonly int HhoInnerLut = Shader.PropertyToID("_HHO_InnerLUT");
 
+        public OutlineFeature()
+        {
+        }
+
+
         public override void Create()
         {
             var s = _outlineSettings;
 
-            LineworkPass = new ShaderPassToTextureRenderer(s.profilerTag, s.outlinePassSubPassList, s.renderQueueType, s.renderPassEvent);
+            LineworkPass = new ShaderPassToTextureRenderer(s.profilerTag, s.outlinePassSubPassList, s.renderPassEvent, s.renderQueueType);
             ComputeLinesAndBlitPass = new FullscreenQuadRenderer("Outline Encoder");
             GetMaterial();
         }

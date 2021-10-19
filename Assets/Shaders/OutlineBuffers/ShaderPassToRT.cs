@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -19,7 +20,7 @@ namespace Shaders.OutlineBuffers
             TargetIdentifier = new RenderTargetIdentifier(shaderName);
             TargetHandle = new RenderTargetHandle(TargetIdentifier);
             // Moved to Configure() // targetHandle.Init(targetIdentifier);
-            this.renderTextureFormat = isDepth ? RenderTextureFormat.Depth : rtFormat;
+            renderTextureFormat = isDepth ? RenderTextureFormat.Depth : rtFormat;
         }
     }
 
@@ -33,23 +34,24 @@ namespace Shaders.OutlineBuffers
         private FilteringSettings _filteringSettings;
         private string _profilerTag;
 
-        private ShaderTagId _shaderTagId;
+        private List<ShaderTagId> _shaderTagId = new();
         private int _textureDepthBufferBits;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
 
-        private PassSubTarget _colorConfig;
-        private RenderTargetHandle colorHandle => _colorConfig.TargetHandle;
-        private RenderTargetIdentifier colorTargetId => _colorConfig.TargetIdentifier;
-        private bool createColorTexture => _colorConfig.createTexture;
-        private RenderTextureFormat colorFormat => _colorConfig.renderTextureFormat;
+        private PassSubTarget colorConfig { get => _outlineSettings.colorTarget; set => _outlineSettings.colorTarget = value; }
+        private RenderTargetHandle colorHandle => colorConfig.TargetHandle;
+        private RenderTargetIdentifier colorTargetId => colorConfig.TargetIdentifier;
+        private bool createColorTexture => colorConfig.createTexture;
+        private RenderTextureFormat colorFormat => colorConfig.renderTextureFormat;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
 
-        private PassSubTarget _depthConfig;
+        private PassSubTarget _depthConfig { get => _outlineSettings.depthTarget; set => _outlineSettings.depthTarget = value; }
         private RenderTargetHandle depthHandle => _depthConfig.TargetHandle;
         private RenderTargetIdentifier depthTargetId => _depthConfig.TargetIdentifier;
         private bool createDepthTexture => _depthConfig.createTexture;
+        // private RenderTextureFormat depthFormat => RenderTextureFormat.Depth;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -60,12 +62,13 @@ namespace Shaders.OutlineBuffers
 
         #endregion
 
-        public ShaderPassToRT(OutlineSettings settings, string profilerTag, PassSubTarget colorConfig, PassSubTarget depthConfig,
+        public ShaderPassToRT(OutlineSettings settings, string profilerTag, ComputeShader computeBlur, PassSubTarget colorConfig, PassSubTarget depthConfig,
             RenderPassEvent renderPassEvent, RenderQueueType renderQueueType, int depthBufferBits)
         {
-            _profilerTag = profilerTag;
             _outlineSettings = settings;
-            _colorConfig = colorConfig;
+            _profilerTag = profilerTag;
+            _computeShader = computeBlur;
+            this.colorConfig = colorConfig;
             _depthConfig = depthConfig;
             this.renderPassEvent = renderPassEvent;
             _renderQueueType = renderQueueType;
@@ -80,7 +83,8 @@ namespace Shaders.OutlineBuffers
         {
             _profilerTag = settings.profilerTag;
             _outlineSettings = settings;
-            _colorConfig = settings.colorTarget;
+            _computeShader = settings.computeBlur;
+            colorConfig = settings.colorTarget;
             _depthConfig = settings.depthTarget;
             renderPassEvent = settings.renderPassEvent;
             _renderQueueType = settings.renderQueueType;
@@ -96,7 +100,6 @@ namespace Shaders.OutlineBuffers
         {
             colorHandle.Init(colorTargetId);
             depthHandle.Init(depthTargetId);
-            _computeShader = _outlineSettings.computeBlur;
             
             // TODO: Unify use of camSize or _cameraTextureDescription for width/height values passed to render textures.
             _cameraTextureDescriptor = cameraTextureDescriptor;
@@ -104,13 +107,13 @@ namespace Shaders.OutlineBuffers
 
             if (createColorTexture)
             {
-                cmd.GetTemporaryRTArray(colorHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 4, _textureDepthBufferBits,
-                    FilterMode.Point, colorFormat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
+                cmd.GetTemporaryRT(colorHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
+                    FilterMode.Point, colorFormat);
             }
 
             if (createDepthTexture)
             {
-                cmd.GetTemporaryRTArray(depthHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 4, _textureDepthBufferBits,
+                cmd.GetTemporaryRT(depthHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
                     FilterMode.Point, RenderTextureFormat.Depth);
             }
 
@@ -138,7 +141,9 @@ namespace Shaders.OutlineBuffers
             DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagId, ref renderingData, sortingCriteria);
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
-
+            
+            _computeShader.SetKeyword(_computeShader.keywordSpace.FindKeyword("DISABLE_TEXTURE_2D_ARRAY"),true);
+            
             cmd.SetComputeTextureParam(_computeShader, 0, "_Source", colorHandle.id, 0, RenderTextureSubElement.Color);
             cmd.SetComputeTextureParam(_computeShader, 0, "_Source", depthHandle.id, 0, RenderTextureSubElement.Depth);
             cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
@@ -157,6 +162,7 @@ namespace Shaders.OutlineBuffers
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorHandle.id);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthHandle.id);
+            cmd.ReleaseTemporaryRT(_blurHandle.id);
         }
     }
 }

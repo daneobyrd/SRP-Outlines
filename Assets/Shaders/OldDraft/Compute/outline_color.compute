@@ -1,0 +1,35 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel outline_color
+// -----------------------------------------------------------------------------------------------------------------------------------------------------
+struct outlined_obj
+{
+    float3 position;
+    uint unity_InstanceID;
+    // Texture2D<float> discontinuity_source;
+};
+
+RWStructuredBuffer<outlined_obj> outlined_objBuffer;
+RWTexture2D<float4> color_result;
+float per_object_float;
+
+
+// -----------------------------------------------------------------------------------------------------------------------------------------------------
+
+float rand(float2 co)
+{
+     return abs(frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453) * 1);
+}
+
+[numthreads(8,8,1)]
+void outline_color(uint3 id : SV_DispatchThreadID)
+{
+    per_object_float = outlined_objBuffer[id.x].unity_InstanceID;
+
+    float4 color = float4(0, 0, 0, 0);
+    color.r = per_object_float;
+    color.g = 0;
+    color.b = 0;
+    color.a = 1;
+
+    color_result[id.xy] = float4(color);
+}

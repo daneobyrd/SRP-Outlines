@@ -5,7 +5,6 @@
 // The original code was used in a recreation of a Mako illustration:
 // https://twitter.com/harryh___h/status/1328006632102526976
 
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -23,14 +22,16 @@ namespace Shaders.CustomColorBufferOutlines
         ColorAndDepth = 2,
         ColorsAndDepth = 3
     }
-
+    
     public class ShaderPassToTextureRenderer : ScriptableRenderPass
     {
+        #region Variables
+        
         public List<ShaderPassToTextureSubPass> m_OutlinePassSubPass = new();
-
+        
         RenderQueueType m_RenderQueueType;
         FilteringSettings m_FilteringSettings;
-        string m_ProfilerTag;
+        private string m_ProfilerTag;
         ProfilingSampler m_ProfilingSampler;
 
         private List<ShaderTagId> m_ShaderTagIdList = new();
@@ -41,6 +42,7 @@ namespace Shaders.CustomColorBufferOutlines
         private RenderTargetIdentifier[] m_ColorAttachments = { };
         private RenderTargetIdentifier m_DepthAttachment;
 
+
         private bool[] m_CreateTexture = { };
         private int[] m_TextureDepthBits = { };
         private RenderTextureFormat[] m_TextureFormats = { };
@@ -48,15 +50,18 @@ namespace Shaders.CustomColorBufferOutlines
         private List<SubPassTargetType> m_TargetType = new();
         private ConfigureTargetEnum configureTargetEnum;
 
-        public ShaderPassToTextureRenderer(string profilerTag, List<ShaderPassToTextureSubPass> outlinePassSubPass, RenderQueueType renderQueueType,
-            RenderPassEvent renderPassEvent)
+        #endregion
+        
+        public ShaderPassToTextureRenderer(string profilerTag, List<ShaderPassToTextureSubPass> outlinePassSubPass,
+            RenderPassEvent renderPassEvent,
+            RenderQueueType renderQueueType)
         {
+            this.renderPassEvent = renderPassEvent;
             bool hasDepth = false;
-            profilingSampler = new ProfilingSampler(nameof(ShaderPassToTextureRenderer));
-
+            
+            // profilingSampler = new ProfilingSampler(nameof(ShaderPassToTextureRenderer));
             m_ProfilerTag = profilerTag;
             m_ProfilingSampler = new ProfilingSampler(profilerTag);
-            this.renderPassEvent = renderPassEvent;
             this.m_RenderQueueType = renderQueueType;
             var renderQueueRange = (renderQueueType == RenderQueueType.Opaque)
                 ? RenderQueueRange.opaque
@@ -67,8 +72,8 @@ namespace Shaders.CustomColorBufferOutlines
             {
                 for (var i = 0; i < outlinePassSubPass.Count; i++)
                 {
-                    m_OutlinePassSubPass[i] = outlinePassSubPass[i];
-                    m_ShaderTagIdList[i] = new ShaderTagId(outlinePassSubPass[i].shaderName);
+                    m_OutlinePassSubPass.Add(outlinePassSubPass[i]);
+                    m_ShaderTagIdList.Add(new ShaderTagId(outlinePassSubPass[i].shaderName));
                     m_TextureId[i] = Shader.PropertyToID(outlinePassSubPass[i].textureName);
                     m_TargetType[i] = outlinePassSubPass[i].targetType;
                     switch (m_TargetType[i])
@@ -92,7 +97,7 @@ namespace Shaders.CustomColorBufferOutlines
 
                     m_CreateTexture[i] = outlinePassSubPass[i].createTexture;
                     m_TextureDepthBits[i] = outlinePassSubPass[i].texDepthBits;
-                    m_TextureFormats[i] = outlinePassSubPass[i].format;
+                    m_TextureFormats[i] = outlinePassSubPass[i].RTFormat;
                 }
             }
 
@@ -118,7 +123,6 @@ namespace Shaders.CustomColorBufferOutlines
                 }
             }
 
-
             switch (configureTargetEnum)
             {
                 case ConfigureTargetEnum.Color:
@@ -142,22 +146,19 @@ namespace Shaders.CustomColorBufferOutlines
             {
                 if (m_CreateTexture[i]) ConfigureClear(ClearFlag.All, Color.black);
             }
-            // cmd.SetComputeBufferParam(CS_gaussian_pyramid, 0, "_MainTex", );
-            // cmd.SetComputeTextureParam("gaussian_pyramid.compute",);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            var sortingCriteria = (m_RenderQueueType == RenderQueueType.Opaque)
+            CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
+
+            SortingCriteria sortingCriteria = (m_RenderQueueType == RenderQueueType.Opaque)
                 ? renderingData.cameraData.defaultOpaqueSortFlags
                 : SortingCriteria.CommonTransparent;
 
-            var drawingSettings = CreateDrawingSettings(m_ShaderTagIdList, ref renderingData, sortingCriteria);
-            var cmd = CommandBufferPool.Get();
-            using (new ProfilingScope(cmd, m_ProfilingSampler))
-            {
-                context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
-            }
+            DrawingSettings drawingSettings = CreateDrawingSettings(m_ShaderTagIdList, ref renderingData, sortingCriteria);
+
+            context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);

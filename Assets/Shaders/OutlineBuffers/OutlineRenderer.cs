@@ -41,7 +41,7 @@ namespace Shaders.OutlineBuffers
 
         [Space(10)] [Header("ComputeLines")] public ComputeShader computeBlur;
 
-        public bool blurDebugView;
+        public bool blurDebugView = false;
         // private ComputeBuffer _computeBuffer;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
