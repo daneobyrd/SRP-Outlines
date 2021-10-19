@@ -1,6 +1,6 @@
 # SRP-Outlines
 
-This is a **Unity 2021.2.0b13** project using the **Universal Render Pipeline** and utilizing features of the Scriptable Render Pipeline to create a fullscreen outline effect.
+This is a **Unity 2021.2.0b16** project using the **Universal Render Pipeline** and utilizing features of the Scriptable Render Pipeline to create a fullscreen outline effect.
 
 The important files can be found in `Assets/Shaders/CustomColorBufferOutlines/`.
 
