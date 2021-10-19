@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
-  m_Name: UniversalRendererTest
+  m_Name: TestRender
   m_EditorClassIdentifier: 
   debugShaders:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
@@ -78,12 +78,13 @@ MonoBehaviour:
       shaderName: '"Outline"'
       createTexture: 1
       _renderTextureFormat: 1
-    computeBlur: {fileID: 0}
+    computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
+    blurDebugView: 1
     blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
     outlineEncoder: {fileID: 4800000, guid: 6937118c96544519915745324c65212d, type: 3}
-    outerThreshold: 0
-    innerThreshold: 0
-    rotations: 0
-    depthPush: 0
+    outerThreshold: 1
+    innerThreshold: 1
+    rotations: 1
+    depthPush: 1
     outerLUT: {fileID: 0}
     innerLUT: {fileID: 0}
