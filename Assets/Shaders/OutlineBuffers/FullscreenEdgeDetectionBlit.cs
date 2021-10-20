@@ -25,7 +25,7 @@ namespace Shaders.OutlineBuffers
         RenderTargetIdentifier m_Source;
 
         // TODO: Blit blur to camera for debug view before working on edge detection.
-        private bool blurDebugView => _settings.blurDebugView; 
+        private bool blurDebugView => _settings.edgeSettings.blurDebugView; 
         RenderTargetHandle m_TemporaryColorTexture;
         RenderTargetHandle m_DestinationTexture;
         bool m_newTexture;

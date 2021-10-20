@@ -2,7 +2,7 @@
 {
     SubShader
     {
-        Tags{ "RenderPipeline" = "UniversalRenderPipeline" }
+        Tags{ "RenderPipeline" = "UniversalRenderPipeline" "LightMode" = "Outline" }
 
         // 0: Bilinear tri
         Pass

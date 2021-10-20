@@ -52,7 +52,7 @@ MonoBehaviour:
   m_AccurateGbufferNormals: 0
   m_ClusteredRendering: 0
   m_TileSize: 32
-  m_IntermediateTextureMode: 1
+  m_IntermediateTextureMode: 0
 --- !u!114 &3026817424008148383
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -69,22 +69,29 @@ MonoBehaviour:
   outlineSettings:
     profilerTag: 
     renderPassEvent: 300
-    renderQueueType: 0
-    colorTarget:
-      shaderName: '"Outline"'
-      createTexture: 1
-      _renderTextureFormat: 11
-    depthTarget:
-      shaderName: '"Outline"'
-      createTexture: 1
-      _renderTextureFormat: 1
-    computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
-    blurDebugView: 1
-    blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
-    outlineEncoder: {fileID: 4800000, guid: 6937118c96544519915745324c65212d, type: 3}
-    outerThreshold: 1
-    innerThreshold: 1
-    rotations: 1
-    depthPush: 1
-    outerLUT: {fileID: 0}
-    innerLUT: {fileID: 0}
+    filterSettings:
+      renderQueueType: 0
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 1
+    lineworkSettings:
+      colorSubTarget:
+        shaderName: Outline
+        createTexture: 1
+        renderTextureFormat: 11
+      depthSubTarget:
+        shaderName: Outline
+        createTexture: 1
+        renderTextureFormat: 1
+    edgeSettings:
+      computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
+      blurDebugView: 0
+      blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
+      outlineEncoder: {fileID: 4800000, guid: 6937118c96544519915745324c65212d, type: 3}
+    outlineProperties:
+      outerThreshold: 0
+      innerThreshold: 0
+      rotations: 0
+      depthPush: 0
+      outerLUT: {fileID: 0}
+      innerLUT: {fileID: 0}

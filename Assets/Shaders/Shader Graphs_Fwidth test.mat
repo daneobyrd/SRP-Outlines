@@ -63,8 +63,12 @@ Material:
     m_Ints: []
     m_Floats:
     - _Add: 0.5
-    - _Factor: 0.5
+    - _Factor: 1
+    - _Oscillate: 1
     - _QueueControl: 0
     - _QueueOffset: 0
+    - _Rotate_Radians: 1
+    - _Rotation_Period: 1
+    - _Speed: 0.739
     m_Colors: []
   m_BuildTextureStacks: []
