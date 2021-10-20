@@ -53,6 +53,7 @@ namespace Shaders.OutlineBuffers
         private PassSubTarget depthTargetConfig => linework.depthSubTarget;
         private RenderTargetHandle depthHandle => depthTargetConfig.TargetHandle;
         private RenderTargetIdentifier depthTargetId => depthTargetConfig.TargetIdentifier;
+
         private bool createDepthTexture => depthTargetConfig.createTexture;
         // private RenderTextureFormat depthFormat => RenderTextureFormat.Depth;
 
@@ -89,18 +90,22 @@ namespace Shaders.OutlineBuffers
             m_CameraTextureDescriptor = cameraTextureDescriptor;
             m_CameraTextureDescriptor.enableRandomWrite = true;
 
+            // Create temporary color render texture array to be passed to the ComputeShader
             if (createColorTexture)
             {
                 cmd.GetTemporaryRTArray(colorHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 4, _textureDepthBufferBits,
                     FilterMode.Point, colorFormat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
             }
-
+            // Create temporary depth render texture to store in ComputeShader _Source's depth buffer.
             if (createDepthTexture)
             {
                 cmd.GetTemporaryRT(depthHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
                     FilterMode.Point, RenderTextureFormat.Depth);
             }
-            
+            // Create temporary render texture so blurHandle can be used in cmd.SetGlobalTexture()
+            cmd.GetTemporaryRT(_blurHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
+                FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
+            // Configure color and depth targets
             ConfigureTarget(colorHandle.id, depthHandle.id);
 
             if (createColorTexture || createDepthTexture)
@@ -129,7 +134,7 @@ namespace Shaders.OutlineBuffers
 
             cmd.SetComputeVectorParam(computeShader, "_Size", camSize);
 
-            cmd.SetComputeTextureParam(computeShader, 1, "_Destination", _blurHandle.Identifier(),0);
+            cmd.SetComputeTextureParam(computeShader, 1, "_Destination", _blurHandle.Identifier(), 0);
 
             cmd.DispatchCompute(computeShader, 0 /*KColorGaussian*/, 8, 8, 1);
             cmd.DispatchCompute(computeShader, 1 /*KColorDownsample*/, 8, 8, 1);

@@ -172,12 +172,11 @@ namespace Shaders.OutlineBuffers
         private bool GetComputeShader()
         {
             if (outlineSettings.edgeSettings.computeBlur) return true;
-            if (outlineSettings.edgeSettings.computeBlur ==
-                AssetDatabase.LoadAssetAtPath("Assets/Plugins/RenderPass/ColorPyramid.compute", typeof(ComputeShader)) as ComputeShader)
-            {
-            }
+            outlineSettings.edgeSettings.computeBlur =
+                AssetDatabase.LoadAssetAtPath("Assets/Plugins/RenderPass/ColorPyramid.compute", typeof(ComputeShader)) as ComputeShader;
 
             return true;
+
         }
     }
 }
