@@ -96,12 +96,16 @@ namespace Shaders.OutlineBuffers
                 cmd.GetTemporaryRTArray(colorHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 4, _textureDepthBufferBits,
                     FilterMode.Point, colorFormat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
             }
+
             // Create temporary depth render texture to store in ComputeShader _Source's depth buffer.
+            /*
             if (createDepthTexture)
             {
                 cmd.GetTemporaryRT(depthHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
                     FilterMode.Point, RenderTextureFormat.Depth);
             }
+            */
+
             // Create temporary render texture so blurHandle can be used in cmd.SetGlobalTexture()
             cmd.GetTemporaryRT(_blurHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
                 FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
@@ -129,15 +133,21 @@ namespace Shaders.OutlineBuffers
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
 
             computeShader.EnableKeyword("COPY_MIP_0");
+            // KernelIndex: 0 = KColorGaussian
+            // KernelIndex: 1 = KColorDownsample
             cmd.SetComputeTextureParam(computeShader, 0, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
-            cmd.SetComputeTextureParam(computeShader, 0, "_Source", depthHandle.Identifier(), 0, RenderTextureSubElement.Depth);
+            cmd.SetComputeTextureParam(computeShader, 1, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
+            // cmd.SetComputeTextureParam(computeShader, computeShader.FindKernel("KColorGaussian"), "_Source",
+            //                          depthHandle.Identifier(), 0, RenderTextureSubElement.Depth);
 
             cmd.SetComputeVectorParam(computeShader, "_Size", camSize);
 
+            cmd.SetComputeTextureParam(computeShader, 0, "_Destination", _blurHandle.Identifier(), 0);
             cmd.SetComputeTextureParam(computeShader, 1, "_Destination", _blurHandle.Identifier(), 0);
 
-            cmd.DispatchCompute(computeShader, 0 /*KColorGaussian*/, 8, 8, 1);
-            cmd.DispatchCompute(computeShader, 1 /*KColorDownsample*/, 8, 8, 1);
+
+            cmd.DispatchCompute(computeShader, 0, 8, 8, 1);
+            cmd.DispatchCompute(computeShader, 1, 8, 8, 1);
 
             cmd.SetGlobalTexture("_BlurResults", _blurHandle.id);
 
