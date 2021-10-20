@@ -58,11 +58,7 @@ namespace Shaders.OutlineBuffers
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
 
-        private ComputeShader computeShader
-        {
-            get => edge.computeBlur;
-            set => edge.computeBlur = value;
-        }
+        private ComputeShader computeShader => edge.computeBlur;
 
         private RenderTextureDescriptor m_CameraTextureDescriptor;
         private RenderTargetHandle _blurHandle;
@@ -75,25 +71,12 @@ namespace Shaders.OutlineBuffers
             m_ProfilerTag = profilerTag;
             m_ShaderTagIdList.Add(new ShaderTagId(linework.colorSubTarget.shaderName));
             m_ShaderTagIdList.Add(new ShaderTagId(linework.depthSubTarget.shaderName));
-            // if (shaderTags is { Length: > 0 })
-            // {
-            //     foreach (var passName in shaderTags)
-            //     {
-            //         m_ShaderTagIdList.Add(new ShaderTagId(passName));
-            //     }
-            // }
-            // else
-            // {
-            //     m_ShaderTagIdList.Add(new ShaderTagId("SRPDefaultUnlit"));
-            //     m_ShaderTagIdList.Add(new ShaderTagId("UniversalForward"));
-            //     m_ShaderTagIdList.Add(new ShaderTagId("UniversalForwardOnly"));
-            // }
 
             colorHandle.Init(colorTargetId);
             depthHandle.Init(depthTargetId);
             // colorTargetConfig = linework.colorSubTarget;
             // depthTargetConfig = linework.depthSubTarget;
-            computeShader = edge.computeBlur;
+            // computeShader = edge.computeBlur;
 
             this.renderPassEvent = renderPassEvent;
             var renderQueueRange = (filter.renderQueueType == RenderQueueType.Opaque) ? RenderQueueRange.opaque : RenderQueueRange.transparent;
@@ -120,14 +103,9 @@ namespace Shaders.OutlineBuffers
             
             ConfigureTarget(colorHandle.id, depthHandle.id);
 
-            switch (createColorTexture)
+            if (createColorTexture || createDepthTexture)
             {
-                case true when createDepthTexture:
-                    ConfigureClear(ClearFlag.All, Color.black);
-                    break;
-                case true when !createDepthTexture:
-                    ConfigureClear(ClearFlag.Color, Color.black);
-                    break;
+                ConfigureClear(ClearFlag.All, Color.black);
             }
         }
 
