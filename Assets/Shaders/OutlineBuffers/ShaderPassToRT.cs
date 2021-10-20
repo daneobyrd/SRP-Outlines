@@ -93,7 +93,7 @@ namespace Shaders.OutlineBuffers
             // Create temporary color render texture array to be passed to the ComputeShader
             if (createColorTexture)
             {
-                cmd.GetTemporaryRTArray(colorHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 4, _textureDepthBufferBits,
+                cmd.GetTemporaryRT(colorHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
                     FilterMode.Point, colorFormat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
             }
 
@@ -132,21 +132,19 @@ namespace Shaders.OutlineBuffers
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
 
-            computeShader.EnableKeyword("COPY_MIP_0");
+            // computeShader.EnableKeyword("COPY_MIP_0");
+            cmd.SetComputeVectorParam(computeShader, "_Size", camSize);
+            
             // KernelIndex: 0 = KColorGaussian
             // KernelIndex: 1 = KColorDownsample
             cmd.SetComputeTextureParam(computeShader, 0, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
-            cmd.SetComputeTextureParam(computeShader, 1, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
-            // cmd.SetComputeTextureParam(computeShader, computeShader.FindKernel("KColorGaussian"), "_Source",
-            //                          depthHandle.Identifier(), 0, RenderTextureSubElement.Depth);
-
-            cmd.SetComputeVectorParam(computeShader, "_Size", camSize);
-
             cmd.SetComputeTextureParam(computeShader, 0, "_Destination", _blurHandle.Identifier(), 0);
-            cmd.SetComputeTextureParam(computeShader, 1, "_Destination", _blurHandle.Identifier(), 0);
-
-
+            // cmd.SetComputeTextureParam(computeShader, 0, "_Source", depthHandle.Identifier(), 0, RenderTextureSubElement.Depth);
             cmd.DispatchCompute(computeShader, 0, 8, 8, 1);
+
+
+            cmd.SetComputeTextureParam(computeShader, 1, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
+            cmd.SetComputeTextureParam(computeShader, 1, "_Destination", _blurHandle.Identifier(), 0);
             cmd.DispatchCompute(computeShader, 1, 8, 8, 1);
 
             cmd.SetGlobalTexture("_BlurResults", _blurHandle.id);
@@ -159,7 +157,7 @@ namespace Shaders.OutlineBuffers
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorHandle.id);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthHandle.id);
-            // cmd.ReleaseTemporaryRT(_blurHandle.id);
+            cmd.ReleaseTemporaryRT(_blurHandle.id);
         }
     }
 }
