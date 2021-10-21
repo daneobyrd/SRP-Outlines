@@ -1,1 +1,0 @@
-﻿Port of GLSL noise from https://github.com/ashima/webgl-noise
