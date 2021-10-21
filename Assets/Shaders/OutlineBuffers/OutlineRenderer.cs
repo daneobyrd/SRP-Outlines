@@ -34,24 +34,6 @@ namespace Shaders.OutlineBuffers
         public LineworkSettings lineworkSettings = new();
         public EdgeDetectionSettings edgeSettings = new();
         public OutlineShaderProperties outlineProperties = new();
-
-        // Initialize outline settings.
-        // public OutlineSettings(string profilerTagName, PassSubTarget color, PassSubTarget depth, ComputeShader blurShader,
-        //     RenderQueueType type, RenderPassEvent passEvent, Material blitMat, Shader outlineEncode)
-        // {
-        //     profilerTag = profilerTagName;
-        //     lineworkSettings.colorTarget = color;
-        //     lineworkSettings.depthTarget = depth;
-        //     edgeSettings.computeBlur = blurShader;
-        //     filterSettings.renderQueueType = type;
-        //     renderPassEvent = passEvent;
-        //     edgeSettings.blitMaterial = blitMat;
-        //     edgeSettings.outlineEncoder = outlineEncode;
-        //     outlineProperties.outerThreshold = 1.0f;
-        //     outlineProperties.innerThreshold = 1.0f;
-        //     outlineProperties.rotations = 8;
-        //     outlineProperties.depthPush = 1e-6f;
-        // }
     }
 
     [System.Serializable]
@@ -72,8 +54,8 @@ namespace Shaders.OutlineBuffers
     [System.Serializable]
     public class LineworkSettings
     {
-        public PassSubTarget colorSubTarget = new("Outline", true, false, RenderTextureFormat.ARGBFloat);
-        public PassSubTarget depthSubTarget = new("Outline", true, true, RenderTextureFormat.Depth);
+        public PassSubTarget colorSubTarget = new("Outline", "OutlineOpaque",true, false, RenderTextureFormat.ARGBFloat);
+        public PassSubTarget depthSubTarget = new("Outline","OutlineDepth", true, true, RenderTextureFormat.Depth);
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -89,12 +71,12 @@ namespace Shaders.OutlineBuffers
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------------
     [System.Serializable]
-    public struct OutlineShaderProperties
+    public class OutlineShaderProperties
     {
-        [Tooltip("Object Threshold.")] public float outerThreshold;
-        [Tooltip("Inner Threshold.")] public float innerThreshold;
-        [Tooltip("Rotations.")] public int rotations;
-        [Tooltip("Depth Push.")] public float depthPush;
+        [Tooltip("Object Threshold.")] public float outerThreshold = 1.0f;
+        [Tooltip("Inner Threshold.")] public float innerThreshold = 1.0f;
+        [Tooltip("Rotations.")] public int rotations = 8;
+        [Tooltip("Depth Push.")] public float depthPush = 1e-6f;
         [Tooltip("Object LUT.")] public Texture2D outerLUT;
         [Tooltip("Inner LUT.")] public Texture2D innerLUT;
     }

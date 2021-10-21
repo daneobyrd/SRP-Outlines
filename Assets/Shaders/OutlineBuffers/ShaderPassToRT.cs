@@ -9,15 +9,17 @@ namespace Shaders.OutlineBuffers
     public struct PassSubTarget
     {
         public string shaderName;
+        public string textureName;
         public RenderTargetHandle TargetHandle;
         public bool createTexture;
         public RenderTextureFormat renderTextureFormat;
 
-        public PassSubTarget(string shaderName, bool createTexture, bool isDepth, RenderTextureFormat rtFormat)
+        public PassSubTarget(string shaderName, string textureName, bool createTexture, bool isDepth, RenderTextureFormat rtFormat)
         {
             this.shaderName = shaderName;
+            this.textureName = textureName;
             this.createTexture = createTexture;
-            TargetHandle = new RenderTargetHandle(new RenderTargetIdentifier(shaderName));
+            TargetHandle = new RenderTargetHandle(new RenderTargetIdentifier(textureName));
             renderTextureFormat = isDepth ? RenderTextureFormat.Depth : rtFormat;
         }
     }
