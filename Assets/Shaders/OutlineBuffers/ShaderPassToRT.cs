@@ -20,7 +20,7 @@ namespace Shaders.OutlineBuffers
             this.createTexture = createTexture;
             TargetIdentifier = new RenderTargetIdentifier(shaderName);
             TargetHandle = new RenderTargetHandle(TargetIdentifier);
-            // TargetHandle.Init(TargetIdentifier);
+            TargetHandle.Init(TargetIdentifier);
             renderTextureFormat = isDepth ? RenderTextureFormat.Depth : rtFormat;
         }
     }
@@ -70,11 +70,11 @@ namespace Shaders.OutlineBuffers
         {
             m_OutlineSettings = settings;
             m_ProfilerTag = profilerTag;
-            m_ShaderTagIdList.Add(new ShaderTagId(linework.colorSubTarget.shaderName));
-            m_ShaderTagIdList.Add(new ShaderTagId(linework.depthSubTarget.shaderName));
-
             colorHandle.Init(colorTargetId);
             depthHandle.Init(depthTargetId);
+
+            m_ShaderTagIdList.Add(new ShaderTagId(linework.colorSubTarget.shaderName));
+            m_ShaderTagIdList.Add(new ShaderTagId(linework.depthSubTarget.shaderName));
             // colorTargetConfig = linework.colorSubTarget;
             // depthTargetConfig = linework.depthSubTarget;
             // computeShader = edge.computeBlur;
@@ -97,7 +97,7 @@ namespace Shaders.OutlineBuffers
                     FilterMode.Point, colorFormat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
             }
 
-            // Create temporary depth render texture to store in ComputeShader _Source's depth buffer.
+            // Create temporary depth render texture to store in ComputeShader "_Source" depth buffer.
             /*
             if (createDepthTexture)
             {
@@ -108,7 +108,8 @@ namespace Shaders.OutlineBuffers
 
             // Create temporary render texture so blurHandle can be used in cmd.SetGlobalTexture()
             cmd.GetTemporaryRT(_blurHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
-                FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
+                FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, cameraTextureDescriptor.msaaSamples,
+                cameraTextureDescriptor.enableRandomWrite);
             // Configure color and depth targets
             ConfigureTarget(colorHandle.id, depthHandle.id);
 
@@ -123,7 +124,7 @@ namespace Shaders.OutlineBuffers
             CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
 
             m_CameraTextureDescriptor.enableRandomWrite = true;
-            Vector4 camSize = new Vector4(m_CameraTextureDescriptor.width, m_CameraTextureDescriptor.height, 0, 0);
+            Vector4 cameraSize = new Vector4(m_CameraTextureDescriptor.width, m_CameraTextureDescriptor.height, 0, 0);
 
             SortingCriteria sortingCriteria = renderQueueType == RenderQueueType.Opaque
                 ? renderingData.cameraData.defaultOpaqueSortFlags
@@ -132,24 +133,24 @@ namespace Shaders.OutlineBuffers
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
 
-            // computeShader.EnableKeyword("COPY_MIP_0");
-            cmd.SetComputeVectorParam(computeShader, "_Size", camSize);
-            
+            computeShader.EnableKeyword("COPY_MIP_0");
+            cmd.SetComputeVectorParam(computeShader, "_Size", cameraSize);
+
             // KernelIndex: 0 = KColorGaussian
             // KernelIndex: 1 = KColorDownsample
             cmd.SetComputeTextureParam(computeShader, 0, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
             cmd.SetComputeTextureParam(computeShader, 0, "_Destination", _blurHandle.Identifier(), 0);
             // cmd.SetComputeTextureParam(computeShader, 0, "_Source", depthHandle.Identifier(), 0, RenderTextureSubElement.Depth);
-            cmd.DispatchCompute(computeShader, 0, 8, 8, 1);
+            cmd.DispatchCompute(computeShader, 0, Mathf.CeilToInt(cameraSize.x / 8f), Mathf.CeilToInt(cameraSize.y / 8f), 1);
 
 
             cmd.SetComputeTextureParam(computeShader, 1, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
             cmd.SetComputeTextureParam(computeShader, 1, "_Destination", _blurHandle.Identifier(), 0);
-            cmd.DispatchCompute(computeShader, 1, 8, 8, 1);
+            cmd.DispatchCompute(computeShader, 1, Mathf.CeilToInt(cameraSize.x / 8f), Mathf.CeilToInt(cameraSize.y / 8f), 1);
 
             cmd.SetGlobalTexture("_BlurResults", _blurHandle.id);
-
             context.ExecuteCommandBuffer(cmd);
+            cmd.ReleaseTemporaryRT(_blurHandle.id);
             CommandBufferPool.Release(cmd);
         }
 
@@ -157,7 +158,6 @@ namespace Shaders.OutlineBuffers
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorHandle.id);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthHandle.id);
-            cmd.ReleaseTemporaryRT(_blurHandle.id);
         }
     }
 }

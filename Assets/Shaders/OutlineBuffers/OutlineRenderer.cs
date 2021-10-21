@@ -4,10 +4,8 @@
 // The original code was used in a recreation of a Mako illustration:
 //      https://twitter.com/harryh___h/status/1328006632102526976
 
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 // ReSharper disable MemberInitializerValueIgnored
@@ -128,6 +126,7 @@ namespace Shaders.OutlineBuffers
             _lineworkPass = new ShaderPassToRT(outlineSettings, "LineworkPass", outlineSettings.renderPassEvent, 24);
             _computeLinesAndBlitPass = new FullscreenEdgeDetectionBlit("Outline Encoder");
             GetMaterial();
+            GetComputeShader();
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -148,13 +147,13 @@ namespace Shaders.OutlineBuffers
             Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
 
             renderer.EnqueuePass(_lineworkPass);
-            if (edge.blurDebugView)
-            {
-                // renderer.EnqueuePass(Blit("_BlurResults));
-            }
+            // if (edge.blurDebugView)
+            // {
+            // renderer.EnqueuePass(Blit("_BlurResults));
+            // }
 
-            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
-            renderer.EnqueuePass(_computeLinesAndBlitPass);
+            // _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
+            // renderer.EnqueuePass(_computeLinesAndBlitPass);
         }
 
         private bool GetMaterial()
@@ -171,12 +170,9 @@ namespace Shaders.OutlineBuffers
 
         private bool GetComputeShader()
         {
-            if (outlineSettings.edgeSettings.computeBlur) return true;
-            outlineSettings.edgeSettings.computeBlur =
-                AssetDatabase.LoadAssetAtPath("Assets/Plugins/RenderPass/ColorPyramid.compute", typeof(ComputeShader)) as ComputeShader;
-
+            if (outlineSettings.edgeSettings.computeBlur != null) return true;
+            outlineSettings.edgeSettings.computeBlur = (ComputeShader)Resources.Load("ColorPyramid.compute");
             return true;
-
         }
     }
 }

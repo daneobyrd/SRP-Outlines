@@ -73,7 +73,7 @@ MonoBehaviour:
       renderQueueType: 0
       layerMask:
         serializedVersion: 2
-        m_Bits: 1
+        m_Bits: 2147483647
     lineworkSettings:
       colorSubTarget:
         shaderName: Outline
@@ -81,7 +81,7 @@ MonoBehaviour:
         renderTextureFormat: 11
       depthSubTarget:
         shaderName: Outline
-        createTexture: 1
+        createTexture: 0
         renderTextureFormat: 1
     edgeSettings:
       computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
