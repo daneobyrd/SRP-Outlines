@@ -16,7 +16,7 @@
                 #pragma vertex Vert
                 #pragma fragment Frag
                 #define DISABLE_TEXTURE2D_X_ARRAY 1
-                #include "Assets/Plugins/RenderPass/ColorPyramidPS.hlsl"
+                #include "Assets/Resources/RenderPass/ColorPyramidPS.hlsl"
             ENDHLSL
         }
 
@@ -31,7 +31,7 @@
                 #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
                 #pragma vertex Vert
                 #pragma fragment Frag
-                #include "Assets/Plugins/RenderPass/ColorPyramidPS.hlsl"
+                #include "Assets/Resources/RenderPass/ColorPyramidPS.hlsl"
         ENDHLSL
         }
 
