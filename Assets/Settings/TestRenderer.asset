@@ -77,17 +77,19 @@ MonoBehaviour:
     lineworkSettings:
       colorSubTarget:
         shaderName: Outline
+        textureName: OutlineOpaque
         createTexture: 1
         renderTextureFormat: 11
       depthSubTarget:
         shaderName: Outline
+        textureName: OutlineDepth
         createTexture: 0
         renderTextureFormat: 1
     edgeSettings:
       computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
       blurDebugView: 0
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
-      outlineEncoder: {fileID: 4800000, guid: 6937118c96544519915745324c65212d, type: 3}
+      outlineEncoder: {fileID: 4800000, guid: 7b433c837e8a4d4f937344657bc2943a, type: 3}
     outlineProperties:
       outerThreshold: 0
       innerThreshold: 0

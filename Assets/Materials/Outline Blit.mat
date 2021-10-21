@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Outline Blit
-  m_Shader: {fileID: 4800000, guid: 6937118c96544519915745324c65212d, type: 3}
+  m_Shader: {fileID: 4800000, guid: 7b433c837e8a4d4f937344657bc2943a, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
