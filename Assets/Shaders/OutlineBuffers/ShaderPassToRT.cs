@@ -9,7 +9,6 @@ namespace Shaders.OutlineBuffers
     public struct PassSubTarget
     {
         public string shaderName;
-        public RenderTargetIdentifier TargetIdentifier;
         public RenderTargetHandle TargetHandle;
         public bool createTexture;
         public RenderTextureFormat renderTextureFormat;
@@ -18,9 +17,8 @@ namespace Shaders.OutlineBuffers
         {
             this.shaderName = shaderName;
             this.createTexture = createTexture;
-            TargetIdentifier = new RenderTargetIdentifier(shaderName);
-            TargetHandle = new RenderTargetHandle(TargetIdentifier);
-            TargetHandle.Init(TargetIdentifier);
+            TargetHandle = new RenderTargetHandle(shaderName);
+            // TargetHandle.Init(shaderName);
             renderTextureFormat = isDepth ? RenderTextureFormat.Depth : rtFormat;
         }
     }
@@ -43,20 +41,16 @@ namespace Shaders.OutlineBuffers
         private int _textureDepthBufferBits;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private PassSubTarget colorTargetConfig => linework.colorSubTarget;
-        private RenderTargetHandle colorHandle => colorTargetConfig.TargetHandle;
-        private RenderTargetIdentifier colorTargetId => colorTargetConfig.TargetIdentifier;
-        private bool createColorTexture => colorTargetConfig.createTexture;
-        private RenderTextureFormat colorFormat => colorTargetConfig.renderTextureFormat;
-
+        private PassSubTarget _colorTargetConfig; // => linework.colorSubTarget;
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private PassSubTarget depthTargetConfig => linework.depthSubTarget;
-        private RenderTargetHandle depthHandle => depthTargetConfig.TargetHandle;
-        private RenderTargetIdentifier depthTargetId => depthTargetConfig.TargetIdentifier;
-
-        private bool createDepthTexture => depthTargetConfig.createTexture;
-        // private RenderTextureFormat depthFormat => RenderTextureFormat.Depth;
-
+        private RenderTargetHandle colorHandle => _colorTargetConfig.TargetHandle;
+        private bool createColorTexture => _colorTargetConfig.createTexture;
+        private RenderTextureFormat colorFormat => _colorTargetConfig.renderTextureFormat;
+        // -----------------------------------------------------------------------------------------------------------------------------------------------------
+        private PassSubTarget _depthTargetConfig; // => linework.depthSubTarget;
+        // -----------------------------------------------------------------------------------------------------------------------------------------------------
+        private RenderTargetHandle depthHandle => _depthTargetConfig.TargetHandle;
+        private bool createDepthTexture => _depthTargetConfig.createTexture;
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
 
         private ComputeShader computeShader => edge.computeBlur;
@@ -70,13 +64,14 @@ namespace Shaders.OutlineBuffers
         {
             m_OutlineSettings = settings;
             m_ProfilerTag = profilerTag;
-            colorHandle.Init(colorTargetId);
-            depthHandle.Init(depthTargetId);
+            _colorTargetConfig = linework.colorSubTarget;
+            _depthTargetConfig = linework.depthSubTarget;
 
-            m_ShaderTagIdList.Add(new ShaderTagId(linework.colorSubTarget.shaderName));
-            m_ShaderTagIdList.Add(new ShaderTagId(linework.depthSubTarget.shaderName));
-            // colorTargetConfig = linework.colorSubTarget;
-            // depthTargetConfig = linework.depthSubTarget;
+            colorHandle.Init(_colorTargetConfig.shaderName);
+            depthHandle.Init(_depthTargetConfig.shaderName);
+
+            m_ShaderTagIdList.Add(new ShaderTagId(_colorTargetConfig.shaderName));
+            m_ShaderTagIdList.Add(new ShaderTagId(_depthTargetConfig.shaderName));
             // computeShader = edge.computeBlur;
 
             this.renderPassEvent = renderPassEvent;
@@ -94,7 +89,7 @@ namespace Shaders.OutlineBuffers
             if (createColorTexture)
             {
                 cmd.GetTemporaryRT(colorHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
-                    FilterMode.Point, colorFormat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
+                    FilterMode.Bilinear, colorFormat, RenderTextureReadWrite.Default, 1, cameraTextureDescriptor.enableRandomWrite);
             }
 
             // Create temporary depth render texture to store in ComputeShader "_Source" depth buffer.
@@ -108,11 +103,11 @@ namespace Shaders.OutlineBuffers
 
             // Create temporary render texture so blurHandle can be used in cmd.SetGlobalTexture()
             cmd.GetTemporaryRT(_blurHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, _textureDepthBufferBits,
-                FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, cameraTextureDescriptor.msaaSamples,
+                FilterMode.Bilinear, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, cameraTextureDescriptor.msaaSamples,
                 cameraTextureDescriptor.enableRandomWrite);
+            
             // Configure color and depth targets
-            ConfigureTarget(colorHandle.id, depthHandle.id);
-
+            ConfigureTarget(new RenderTargetIdentifier[]{ colorHandle.id, _blurHandle.id }, depthHandle.id);
             if (createColorTexture || createDepthTexture)
             {
                 ConfigureClear(ClearFlag.All, Color.black);
