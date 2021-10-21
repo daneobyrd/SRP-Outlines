@@ -83,7 +83,7 @@ MonoBehaviour:
       depthSubTarget:
         shaderName: Outline
         textureName: OutlineDepth
-        createTexture: 0
+        createTexture: 1
         renderTextureFormat: 1
     edgeSettings:
       computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}

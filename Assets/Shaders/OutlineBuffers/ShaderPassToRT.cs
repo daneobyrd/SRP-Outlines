@@ -120,9 +120,9 @@ namespace Shaders.OutlineBuffers
             }
             
             // Create temporary render texture so blurHandle can be used in cmd.SetGlobalTexture("_BlurResults").
-            cmd.GetTemporaryRT(_blurHandle.id,
+            cmd.GetTemporaryRTArray(_blurHandle.id,
                                cameraTextureDescriptor.width,
-                               cameraTextureDescriptor.height,
+                               cameraTextureDescriptor.height,5,
                                _textureDepthBufferBits,
                                FilterMode.Point,
                                RenderTextureFormat.ARGBFloat,
@@ -133,6 +133,10 @@ namespace Shaders.OutlineBuffers
             
             // Configure color and depth targets
             ConfigureTarget(attachmentsToConfigure.ToArray());
+            if (m_OutlineSettings.edgeSettings.blurDebugView)
+            {
+                ConfigureTarget(_blurHandle.id);
+            }
 
             switch (createColorTexture)
             {
@@ -166,8 +170,13 @@ namespace Shaders.OutlineBuffers
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
 
+            if (createDepthTexture)
+            {
+                cmd.SetGlobalTexture("_OutlineDepth", depthHandle.Identifier(), RenderTextureSubElement.Depth);
+            }
+            
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
-            // computeShader.EnableKeyword("COPY_MIP_0");
+            // computeShader.DisableKeyword("COPY_MIP_0");
             cmd.SetComputeVectorParam(computeShader, "_Size", new Vector4(width, height, 0, 0));
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -183,11 +192,11 @@ namespace Shaders.OutlineBuffers
             cmd.DispatchCompute(computeShader, 1, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
-            cmd.SetGlobalTexture("_BlurResults", _blurHandle.id, RenderTextureSubElement.Color);
-            
-            if (createDepthTexture)
+            cmd.SetGlobalTexture("_BlurResults", _blurHandle.Identifier(), RenderTextureSubElement.Color);
+
+            if (m_OutlineSettings.edgeSettings.blurDebugView)
             {
-                cmd.SetGlobalTexture("_OutlineDepth", depthHandle.id, RenderTextureSubElement.Depth);
+                cmd.Blit(_blurHandle.Identifier(), RenderTargetHandle.CameraTarget.id);
             }
             
             context.ExecuteCommandBuffer(cmd);
@@ -198,7 +207,7 @@ namespace Shaders.OutlineBuffers
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorHandle.id);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthHandle.id);
-            cmd.ReleaseTemporaryRT(_blurHandle.id);
+            if (m_OutlineSettings.edgeSettings.blurDebugView) cmd.ReleaseTemporaryRT(_blurHandle.id);
         }
     }
 }
