@@ -4,12 +4,11 @@ This is a **Unity 2021.2.0b16** project using the **Universal Render Pipeline** 
 
 The important files can be found in `Assets/Shaders/OutlineBuffers/`.
 
-An older incomplete attempt is currently included in `Assets/Shaders/OldDraft`.
-
-The assets included in the URP template have been moved to `Assets/Plugins/ExampleAssets`.
+An older *incomplete* attempt is currently in the `OldDraft` branch for preservation/reference only. Do not try to use it, it doesn't work.
 
 [v3.0](https://github.com/UnityTechnologies/PhotoMode/releases/tag/v3.0) of Unity's [PhotoMode](https://github.com/UnityTechnologies/PhotoMode) package can be found in `Assets/Plugins/PhotoMode`.
 
+I have been using the RenderObjectsPass for reference here and there but my scriptable render passes are not 1:1 in structure or implementation.
 A duplicate of the editor script for the RenderObjectPass can be found in `Assets/Shaders/CustomColorBufferOutlines/Editor`.
 
 _The original file and related files can be found at the following paths:_
