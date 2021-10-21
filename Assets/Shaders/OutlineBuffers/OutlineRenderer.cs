@@ -128,13 +128,14 @@ namespace Shaders.OutlineBuffers
             Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
 
             renderer.EnqueuePass(_lineworkPass);
-            // if (edge.blurDebugView)
-            // {
-            // renderer.EnqueuePass(Blit("_BlurResults));
-            // }
+            if (edge.blurDebugView)
+            {
+                _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_BlurResults", false);
+                renderer.EnqueuePass(_computeLinesAndBlitPass);
+            }
 
-            // _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
-            // renderer.EnqueuePass(_computeLinesAndBlitPass);
+            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
+            renderer.EnqueuePass(_computeLinesAndBlitPass);
         }
 
         private bool GetMaterial()
