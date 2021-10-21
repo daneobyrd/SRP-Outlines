@@ -89,19 +89,22 @@ namespace Shaders.OutlineBuffers
             m_CameraTextureDescriptor = cameraTextureDescriptor;
             m_CameraTextureDescriptor.enableRandomWrite = true;
 
+            List<RenderTargetIdentifier> attachmentsToConfigure = new ();
+            
             // Create temporary color render texture array for cmd.SetComputeTextureParam("_Source").
             if (createColorTexture)
             {
                 cmd.GetTemporaryRTArray(colorHandle.id,
                                         cameraTextureDescriptor.width,
                                         cameraTextureDescriptor.height,
-                                        4,
+                                        5,
                                         _textureDepthBufferBits,
                                         FilterMode.Point,
                                         colorFormat,
                                         RenderTextureReadWrite.Default,
                                         1,
                                         m_CameraTextureDescriptor.enableRandomWrite);
+                attachmentsToConfigure.Add(colorHandle.id);
             }
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
@@ -113,6 +116,7 @@ namespace Shaders.OutlineBuffers
                                    _textureDepthBufferBits,
                                    FilterMode.Point,
                                    RenderTextureFormat.Depth);
+                attachmentsToConfigure.Add(depthHandle.id);
             }
             
             // Create temporary render texture so blurHandle can be used in cmd.SetGlobalTexture("_BlurResults").
@@ -126,8 +130,9 @@ namespace Shaders.OutlineBuffers
                                1,
                                m_CameraTextureDescriptor.enableRandomWrite);
 
+            
             // Configure color and depth targets
-            ConfigureTarget(colorHandle.id, depthHandle.id);
+            ConfigureTarget(attachmentsToConfigure.ToArray());
 
             switch (createColorTexture)
             {
@@ -179,7 +184,11 @@ namespace Shaders.OutlineBuffers
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
             cmd.SetGlobalTexture("_BlurResults", _blurHandle.id, RenderTextureSubElement.Color);
-            cmd.SetGlobalTexture("_OutlineDepth", depthHandle.id, RenderTextureSubElement.Depth);
+            
+            if (createDepthTexture)
+            {
+                cmd.SetGlobalTexture("_OutlineDepth", depthHandle.id, RenderTextureSubElement.Depth);
+            }
             
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
