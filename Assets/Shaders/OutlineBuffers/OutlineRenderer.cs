@@ -54,8 +54,8 @@ namespace Shaders.OutlineBuffers
     [System.Serializable]
     public class LineworkSettings
     {
-        public PassSubTarget colorSubTarget = new("Outline", "OutlineOpaque",true, false, RenderTextureFormat.ARGBFloat);
-        public PassSubTarget depthSubTarget = new("Outline","OutlineDepth", true, true, RenderTextureFormat.Depth);
+        public PassSubTarget colorSubTarget = new("Outline", "_OutlineOpaque",true, false, RenderTextureFormat.ARGBFloat);
+        public PassSubTarget depthSubTarget = new("Outline","_OutlineDepth", true, true, RenderTextureFormat.Depth);
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -108,7 +108,6 @@ namespace Shaders.OutlineBuffers
             _lineworkPass = new ShaderPassToRT(outlineSettings, "LineworkPass", outlineSettings.renderPassEvent, 24);
             _computeLinesAndBlitPass = new FullscreenEdgeDetectionBlit("Outline Encoder");
             GetMaterial();
-            GetComputeShader();
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -155,6 +154,11 @@ namespace Shaders.OutlineBuffers
             if (outlineSettings.edgeSettings.computeBlur != null) return true;
             outlineSettings.edgeSettings.computeBlur = (ComputeShader)Resources.Load("ColorPyramid.compute");
             return true;
+        }
+
+        private void OnValidate()
+        {
+            GetComputeShader();
         }
     }
 }
