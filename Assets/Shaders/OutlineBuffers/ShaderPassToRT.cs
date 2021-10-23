@@ -156,7 +156,7 @@ namespace Shaders.OutlineBuffers
             // }
             if (createColorTexture || createDepthTexture)
             {
-                ConfigureClear(ClearFlag.All, Color.blue);
+                ConfigureClear(ClearFlag.All, Color.black);
             }
         }
 
