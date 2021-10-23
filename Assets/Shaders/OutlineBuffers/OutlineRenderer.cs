@@ -54,8 +54,8 @@ namespace Shaders.OutlineBuffers
     [System.Serializable]
     public class LineworkSettings
     {
-        public PassSubTarget colorSubTarget = new("Outline", "_OutlineOpaque",true, false, RenderTextureFormat.ARGBFloat);
-        public PassSubTarget depthSubTarget = new("Outline","_OutlineDepth", true, true, RenderTextureFormat.Depth);
+        public PassSubTarget colorSubTarget = new("Outline", "_OutlineOpaque", true, false, RenderTextureFormat.ARGBFloat);
+        public PassSubTarget depthSubTarget = new("Outline", "_OutlineDepth", true, true, RenderTextureFormat.Depth);
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -133,9 +133,11 @@ namespace Shaders.OutlineBuffers
                 _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_BlurResults", false);
                 renderer.EnqueuePass(_computeLinesAndBlitPass);
             }
-
-            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
-            renderer.EnqueuePass(_computeLinesAndBlitPass);
+            else
+            {
+                _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
+                renderer.EnqueuePass(_computeLinesAndBlitPass);
+            }
         }
 
         private bool GetMaterial()
@@ -150,16 +152,16 @@ namespace Shaders.OutlineBuffers
             return true;
         }
 
-        private bool GetComputeShader()
-        {
-            if (outlineSettings.edgeSettings.computeBlur != null) return true;
-            outlineSettings.edgeSettings.computeBlur = (ComputeShader)Resources.Load("ColorPyramid.compute");
-            return true;
-        }
-
+        // private bool GetComputeShader()
+        // {
+        //     if (outlineSettings.edgeSettings.computeBlur != null) return true;
+        //     outlineSettings.edgeSettings.computeBlur = (ComputeShader)Resources.Load("ColorPyramid.compute");
+        //     return true;
+        // }
         private void OnValidate()
         {
-            GetComputeShader();
+            // GetComputeShader();
+            // GetMaterial();
         }
     }
 }

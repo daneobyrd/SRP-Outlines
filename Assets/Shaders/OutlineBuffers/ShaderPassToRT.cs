@@ -94,64 +94,69 @@ namespace Shaders.OutlineBuffers
             // Create temporary color render texture array for cmd.SetComputeTextureParam("_Source").
             if (createColorTexture)
             {
-                cmd.GetTemporaryRTArray(colorHandle.id,
-                                        cameraTextureDescriptor.width,
-                                        cameraTextureDescriptor.height,
-                                        5,
-                                        _textureDepthBufferBits,
-                                        FilterMode.Point,
-                                        colorFormat,
-                                        RenderTextureReadWrite.Default,
-                                        1,
-                                        m_CameraTextureDescriptor.enableRandomWrite);
-                attachmentsToConfigure.Add(colorHandle.id);
+                cmd.GetTemporaryRTArray(nameID: colorHandle.id,
+                                        width: cameraTextureDescriptor.width,
+                                        height: cameraTextureDescriptor.height,
+                                        slices: 5,
+                                        depthBuffer: _textureDepthBufferBits,
+                                        filter: FilterMode.Point,
+                                        format: colorFormat,
+                                        readWrite: RenderTextureReadWrite.Default,
+                                        antiAliasing: 1,
+                                        enableRandomWrite: m_CameraTextureDescriptor.enableRandomWrite);
+                attachmentsToConfigure.Add(item: colorHandle.id);
             }
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
             if (createDepthTexture)
             {
-                cmd.GetTemporaryRT(depthHandle.id, 
-                                   cameraTextureDescriptor.width,
-                                   cameraTextureDescriptor.height,
-                                   _textureDepthBufferBits,
-                                   FilterMode.Point,
-                                   RenderTextureFormat.Depth);
-                attachmentsToConfigure.Add(depthHandle.id);
+                cmd.GetTemporaryRT(nameID: depthHandle.id, 
+                                   width: cameraTextureDescriptor.width,
+                                   height: cameraTextureDescriptor.height,
+                                   depthBuffer: _textureDepthBufferBits,
+                                   filter: FilterMode.Point,
+                                   format: RenderTextureFormat.Depth);
+                attachmentsToConfigure.Add(item: depthHandle.id);
             }
             
             // Create temporary render texture so blurHandle can be used in cmd.SetGlobalTexture("_BlurResults").
-            cmd.GetTemporaryRTArray(_blurHandle.id,
-                               cameraTextureDescriptor.width,
-                               cameraTextureDescriptor.height,5,
-                               _textureDepthBufferBits,
-                               FilterMode.Point,
-                               RenderTextureFormat.ARGBFloat,
-                               RenderTextureReadWrite.Default,
-                               1,
-                               m_CameraTextureDescriptor.enableRandomWrite);
+            cmd.GetTemporaryRTArray(nameID: _blurHandle.id,
+                                    width: cameraTextureDescriptor.width,
+                                    height: cameraTextureDescriptor.height,
+                                    slices: 5,
+                                    depthBuffer: _textureDepthBufferBits,
+                                    filter: FilterMode.Point,
+                                    format: RenderTextureFormat.ARGBFloat,
+                                    readWrite: RenderTextureReadWrite.Default,
+                                    antiAliasing: 1,
+                                    enableRandomWrite: m_CameraTextureDescriptor.enableRandomWrite);
 
             
             // Configure color and depth targets
             ConfigureTarget(attachmentsToConfigure.ToArray());
-            if (m_OutlineSettings.edgeSettings.blurDebugView)
-            {
-                ConfigureTarget(_blurHandle.id);
-            }
+            // if (m_OutlineSettings.edgeSettings.blurDebugView)
+            // {
+            //     ConfigureTarget(_blurHandle.id);
+            // }
 
-            switch (createColorTexture)
+            // switch (createColorTexture)
+            // {
+            //     case true when createDepthTexture:
+            //         ConfigureClear(ClearFlag.All, Color.black);
+            //         break;
+            //     case true when !createDepthTexture:
+            //         ConfigureClear(ClearFlag.Color, Color.black);
+            //         break;
+            //     case false when createDepthTexture:
+            //         ConfigureClear(ClearFlag.Depth, Color.black);
+            //         break;
+            //     case false when !createDepthTexture:
+            //         ConfigureClear(ClearFlag.None, Color.clear);
+            //         break;
+            // }
+            if (createColorTexture || createDepthTexture)
             {
-                case true when createDepthTexture:
-                    ConfigureClear(ClearFlag.All, Color.black);
-                    break;
-                case true when !createDepthTexture:
-                    ConfigureClear(ClearFlag.Color, Color.black);
-                    break;
-                case false when createDepthTexture:
-                    ConfigureClear(ClearFlag.Depth, Color.black);
-                    break;
-                case false when !createDepthTexture:
-                    ConfigureClear(ClearFlag.None, Color.clear);
-                    break;
+                ConfigureClear(ClearFlag.All, Color.blue);
             }
         }
 
@@ -194,20 +199,19 @@ namespace Shaders.OutlineBuffers
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
             cmd.SetGlobalTexture("_BlurResults", _blurHandle.Identifier(), RenderTextureSubElement.Color);
 
-            if (m_OutlineSettings.edgeSettings.blurDebugView)
-            {
-                cmd.Blit(_blurHandle.Identifier(), RenderTargetHandle.CameraTarget.id);
-            }
-            
+            // if (m_OutlineSettings.edgeSettings.blurDebugView)
+            // {
+            //     cmd.Blit(_blurHandle.Identifier(), RenderTargetHandle.CameraTarget.id);
+            // }
+            cmd.ReleaseTemporaryRT(_blurHandle.id);
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public override void OnCameraCleanup(CommandBuffer cmd)
+        public override void FrameCleanup(CommandBuffer cmd)
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorHandle.id);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthHandle.id);
-            if (m_OutlineSettings.edgeSettings.blurDebugView) cmd.ReleaseTemporaryRT(_blurHandle.id);
         }
     }
 }

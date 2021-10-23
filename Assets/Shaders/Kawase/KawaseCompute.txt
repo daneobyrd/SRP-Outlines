@@ -1,0 +1,7 @@
+﻿Look at: https://github.com/Daniel-A-Gutierrez/URP-Tech-Art-Showcase/tree/master/Assets/wk1_kawase
+Kawase compute implementation
+Created in the "Writing Render Passes Using the scriptable Render Pipeline in Unity" video
+Here: https://youtu.be/rimx8nnsbRs
+
+His implementation is based on this fantastic Intel article about real-time gpu-based blurring
+Here: https://www.intel.com/content/www/us/en/developer/articles/technical/an-investigation-of-fast-real-time-gpu-based-image-blur-algorithms.html

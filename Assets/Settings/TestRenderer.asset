@@ -77,12 +77,12 @@ MonoBehaviour:
     lineworkSettings:
       colorSubTarget:
         shaderName: Outline
-        textureName: OutlineOpaque
+        textureName: _OutlineOpaque
         createTexture: 1
         renderTextureFormat: 11
       depthSubTarget:
         shaderName: Outline
-        textureName: OutlineDepth
+        textureName: _OutlineDepth
         createTexture: 1
         renderTextureFormat: 1
     edgeSettings:

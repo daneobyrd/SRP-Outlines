@@ -22,14 +22,16 @@ namespace Shaders.OutlineBuffers
         private bool m_IsDepth;
 
         int m_TextureId = -1;
-        RenderTargetIdentifier m_Source;
+        RenderTargetIdentifier m_Source; // _BlurResults
 
         // TODO: Blit blur to camera for debug view before working on edge detection.
         private bool blurDebugView => _settings.edgeSettings.blurDebugView; 
-        RenderTargetHandle m_TemporaryColorTexture;
-        RenderTargetHandle m_DestinationTexture;
-        bool m_newTexture;
+        //
+        RenderTargetHandle m_TemporaryColorTexture; // _OutlineTexture to be generated
+        RenderTargetHandle m_DestinationTexture; // Camera target
+        bool m_newTexture; // Create outline texture?
 
+        // Edge detection occurs before rendering transparents (outline drawn on all opaque)
         public FullscreenEdgeDetectionBlit(string name)
         {
             renderPassEvent = RenderPassEvent.BeforeRenderingTransparents;

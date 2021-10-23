@@ -5,7 +5,8 @@ Shader "Outline/OutlineUnlit"
         [MainTexture] _BaseMap("Texture", 2D) = "white" {}
         [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 1)
         _Cutoff("AlphaCutout", Range(0.0, 1.0)) = 0.5
-
+        _BlurResults("Texture", 2D) = "white" {}
+        
         // BlendMode
         _Surface("__surface", Float) = 0.0
         _Blend("__mode", Float) = 0.0
