@@ -37,7 +37,7 @@ Shader "Custom/RenderFeature/KawaseBlur"
             struct Varyings
             {
                 float2 uv : TEXCOORD0;
-                half fogcoord;
+                // half fogcoord;
                 float4 vertex : SV_POSITION;
             };
             CBUFFER_START(UnityPerMaterial)
@@ -59,7 +59,7 @@ Shader "Custom/RenderFeature/KawaseBlur"
 
             float4 frag(Varyings input) : SV_Target
             {
-                float2 res = _MainTex_TexelSize.xy;
+                const float2 res = _MainTex_TexelSize.xy;
                 float i = _offset;
 
                 float4 col;

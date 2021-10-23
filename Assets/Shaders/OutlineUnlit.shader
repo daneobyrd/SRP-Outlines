@@ -6,7 +6,8 @@ Shader "Outline/OutlineUnlit"
         [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 1)
         _Cutoff("AlphaCutout", Range(0.0, 1.0)) = 0.5
         _BlurResults("Texture", 2D) = "white" {}
-        
+        _OutlineTexture("Texture", 2D) = "white" {}
+
         // BlendMode
         _Surface("__surface", Float) = 0.0
         _Blend("__mode", Float) = 0.0
@@ -28,7 +29,14 @@ Shader "Outline/OutlineUnlit"
 
     SubShader
     {
-        Tags {"RenderType" = "Opaque" "IgnoreProjector" = "True" "RenderPipeline" = "UniversalPipeline" "ShaderModel"="4.5" "LightMode" = "Outline"}
+        Tags
+        {
+            "RenderType" = "Opaque"
+            "IgnoreProjector" = "True"
+            "RenderPipeline" = "UniversalPipeline"
+            "ShaderModel"="4.5"
+            "LightMode" = "Outline"
+        }
         LOD 100
 
         Blend [_SrcBlend][_DstBlend]
@@ -67,7 +75,10 @@ Shader "Outline/OutlineUnlit"
         Pass
         {
             Name "DepthOnly"
-            Tags{"LightMode" = "DepthOnly"}
+            Tags
+            {
+                "LightMode" = "DepthOnly"
+            }
 
             ZWrite On
             ColorMask 0
@@ -96,7 +107,10 @@ Shader "Outline/OutlineUnlit"
         Pass
         {
             Name "DepthNormalsOnly"
-            Tags{"LightMode" = "DepthNormalsOnly"}
+            Tags
+            {
+                "LightMode" = "DepthNormalsOnly"
+            }
 
             ZWrite On
 
@@ -129,7 +143,10 @@ Shader "Outline/OutlineUnlit"
         Pass
         {
             Name "Meta"
-            Tags{"LightMode" = "Meta"}
+            Tags
+            {
+                "LightMode" = "Meta"
+            }
 
             Cull Off
 
@@ -149,7 +166,14 @@ Shader "Outline/OutlineUnlit"
 
     SubShader
     {
-        Tags {"RenderType" = "Opaque" "IgnoreProjector" = "True" "RenderPipeline" = "UniversalPipeline" "ShaderModel"="2.0" "LightMode" = "Outline"}
+        Tags
+        {
+            "RenderType" = "Opaque"
+            "IgnoreProjector" = "True"
+            "RenderPipeline" = "UniversalPipeline"
+            "ShaderModel"="2.0"
+            "LightMode" = "Outline"
+        }
         LOD 100
 
         Blend [_SrcBlend][_DstBlend]
@@ -186,7 +210,10 @@ Shader "Outline/OutlineUnlit"
         Pass
         {
             Name "DepthOnly"
-            Tags{"LightMode" = "DepthOnly"}
+            Tags
+            {
+                "LightMode" = "DepthOnly"
+            }
 
             ZWrite On
             ColorMask 0
@@ -214,7 +241,10 @@ Shader "Outline/OutlineUnlit"
         Pass
         {
             Name "DepthNormalsOnly"
-            Tags{"LightMode" = "DepthNormalsOnly"}
+            Tags
+            {
+                "LightMode" = "DepthNormalsOnly"
+            }
 
             ZWrite On
 
@@ -247,7 +277,10 @@ Shader "Outline/OutlineUnlit"
         Pass
         {
             Name "Meta"
-            Tags{"LightMode" = "Meta"}
+            Tags
+            {
+                "LightMode" = "Meta"
+            }
 
             Cull Off
 
@@ -261,7 +294,6 @@ Shader "Outline/OutlineUnlit"
 
             #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitMetaPass.hlsl"
-
             ENDHLSL
         }
     }

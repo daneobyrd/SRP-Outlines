@@ -193,6 +193,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
 
                 // For tutorial purpose, current everything is just shader files without any C#, so this Outline pass is actually NOT SRP-batcher friendly.
                 // If you are working on a project with lots of characters, make sure you use the above method to make Outline pass SRP-batcher friendly!
+                "LightMode" = "Outline"
             }
 
             Cull Front // Cull Front is a must for extra pass outline method

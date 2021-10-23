@@ -29,12 +29,12 @@ namespace UnityEngine.Rendering.Universal
         {
             RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
             blitTargetDescriptor.depthBufferBits = 0;
-
+            
             isSourceAndDestinationSameTarget = settings.sourceType == settings.destinationType &&
                 (settings.sourceType == BufferType.CameraColor || settings.sourceTextureId == settings.destinationTextureId);
-
+            
             var renderer = renderingData.cameraData.renderer;
-
+            
             if (settings.sourceType == BufferType.CameraColor)
             {
                 sourceId = -1;
