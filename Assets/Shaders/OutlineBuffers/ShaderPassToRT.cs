@@ -1,4 +1,11 @@
-﻿using System.Collections.Generic;
+﻿// This is a rewritten version of a Scriptable Render Pass written by Harry Heath.
+// Twitter: https://twitter.com/harryh___h/status/1328024692431540224
+// Pastebin: https://pastebin.com/LstBHRZF
+
+// The original code was used in a recreation of a Mako illustration:
+// https://twitter.com/harryh___h/status/1328006632102526976
+
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -8,15 +15,15 @@ namespace Shaders.OutlineBuffers
     [System.Serializable]
     public struct PassSubTarget
     {
-        public string shaderName;
+        public List<string> shaderNames;
         public string textureName;
         public RenderTargetHandle TargetHandle;
         public bool createTexture;
         public RenderTextureFormat renderTextureFormat;
 
-        public PassSubTarget(string shaderName, string textureName, bool createTexture, bool isDepth, RenderTextureFormat rtFormat)
+        public PassSubTarget(List<string> shaderNames, string textureName, bool createTexture, bool isDepth, RenderTextureFormat rtFormat)
         {
-            this.shaderName = shaderName;
+            this.shaderNames = shaderNames;
             this.textureName = textureName;
             this.createTexture = createTexture;
             TargetHandle = new RenderTargetHandle(new RenderTargetIdentifier(textureName));
@@ -32,10 +39,10 @@ namespace Shaders.OutlineBuffers
         private RenderQueueType renderQueueType => filter.renderQueueType;
         private FilteringSettings m_FilteringSettings;
 
-        private OutlineSettings m_OutlineSettings;
-        private FilterSettings filter => m_OutlineSettings.filterSettings;
-        private LineworkSettings linework => m_OutlineSettings.lineworkSettings;
-        private EdgeDetectionSettings edge => m_OutlineSettings.edgeSettings;
+        private OutlineSettings _settings;
+        private FilterSettings filter => _settings.filterSettings;
+        private LineworkSettings linework => _settings.lineworkSettings;
+        private EdgeDetectionSettings edge => _settings.edgeSettings;
 
         private string m_ProfilerTag;
 
@@ -44,6 +51,7 @@ namespace Shaders.OutlineBuffers
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private PassSubTarget colorTargetConfig => linework.colorSubTarget;
+
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private RenderTargetHandle colorHandle => colorTargetConfig.TargetHandle;
         private bool createColorTexture => colorTargetConfig.createTexture;
@@ -51,6 +59,7 @@ namespace Shaders.OutlineBuffers
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private PassSubTarget depthTargetConfig => linework.depthSubTarget;
+
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private RenderTargetHandle depthHandle => depthTargetConfig.TargetHandle;
         private bool createDepthTexture => depthTargetConfig.createTexture;
@@ -64,20 +73,33 @@ namespace Shaders.OutlineBuffers
 
         #endregion
 
-        public ShaderPassToRT(OutlineSettings settings,
-                              string profilerTag,
-                              RenderPassEvent renderPassEvent,
-                              int depthBufferBits)
+        // Must call Init before enqueuing pass
+        public void Init(bool hasDepth)
         {
-            m_OutlineSettings = settings;
-            m_ProfilerTag = profilerTag;
-
-            if (m_ShaderTagIdList is { Count: 0 })
+            var totalShaderNames = new List<string> { Capacity = 0 };
+            totalShaderNames.AddRange(colorTargetConfig.shaderNames);
+            if (hasDepth)
             {
-                m_ShaderTagIdList.Add(new ShaderTagId(colorTargetConfig.shaderName));
-                m_ShaderTagIdList.Add(new ShaderTagId(depthTargetConfig.shaderName));
+                totalShaderNames.AddRange(depthTargetConfig.shaderNames);
             }
+            
+            if (m_ShaderTagIdList.Count >= totalShaderNames.Count) return;
+            foreach (var colorTag in colorTargetConfig.shaderNames)
+            {
+                m_ShaderTagIdList.Add(new ShaderTagId(colorTag));
+            }
+            if (!hasDepth) return;
+            foreach (var depthTag in depthTargetConfig.shaderNames)
+            {
+                m_ShaderTagIdList.Add(new ShaderTagId(depthTag));
+            }
+        }
 
+        public ShaderPassToRT(OutlineSettings settings, string profilerTag, RenderPassEvent renderPassEvent, int depthBufferBits)
+        {
+            _settings = settings;
+            m_ProfilerTag = profilerTag;
+            
             this.renderPassEvent = renderPassEvent;
             var renderQueueRange = (filter.renderQueueType == RenderQueueType.Opaque) ? RenderQueueRange.opaque : RenderQueueRange.transparent;
             m_FilteringSettings = new FilteringSettings(renderQueueRange, filter.layerMask);
@@ -89,8 +111,8 @@ namespace Shaders.OutlineBuffers
             m_CameraTextureDescriptor = cameraTextureDescriptor;
             m_CameraTextureDescriptor.enableRandomWrite = true;
 
-            List<RenderTargetIdentifier> attachmentsToConfigure = new ();
-            
+            List<RenderTargetIdentifier> attachmentsToConfigure = new();
+
             // Create temporary color render texture array for cmd.SetComputeTextureParam("_Source").
             if (createColorTexture)
             {
@@ -134,10 +156,6 @@ namespace Shaders.OutlineBuffers
             
             // Configure color and depth targets
             ConfigureTarget(attachmentsToConfigure.ToArray());
-            // if (m_OutlineSettings.edgeSettings.blurDebugView)
-            // {
-            //     ConfigureTarget(_blurHandle.id);
-            // }
 
             // switch (createColorTexture)
             // {
@@ -179,7 +197,7 @@ namespace Shaders.OutlineBuffers
             {
                 cmd.SetGlobalTexture("_OutlineDepth", depthHandle.Identifier(), RenderTextureSubElement.Depth);
             }
-            
+
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
             // computeShader.DisableKeyword("COPY_MIP_0");
             cmd.SetComputeVectorParam(computeShader, "_Size", new Vector4(width, height, 0, 0));

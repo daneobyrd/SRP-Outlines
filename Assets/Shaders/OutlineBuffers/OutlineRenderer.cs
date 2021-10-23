@@ -4,11 +4,9 @@
 // The original code was used in a recreation of a Mako illustration:
 //      https://twitter.com/harryh___h/status/1328006632102526976
 
-using UnityEditor;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
-
-// ReSharper disable MemberInitializerValueIgnored
 
 namespace Shaders.OutlineBuffers
 {
@@ -16,6 +14,15 @@ namespace Shaders.OutlineBuffers
     {
         Opaque = 0,
         Transparent = 1
+    }
+
+    public enum DebugTargetView
+    {
+        None,
+        ColorTarget_1,
+        Depth,
+        BlurResults,
+        EdgeResults
     }
 
     [System.Serializable]
@@ -30,6 +37,7 @@ namespace Shaders.OutlineBuffers
         }
 
         public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
+        public DebugTargetView debugTargetView;
         public FilterSettings filterSettings = new();
         public LineworkSettings lineworkSettings = new();
         public EdgeDetectionSettings edgeSettings = new();
@@ -42,7 +50,7 @@ namespace Shaders.OutlineBuffers
         public RenderQueueType renderQueueType;
 
         public LayerMask layerMask;
-        // public List<string> passNames;
+        // public readonly List<string> passNames;
 
         public FilterSettings()
         {
@@ -54,8 +62,8 @@ namespace Shaders.OutlineBuffers
     [System.Serializable]
     public class LineworkSettings
     {
-        public PassSubTarget colorSubTarget = new("Outline", "_OutlineOpaque", true, false, RenderTextureFormat.ARGBFloat);
-        public PassSubTarget depthSubTarget = new("Outline", "_OutlineDepth", true, true, RenderTextureFormat.Depth);
+        public PassSubTarget colorSubTarget = new(new List<string> { "Outline" }, "_OutlineOpaque", true, false, RenderTextureFormat.ARGBFloat);
+        public PassSubTarget depthSubTarget = new(new List<string> { "Outline" }, "_OutlineDepth", true, true, RenderTextureFormat.Depth);
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -63,8 +71,6 @@ namespace Shaders.OutlineBuffers
     public class EdgeDetectionSettings
     {
         public ComputeShader computeBlur;
-        public bool blurDebugView = false;
-
         public Material blitMaterial;
         public Shader outlineEncoder;
     }
@@ -87,7 +93,7 @@ namespace Shaders.OutlineBuffers
         public FilterSettings filter => outlineSettings.filterSettings;
         public LineworkSettings linework => outlineSettings.lineworkSettings;
         public EdgeDetectionSettings edge => outlineSettings.edgeSettings;
-        public OutlineShaderProperties shaderProps => outlineSettings.outlineProperties;
+        private OutlineShaderProperties shaderProps => outlineSettings.outlineProperties;
 
 
         private ShaderPassToRT _lineworkPass;
@@ -127,18 +133,12 @@ namespace Shaders.OutlineBuffers
             Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
             Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
 
+            _lineworkPass.Init(true);
             renderer.EnqueuePass(_lineworkPass);
-            if (edge.blurDebugView)
-            {
-                _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_BlurResults", false);
-                renderer.EnqueuePass(_computeLinesAndBlitPass);
-            }
-            else
-            {
-                _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
-                renderer.EnqueuePass(_computeLinesAndBlitPass);
-            }
+            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
+            renderer.EnqueuePass(_computeLinesAndBlitPass);
         }
+
 
         private bool GetMaterial()
         {
@@ -152,16 +152,16 @@ namespace Shaders.OutlineBuffers
             return true;
         }
 
-        // private bool GetComputeShader()
-        // {
-        //     if (outlineSettings.edgeSettings.computeBlur != null) return true;
-        //     outlineSettings.edgeSettings.computeBlur = (ComputeShader)Resources.Load("ColorPyramid.compute");
-        //     return true;
-        // }
+        /*private bool GetComputeShader()
+        {
+            if (outlineSettings.edgeSettings.computeBlur != null) return true;
+            outlineSettings.edgeSettings.computeBlur = (ComputeShader)Resources.Load("ColorPyramid.compute");
+            return true;
+        }
         private void OnValidate()
         {
             // GetComputeShader();
             // GetMaterial();
-        }
+        }*/
     }
 }
