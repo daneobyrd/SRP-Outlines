@@ -34,10 +34,6 @@ Shader "Custom/RenderFeature/KawaseBlur"
             struct Varyings
             {
                 float2 uv : TEXCOORD0;
-<<<<<<< HEAD:Assets/Resources/RenderPass/Blur/Kawase/KawaseBlur.shader
-=======
-                // half fogcoord;
->>>>>>> master:Assets/Shaders/Kawase/KawaseBlur.shader
                 float4 vertex : SV_POSITION;
             };
 

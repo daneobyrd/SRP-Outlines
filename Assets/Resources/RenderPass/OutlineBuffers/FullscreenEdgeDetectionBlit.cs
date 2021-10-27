@@ -106,10 +106,10 @@ namespace Resources.RenderPass.OutlineBuffers
                 // Copy outline depth to camera depth target for use in other features, like a transparent pass.
                 if (_hasDepth) cmd.CopyTexture(_outlineDepth.Identifier(), renderingData.cameraData.renderer.cameraDepthTarget);
             // }
-            cmd.SetGlobalTexture("_MainTex", _combinedHandle.Identifier());
-            cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
-            cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
-            cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
+            // cmd.SetGlobalTexture("_MainTex", _combinedHandle.Identifier());
+            // cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
+            // cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
+            // cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
