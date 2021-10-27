@@ -1,34 +1,31 @@
-﻿Shader "OutlineBlit"
+﻿Shader "OutlineSource"
 {
     Properties
     {
-        _MainTex ("Main Texture", 2D) = "white" {}
-//        _OuterThreshold ("Outer Threshold", float) = 0.0
-//        _InnerThreshold ("Inner Threshold", float) = 0.0
-//        _Rotations ("Rotations", int) = 6
-//        _DepthPush ("Depth Push", float) = 0.0
-//        _OuterLUT ("Outer LUT", 2D) = "white" {}
-//        _InnerLUT ("Inner Lut", 2D) = "white" {}
+        [BaseMap] _BaseColor("TestTexture", 2D) = "white" {}
     }
     SubShader
     {
         Tags
         {
             "RenderPipeline" = "Universal"
+            "LightMode" = "Outline"
         }
         Pass
         {
             Name "Outline"
             HLSLPROGRAM
             // Reference:
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitForwardPass.hlsl"
+
+            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
             #pragma target 5.0
-            #pragma vertex vert
-            #pragma fragment frag
+            // #pragma vertex vert
+            // #pragma fragment frag
 
             struct outlined_obj
             {
@@ -36,30 +33,7 @@
                 uint unity_InstanceID;
             };
             
-            StructuredBuffer<outlined_obj> outline_objBuffer;
-
-            // float _OuterThreshold;
-            // float _InnerThreshold;
-            CBUFFER_START(UnityPerMaterial)
-            TEXTURE2D(_OutlineTexture);
-            SAMPLER(sampler_OutlineTexture);            
-            CBUFFER_END
-
-            TEXTURE2D(_MainTex);
-            SAMPLER(sampler_MainTex);
-            
-            Varyings vert(Attributes input)
-            {
-                return FullscreenVert(input);
-            }
-
-            float4 frag(Varyings input) : SV_Target
-            {
-                float4 outlineColor = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, input.uv);
-                float4 cameraColorCopy = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
-                float4 col = CompositeOver(outlineColor, cameraColorCopy);
-                return col;
-            }
+            StructuredBuffer<outlined_obj> outline_objBuffer;            
             ENDHLSL
         }
 

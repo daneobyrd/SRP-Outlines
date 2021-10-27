@@ -5,8 +5,9 @@ Shader "Outline/OutlineUnlit"
         [MainTexture] _BaseMap("Texture", 2D) = "white" {}
         [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 1)
         _Cutoff("AlphaCutout", Range(0.0, 1.0)) = 0.5
-        _BlurResults("Texture", 2D) = "white" {}
-        _OutlineTexture("Texture", 2D) = "white" {}
+        _OutlineOpaque("OutlineOpaque", 2D) = "white" {}
+        _BlurResults("Blur Texture", 2D) = "white" {}
+        _OutlineTexture("Outline Texture", 2D) = "white" {}
 
         // BlendMode
         _Surface("__surface", Float) = 0.0
@@ -57,7 +58,6 @@ Shader "Outline/OutlineUnlit"
 
             // -------------------------------------
             // Unity defined keywords
-            #pragma multi_compile_fog
             #pragma multi_compile_instancing
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION

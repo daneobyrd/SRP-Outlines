@@ -193,37 +193,31 @@ namespace Resources.RenderPass.OutlineBuffers
             DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIdList, ref renderingData, sortingCriteria);
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
+            cmd.SetGlobalTexture("_OutlineOpaque", colorHandle.Identifier());
 
-            if (debugTargetView == DebugTargetView.ColorTarget_1)
+            if (createDepthTexture)
             {
-                cmd.SetGlobalTexture("_OutlineOpaque", colorHandle.Identifier());
+                cmd.SetGlobalTexture("_OutlineDepth", depthHandle.Identifier());
             }
-            else
-            {
-                if (createDepthTexture)
-                {
-                    cmd.SetGlobalTexture("_OutlineDepth", depthHandle.Identifier());
-                }
 
-                // -----------------------------------------------------------------------------------------------------------------------------------------------------
-                // computeShader.DisableKeyword("COPY_MIP_0");
-                cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(width, height, 0, 0));
+            // -----------------------------------------------------------------------------------------------------------------------------------------------------
+            // computeShader.DisableKeyword("COPY_MIP_0");
+            cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(width, height, 0, 0));
 
-                // -----------------------------------------------------------------------------------------------------------------------------------------------------
-                var gaussKernel = _computeShader.FindKernel("KColorGaussian");
-                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
-                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", _blurHandle.Identifier(), 0);
-                cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
+            // -----------------------------------------------------------------------------------------------------------------------------------------------------
+            var gaussKernel = _computeShader.FindKernel("KColorGaussian");
+            cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
+            cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", _blurHandle.Identifier(), 0);
+            cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
 
-                // -----------------------------------------------------------------------------------------------------------------------------------------------------
-                var downsampleKernel = _computeShader.FindKernel("KColorDownsample");
-                cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
-                cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", _blurHandle.Identifier(), 0);
-                cmd.DispatchCompute(_computeShader, downsampleKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
+            // -----------------------------------------------------------------------------------------------------------------------------------------------------
+            var downsampleKernel = _computeShader.FindKernel("KColorDownsample");
+            cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
+            cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", _blurHandle.Identifier(), 0);
+            cmd.DispatchCompute(_computeShader, downsampleKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
 
-                // -----------------------------------------------------------------------------------------------------------------------------------------------------
-                cmd.SetGlobalTexture("_BlurResults", _blurHandle.Identifier(), RenderTextureSubElement.Color);
-            }
+            // -----------------------------------------------------------------------------------------------------------------------------------------------------
+            cmd.SetGlobalTexture("_BlurResults", _blurHandle.Identifier(), RenderTextureSubElement.Color);
             
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);

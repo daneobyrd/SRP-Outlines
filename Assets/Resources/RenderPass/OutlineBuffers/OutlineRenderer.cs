@@ -149,8 +149,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
             _lineworkPass.Init(true);
             renderer.EnqueuePass(_lineworkPass);
-            // _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, textureNameAndDebugView, linework.depthSubTarget.createTexture);
-
+            // _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, textureNameAndDebugView, linework.depthSubTarget.createTexture);
             // renderer.EnqueuePass(_computeLinesAndBlitPass);
         }
 
