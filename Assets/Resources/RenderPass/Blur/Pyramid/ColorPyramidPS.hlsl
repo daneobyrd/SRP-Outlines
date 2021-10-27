@@ -1,5 +1,6 @@
 ﻿#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
+#include "Packages/com.unity.shadergraph/Editor/Generation/Targets/BuiltIn/ShaderLibrary/Core.hlsl"
 #include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
 
 TEXTURE2D_X_HALF(_Source);
@@ -21,7 +22,7 @@ struct Varyings
     UNITY_VERTEX_OUTPUT_STEREO
 };
 
-Varyings Vert(Attributes input)
+Varyings vert(Attributes input)
 {
     Varyings output;
     UNITY_SETUP_INSTANCE_ID(input);
@@ -35,8 +36,9 @@ half4 Frag(Varyings input) : SV_Target
 {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-    // Gaussian weights for 9 texel kernel from center textel to furthest texel. Keep in sync with ColorPyramid.compute
-    const half gaussWeights[] = { 0.27343750, 0.21875000, 0.10937500, 0.03125000, 0.00390625 };
+    // Gaussian weights for 9 texel kernel from center texel to furthest texel. Keep in sync with ColorPyramid.compute
+    static const half gaussWeights[] = { 0.27343750, 0.21875000, 0.10937500, 0.03125000, 0.00390625 };
+    //                                 { 70f / 256f, 56f / 256f, 28f / 256f, 8f / 256f,  1f / 256f };
 
     half2 offset = _SrcUvLimits.zw;
     half2 offset1 = offset * (1.0 + (gaussWeights[2] / (gaussWeights[1] + gaussWeights[2])));

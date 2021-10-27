@@ -21,13 +21,10 @@ Shader "Custom/RenderFeature/KawaseBlur"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            // make fog work
-            #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Input.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            
+
             struct Attributes
             {
                 float4 vertex : POSITION;
@@ -37,9 +34,13 @@ Shader "Custom/RenderFeature/KawaseBlur"
             struct Varyings
             {
                 float2 uv : TEXCOORD0;
+<<<<<<< HEAD:Assets/Resources/RenderPass/Blur/Kawase/KawaseBlur.shader
+=======
                 // half fogcoord;
+>>>>>>> master:Assets/Shaders/Kawase/KawaseBlur.shader
                 float4 vertex : SV_POSITION;
             };
+
             CBUFFER_START(UnityPerMaterial)
             sampler2D _MainTex;
             // sampler2D _CameraOpaqueTexture;
@@ -52,7 +53,7 @@ Shader "Custom/RenderFeature/KawaseBlur"
             Varyings vert(Attributes v)
             {
                 Varyings o;
-                o.vertex = TransformObjectToHClip(v.vertex);
+                o.vertex = TransformObjectToHClip(v.vertex), 1;
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
             }

@@ -1,0 +1,63 @@
+﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+
+#pragma kernel gaussian_pyramid
+#pragma kernel compute_lines
+
+// -----------------------------------------------------------------------------------------------------------------------------------------------------
+
+float _gaussian_sigma;
+uint _source_width;
+uint _source_height;
+Texture2D<float4> source;
+// Texture2D<float> depth_source;
+RWTexture2D<float4> blur_result;
+
+#define TAU  6.283185307
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+SamplerState sampler_source;
+SamplerState sampler_blur_result;
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+float gaussian(float x, float y)
+{
+    const float sigma2 = _gaussian_sigma * _gaussian_sigma;
+    return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / sqrt(TAU * _gaussian_sigma));
+}
+
+[numthreads(8,8,1)]
+void gaussian_pyramid(uint3 id : SV_DispatchThreadID)
+{
+    float3 pixel_value = float3(0., 0., 0.);
+
+    float2 step = float2(1.0 / _source_width, 1.0 / _source_height);
+    const float2 texture_uv = float2(id.x * step.x, id.y * step.y);
+
+    float sum = 0.0f;
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; y++)
+        {
+            float gaus_factor = gaussian(x, y);
+            sum += gaus_factor;
+            pixel_value += gaus_factor * source.SampleLevel(sampler_source, texture_uv + float2(step.x * x, step.y * y), 0).xyz;
+        }
+    }
+
+    blur_result[id.xy] = float4(pixel_value.xyz / sum, 1);
+}
+
+[numthreads(8,8,1)]
+void compute_lines(uint3 id: SV_DispatchThreadID)
+{
+    float2 step = float2(1.0 / _source_width, 1.0 / _source_height);
+    float2 texture_uv = float2(id.x * step.x, id.y * step.y);
+
+    float2 offsets[8] = {
+        float2(-1, -1), float2(-1, 0), float2(-1, 1),
+        float2(0, -1),                 float2(0, 1),
+        float2(1, -1),  float2(1, 0),  float2(1, 1)
+    };
+}

@@ -5,10 +5,12 @@
 //      https://twitter.com/harryh___h/status/1328006632102526976
 
 using System.Collections.Generic;
+using Resources.RenderPass.OutlineBuffers;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace Shaders.OutlineBuffers
+namespace Resources.RenderPass.OutlineBuffers
 {
     public enum RenderQueueType
     {
@@ -62,15 +64,18 @@ namespace Shaders.OutlineBuffers
     [System.Serializable]
     public class LineworkSettings
     {
-        public PassSubTarget colorSubTarget = new(new List<string> { "Outline" }, "_OutlineOpaque", true, false, RenderTextureFormat.ARGBFloat);
-        public PassSubTarget depthSubTarget = new(new List<string> { "Outline" }, "_OutlineDepth", true, true, RenderTextureFormat.Depth);
+        public PassSubTarget colorSubTarget = new(new List<string> { "Outline" }, "_OutlineOpaque", TargetType.Color, true, RenderTextureFormat.ARGBFloat);
+        public PassSubTarget depthSubTarget = new(new List<string> { "Outline" }, "_OutlineDepth", TargetType.Depth, true, RenderTextureFormat.Depth);
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------------
     [System.Serializable]
     public class EdgeDetectionSettings
     {
+        [Header("Blur")]
         public ComputeShader computeBlur;
+        public ComputeShader computeLines;
+        [Header("Blit to Screen")]
         public Material blitMaterial;
         public Shader outlineEncoder;
     }
@@ -89,29 +94,30 @@ namespace Shaders.OutlineBuffers
 
     public class OutlineRenderer : ScriptableRendererFeature
     {
-        public OutlineSettings outlineSettings = new();
-        public FilterSettings filter => outlineSettings.filterSettings;
-        public LineworkSettings linework => outlineSettings.lineworkSettings;
-        public EdgeDetectionSettings edge => outlineSettings.edgeSettings;
-        private OutlineShaderProperties shaderProps => outlineSettings.outlineProperties;
+        public OutlineSettings settings = new();
+        // public FilterSettings filter => settings.filterSettings;
+        private LineworkSettings linework => settings.lineworkSettings;
+        private EdgeDetectionSettings edge => settings.edgeSettings;
+        // private OutlineShaderProperties shaderProps => settings.outlineProperties;
+
 
 
         private ShaderPassToRT _lineworkPass;
         private FullscreenEdgeDetectionBlit _computeLinesAndBlitPass;
 
         private Material _outlineEncoderMaterial;
-        private Shader outlineEncoderShader => outlineSettings.edgeSettings.outlineEncoder;
+        private Shader outlineEncoderShader => settings.edgeSettings.outlineEncoder;
 
-        private static readonly int OuterThreshold = Shader.PropertyToID("_OuterThreshold");
-        private static readonly int InnerThreshold = Shader.PropertyToID("_InnerThreshold");
-        private static readonly int Rotations = Shader.PropertyToID("_Rotations");
-        private static readonly int DepthPush = Shader.PropertyToID("_DepthPush");
-        private static readonly int OuterLut = Shader.PropertyToID("_OuterLUT");
-        private static readonly int InnerLut = Shader.PropertyToID("_InnerLUT");
+        // private static readonly int OuterThreshold = Shader.PropertyToID("_OuterThreshold");
+        // private static readonly int InnerThreshold = Shader.PropertyToID("_InnerThreshold");
+        // private static readonly int Rotations = Shader.PropertyToID("_Rotations");
+        // private static readonly int DepthPush = Shader.PropertyToID("_DepthPush");
+        // private static readonly int OuterLut = Shader.PropertyToID("_OuterLUT");
+        // private static readonly int InnerLut = Shader.PropertyToID("_InnerLUT");
 
         public override void Create()
         {
-            _lineworkPass = new ShaderPassToRT(outlineSettings, "LineworkPass", outlineSettings.renderPassEvent, 24);
+            _lineworkPass = new ShaderPassToRT(settings, "LineworkPass", edge.computeBlur, settings.renderPassEvent, 24);
             _computeLinesAndBlitPass = new FullscreenEdgeDetectionBlit("Outline Encoder");
             GetMaterial();
         }
@@ -126,29 +132,38 @@ namespace Shaders.OutlineBuffers
                 return;
             }
 
-            Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
-            Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
-            Shader.SetGlobalInt(Rotations, shaderProps.rotations);
-            Shader.SetGlobalFloat(DepthPush, shaderProps.depthPush);
-            Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
-            Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
+            // Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
+            // Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
+            // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
+            // Shader.SetGlobalFloat(DepthPush, shaderProps.depthPush);
+            // Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
+            // Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
+
+            var textureNameAndDebugView = settings.debugTargetView switch
+            {
+                DebugTargetView.None => "_BlurResults",
+                DebugTargetView.ColorTarget_1 => "_OutlineOpaque",
+                DebugTargetView.BlurResults => "_BlurResults",
+                _ => "_BlurResults"
+            };
 
             _lineworkPass.Init(true);
             renderer.EnqueuePass(_lineworkPass);
-            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, "_OutlineTexture", true);
-            renderer.EnqueuePass(_computeLinesAndBlitPass);
+            // _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, textureNameAndDebugView, linework.depthSubTarget.createTexture);
+
+            // renderer.EnqueuePass(_computeLinesAndBlitPass);
         }
 
 
         private bool GetMaterial()
         {
-            if (_outlineEncoderMaterial && outlineSettings.edgeSettings.blitMaterial)
+            if (_outlineEncoderMaterial && settings.edgeSettings.blitMaterial)
             {
                 return true;
             }
 
-            if (outlineEncoderShader == null || !outlineSettings.edgeSettings.blitMaterial) return false;
-            _outlineEncoderMaterial = new Material(outlineEncoderShader);
+            if (outlineEncoderShader == null || !settings.edgeSettings.blitMaterial) return false;
+            _outlineEncoderMaterial = CoreUtils.CreateEngineMaterial(outlineEncoderShader);
             return true;
         }
 

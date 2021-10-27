@@ -66,9 +66,10 @@ MonoBehaviour:
   m_Name: OutlineRenderer
   m_EditorClassIdentifier: 
   m_Active: 1
-  outlineSettings:
-    profilerTag: 
+  settings:
+    profilerTag: OutlineRenderer
     renderPassEvent: 300
+    debugTargetView: 0
     filterSettings:
       renderQueueType: 0
       layerMask:
@@ -76,24 +77,25 @@ MonoBehaviour:
         m_Bits: 2147483647
     lineworkSettings:
       colorSubTarget:
-        shaderName: Outline
+        shaderNames:
+        - Outline
         textureName: _OutlineOpaque
         createTexture: 1
         renderTextureFormat: 11
       depthSubTarget:
-        shaderName: Outline
+        shaderNames:
+        - Outline
         textureName: _OutlineDepth
         createTexture: 1
         renderTextureFormat: 1
     edgeSettings:
       computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
-      blurDebugView: 0
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
-      outlineEncoder: {fileID: 4800000, guid: 7b433c837e8a4d4f937344657bc2943a, type: 3}
+      outlineEncoder: {fileID: 4800000, guid: 4518a8d553b9c4048990f28deef5c56c, type: 3}
     outlineProperties:
-      outerThreshold: 0
-      innerThreshold: 0
-      rotations: 0
-      depthPush: 0
+      outerThreshold: 1
+      innerThreshold: 1
+      rotations: 8
+      depthPush: 0.000001
       outerLUT: {fileID: 0}
       innerLUT: {fileID: 0}

@@ -77,7 +77,7 @@
     #define GATHER_GREEN_TEXTURE2D_X(textureName, samplerName, coord2)       GATHER_GREEN_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
     #define GATHER_BLUE_TEXTURE2D_X(textureName, samplerName, coord2)        GATHER_BLUE_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
     #define GATHER_ALPHA_TEXTURE2D_X(textureName, samplerName, coord2)       GATHER_ALPHA_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
-#else
+#else // As of 2021.2.0, commented out macros now located in "Packages/com.unity.shadergraph/Editor/Generation/Targets/BuiltIn/ShaderLibrary/Core.hlsl"
     #define SLICE_ARRAY_INDEX                                                0
 
     #define COORD_TEXTURE2D_X(pixelCoord)                                    pixelCoord
