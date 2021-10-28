@@ -79,7 +79,7 @@ namespace Resources.RenderPass.OutlineBuffers
             //     ConfigureTarget(_combinedTargetId);
             // }
             //
-            ConfigureClear(ClearFlag.All, Color.white);
+            ConfigureClear(ClearFlag.All, Color.black);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -107,7 +107,7 @@ namespace Resources.RenderPass.OutlineBuffers
             
             // Blit render feature camera color target to _combinedHandle to be combined with outline texture in _material's shader
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            cmd.Blit(_renderer.cameraColorTarget, _combinedTargetId, _material);
+            cmd.Blit(renderingData.cameraData.renderer.cameraColorTarget, _combinedTargetId, _material);
             
             // Copy CombinedTexture to active camera color target
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

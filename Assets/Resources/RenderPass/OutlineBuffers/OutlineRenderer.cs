@@ -72,6 +72,7 @@ namespace Resources.RenderPass.OutlineBuffers
     public class EdgeDetectionSettings
     {
         [Header("Blur")]
+        public BlurType BlurType;
         public ComputeShader computeBlur;
         public ComputeShader computeLines;
         [Header("Blit to Screen")]
