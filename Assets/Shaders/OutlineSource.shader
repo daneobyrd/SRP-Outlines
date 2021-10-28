@@ -5,13 +5,17 @@ Shader "Example/OutlineSource"
     // called Base Map.
     Properties
     {
-        [MainTexture] _BaseMap("Base Map", 2D) = "white"
-        _OutlineOpaque("Outline Opaque", 2D) = "white"
+        [MainTexture] _BaseMap("Albedo", 2D) = "white"
     }
 
     SubShader
     {
-        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "LightMode" = "Outline" }
+        Tags
+        {
+            "RenderType" = "Opaque"
+            "RenderPipeline" = "UniversalPipeline"
+            "LightMode" = "Outline"
+        }
 
         Pass
         {

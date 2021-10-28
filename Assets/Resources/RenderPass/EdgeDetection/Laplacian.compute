@@ -1,7 +1,6 @@
 ﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
 
-#pragma kernel MAIN_LAPLACIAN
-#define GROUP_SIZE 32
+#pragma kernel KLaplacian                           GROUP_SIZE=32   MAIN_LAPLACIAN=KLaplacian
 // #define REGION_PER_THREAD 8
 
 
@@ -182,7 +181,7 @@ void MAIN_LAPLACIAN(//uint2 groupId : SV_GroupID,                               
     // 9 sample
     // Top row
     sum += source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  texelSize.y ), 0).rgb * -1; // -1_1
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  texelSize.y ), 0).rgb * -1;  // 0_1
+    sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  texelSize.y ), 0).rgb * -1;           // 0_1
     sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  texelSize.y ), 0).rgb * -1; // 1_1
     // Center row
     sum += source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  0 ), 0).rgb * -1; // -1_0

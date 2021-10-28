@@ -22,18 +22,20 @@ namespace Resources.RenderPass.OutlineBuffers
     [System.Serializable]
     public struct PassSubTarget
     {
-        public List<string> shaderNames;
+        public List<string> lightmodeTags;
         public string textureName;
-        public RenderTargetHandle TargetHandle;
+        [HideInInspector] public int renderTargetInt;
+        public RenderTargetIdentifier TargetIdentifier;
         public bool createTexture;
         public RenderTextureFormat renderTextureFormat;
-        public PassSubTarget(List<string> shaderNames, string textureName, TargetType type, bool createTexture, RenderTextureFormat rtFormat)
+        
+        public PassSubTarget(List<string> lightmodeTags, string textureName, TargetType type, bool createTexture, RenderTextureFormat rtFormat)
         {
-            this.shaderNames = shaderNames;
+            this.lightmodeTags = lightmodeTags;
             this.textureName = textureName;
             this.createTexture = createTexture;
-            TargetHandle = new RenderTargetHandle(new RenderTargetIdentifier(textureName));
-            TargetHandle.Init(new RenderTargetIdentifier(textureName));
+            renderTargetInt = Shader.PropertyToID(textureName);
+            TargetIdentifier = new RenderTargetIdentifier(renderTargetInt);
             renderTextureFormat = type switch
             {
                 TargetType.Color => rtFormat,
@@ -62,27 +64,31 @@ namespace Resources.RenderPass.OutlineBuffers
         private int _textureDepthBufferBits;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private PassSubTarget colorTargetConfig => _settings.lineworkSettings.colorSubTarget;
+        private PassSubTarget colorSubTarget => _settings.lineworkSettings.colorSubTarget;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private RenderTargetHandle colorHandle => colorTargetConfig.TargetHandle;
-        private bool createColorTexture => colorTargetConfig.createTexture;
-        private RenderTextureFormat colorFormat => colorTargetConfig.renderTextureFormat;
+        private int colorIntId => colorSubTarget.renderTargetInt;
+        private RenderTargetIdentifier colorTargetId => colorSubTarget.TargetIdentifier;
+        private bool createColorTexture => colorSubTarget.createTexture;
+        private RenderTextureFormat colorFormat => colorSubTarget.renderTextureFormat;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private PassSubTarget depthTargetConfig => _settings.lineworkSettings.depthSubTarget;
+        private PassSubTarget depthSubTarget => _settings.lineworkSettings.depthSubTarget;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private RenderTargetHandle depthHandle => depthTargetConfig.TargetHandle;
-        private bool createDepthTexture => depthTargetConfig.createTexture;
+        private int depthIntId => depthSubTarget.renderTargetInt;
+        private RenderTargetIdentifier depthTargetId => depthSubTarget.TargetIdentifier;
+
+        private bool createDepthTexture => depthSubTarget.createTexture;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
 
         private ComputeShader _computeShader;
 
         private RenderTextureDescriptor _cameraTextureDescriptor;
-        private RenderTargetHandle _blurHandle;
-
+        private int _blurIntId = Shader.PropertyToID("_BlurResults");
+        private RenderTargetIdentifier _blurTargetId;
+        
         private DebugTargetView debugTargetView => _settings.debugTargetView;
         #endregion
 
@@ -91,19 +97,19 @@ namespace Resources.RenderPass.OutlineBuffers
         {
             var totalShaderNames = new List<string>();
 
-            totalShaderNames.AddRange(colorTargetConfig.shaderNames);
+            totalShaderNames.AddRange(colorSubTarget.lightmodeTags);
             if (hasDepth)
             {
-                totalShaderNames.AddRange(depthTargetConfig.shaderNames);
+                totalShaderNames.AddRange(depthSubTarget.lightmodeTags);
             }
             
             if (_shaderTagIdList.Count >= totalShaderNames.Count) return;
-            foreach (var colorTag in colorTargetConfig.shaderNames)
+            foreach (var colorTag in colorSubTarget.lightmodeTags)
             {
                 _shaderTagIdList.Add(new ShaderTagId(colorTag));
             }
             if (!hasDepth) return;
-            foreach (var depthTag in depthTargetConfig.shaderNames)
+            foreach (var depthTag in depthSubTarget.lightmodeTags)
             {
                 _shaderTagIdList.Add(new ShaderTagId(depthTag));
             }
@@ -122,64 +128,58 @@ namespace Resources.RenderPass.OutlineBuffers
 
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
-            // colorHandle.Init(new RenderTargetIdentifier(colorTargetConfig.textureName));
-            // depthHandle.Init(new RenderTargetIdentifier(depthTargetConfig.textureName));
-            // Debug.Log(nameof(colorTargetConfig.TargetHandle));
             _cameraTextureDescriptor = cameraTextureDescriptor;
-            _cameraTextureDescriptor.enableRandomWrite = true;
 
             List<RenderTargetIdentifier> attachmentsToConfigure = new();
             
-            // Create temporary color render texture array for cmd.SetComputeTextureParam("_Source").
-            if (createColorTexture)
-            {
-                cmd.GetTemporaryRTArray(nameID: colorHandle.id,
-                                        width: cameraTextureDescriptor.width,
-                                        height: cameraTextureDescriptor.height,
-                                        slices: 5,
-                                        depthBuffer: _textureDepthBufferBits,
-                                        filter: FilterMode.Point,
-                                        format: colorFormat,
-                                        readWrite: RenderTextureReadWrite.Default,
-                                        antiAliasing: 1,
-                                        enableRandomWrite: _cameraTextureDescriptor.enableRandomWrite);
-                attachmentsToConfigure.Add(item: colorHandle.id);
-            }
+            cmd.GetTemporaryRTArray(nameID: colorIntId,
+                                    width: cameraTextureDescriptor.width,
+                                    height: cameraTextureDescriptor.height,
+                                    slices: 5,
+                                    depthBuffer: _textureDepthBufferBits,
+                                    filter: FilterMode.Point,
+                                    format: colorFormat,
+                                    readWrite: RenderTextureReadWrite.Default,
+                                    antiAliasing: 1,
+                                    enableRandomWrite: true);
+            if (createColorTexture) attachmentsToConfigure.Add(colorIntId);
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
-            if (createDepthTexture)
-            {
-                cmd.GetTemporaryRT(nameID: depthHandle.id, 
-                                   width: cameraTextureDescriptor.width,
-                                   height: cameraTextureDescriptor.height,
-                                   depthBuffer: _textureDepthBufferBits,
-                                   filter: FilterMode.Point,
-                                   format: RenderTextureFormat.Depth);
-                attachmentsToConfigure.Add(item: depthHandle.id);
-            }
+            cmd.GetTemporaryRT(nameID: depthIntId, 
+                               width: cameraTextureDescriptor.width,
+                               height: cameraTextureDescriptor.height,
+                               depthBuffer: _textureDepthBufferBits,
+                               filter: FilterMode.Point,
+                               format: RenderTextureFormat.Depth);
+            if (createDepthTexture) attachmentsToConfigure.Add(depthIntId);
 
-            // if (_debugTargetView is DebugTargetView.None or DebugTargetView.BlurResults)
-            // {
-                cmd.GetTemporaryRTArray(nameID: _blurHandle.id,
-                                        width: cameraTextureDescriptor.width,
-                                        height: cameraTextureDescriptor.height,
-                                        slices: 5,
-                                        depthBuffer: _textureDepthBufferBits,
-                                        filter: FilterMode.Point,
-                                        format: RenderTextureFormat.ARGBFloat,
-                                        readWrite: RenderTextureReadWrite.Default,
-                                        antiAliasing: 1,
-                                        enableRandomWrite: _cameraTextureDescriptor.enableRandomWrite);
-            // }
+            // Manually assign _blurIdentifier and _blurIntId since blur target is not <PassSubTarget>.
+            _blurTargetId = new RenderTargetIdentifier(_blurIntId);
+            cmd.GetTemporaryRTArray(nameID: _blurIntId,
+                                    width: cameraTextureDescriptor.width,
+                                    height: cameraTextureDescriptor.height,
+                                    slices: 5,
+                                    depthBuffer: _textureDepthBufferBits,
+                                    filter: FilterMode.Point,
+                                    format: RenderTextureFormat.ARGBFloat,
+                                    readWrite: RenderTextureReadWrite.Default,
+                                    antiAliasing: 1,
+                                    enableRandomWrite: true);
 
 
             // Configure color and depth targets
                 ConfigureTarget(attachmentsToConfigure.ToArray());
                 
-            if (createColorTexture || createDepthTexture)
+                
+            if (createColorTexture)
             {
-                ConfigureClear(ClearFlag.All, Color.black);
+                cmd.SetGlobalTexture(colorIntId, colorTargetId);
+                ConfigureClear(ClearFlag.Color, Color.black);
             }
+
+            if (!createDepthTexture) return;
+            cmd.SetGlobalTexture(depthIntId, depthTargetId);
+            ConfigureClear(ClearFlag.Depth, Color.black);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -190,6 +190,7 @@ namespace Resources.RenderPass.OutlineBuffers
             var width = _cameraTextureDescriptor.width;
             var height = _cameraTextureDescriptor.height;
 
+            
             SortingCriteria sortingCriteria = renderQueueType == RenderQueueType.Opaque
                 ? renderingData.cameraData.defaultOpaqueSortFlags
                 : SortingCriteria.CommonTransparent;
@@ -197,42 +198,35 @@ namespace Resources.RenderPass.OutlineBuffers
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
 
-            cmd.SetGlobalTexture(colorTargetConfig.textureName, colorHandle.Identifier());
-
-            if (createDepthTexture)
-            {
-                cmd.SetGlobalTexture(depthTargetConfig.textureName, depthHandle.Identifier());
-            }
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
-            // computeShader.DisableKeyword("COPY_MIP_0");
+            // _computeShader.DisableKeyword("COPY_MIP_0");
             cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(width, height, 0, 0));
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
             var gaussKernel = _computeShader.FindKernel("KColorGaussian");
-            cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
-            cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", _blurHandle.Identifier(), 0);
+            cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", colorTargetId, 0, RenderTextureSubElement.Color);
+            cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", _blurTargetId, 0);
             cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
             var downsampleKernel = _computeShader.FindKernel("KColorDownsample");
-            cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", colorHandle.Identifier(), 0, RenderTextureSubElement.Color);
-            cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", _blurHandle.Identifier(), 0);
+            cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", colorTargetId, 0, RenderTextureSubElement.Color);
+            cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", _blurTargetId, 0);
             cmd.DispatchCompute(_computeShader, downsampleKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
-            cmd.SetGlobalTexture("_BlurResults", _blurHandle.Identifier(), RenderTextureSubElement.Color);
-            
+            cmd.SetGlobalTexture(_blurIntId, _blurTargetId, RenderTextureSubElement.Color);
             
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public override void OnCameraCleanup(CommandBuffer cmd)
+        public override void FrameCleanup(CommandBuffer cmd)
         {
-            if (createColorTexture) cmd.ReleaseTemporaryRT(colorHandle.id);
-            if (createDepthTexture) cmd.ReleaseTemporaryRT(depthHandle.id);
-            cmd.ReleaseTemporaryRT(_blurHandle.id);
+            if (createColorTexture) cmd.ReleaseTemporaryRT(colorIntId);
+            if (createDepthTexture) cmd.ReleaseTemporaryRT(depthIntId);
+            cmd.ReleaseTemporaryRT(_blurIntId);
         }
     }
 }

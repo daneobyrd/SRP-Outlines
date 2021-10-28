@@ -257,7 +257,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
         Pass
         {
             Name "DepthOnly"
-            Tags{"LightMode" = "DepthOnly"}
+            Tags{"LightMode" = "OutlineDepthOnly"}
 
             // more explict render state to avoid confusion
             ZWrite On // the only goal of this pass is to write depth!

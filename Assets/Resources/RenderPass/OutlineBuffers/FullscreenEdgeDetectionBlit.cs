@@ -21,13 +21,26 @@ namespace Resources.RenderPass.OutlineBuffers
 
         private ScriptableRenderer _renderer;
         private bool _hasDepth;
-        private ComputeShader _computeShader = null;
+        private ComputeShader _computeShader;
         
-        private RenderTargetHandle _source; // _BlurResults or _OutlineOpaque
-        private RenderTargetHandle _outlineHandle = new (new RenderTargetIdentifier("_OutlineTexture"));
-        private RenderTargetHandle _outlineDepth = new(new RenderTargetIdentifier("_OutlineDepth"));
-        private RenderTargetHandle _combinedHandle;
+        // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+        private int _sourceIntId;   // _BlurResults or _OutlineOpaque (Debug)
+        private RenderTargetIdentifier _sourceId;
         
+        // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+        private int _outlineIntId = Shader.PropertyToID("_OutlineTexture");
+        private RenderTargetIdentifier outlineTargetId => new (_outlineIntId);
+        
+        // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+        private int _outlineDepthIntId = Shader.PropertyToID("_OutlineDepth");
+        private RenderTargetIdentifier outlineDepthTargetId => new (_outlineDepthIntId);
+        
+        // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+        private int _combinedIntId = Shader.PropertyToID("_MainTex");
+        private RenderTargetIdentifier _combinedTargetId;
+        
+        // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
         public FullscreenEdgeDetectionBlit(string name)
         {
             renderPassEvent = RenderPassEvent.BeforeRenderingTransparents;
@@ -37,8 +50,7 @@ namespace Resources.RenderPass.OutlineBuffers
         public void Init(Material initMaterial, ScriptableRenderer newRenderer, ComputeShader computeShader, string sourceTextureName, bool hasDepth)
         {
             _material = initMaterial;
-            _source = new RenderTargetHandle(new RenderTargetIdentifier(sourceTextureName));
-            _source.Init(sourceTextureName);
+            _sourceIntId = Shader.PropertyToID(sourceTextureName);
             _renderer = newRenderer;
             _hasDepth = hasDepth;
             _computeShader = computeShader;
@@ -46,21 +58,25 @@ namespace Resources.RenderPass.OutlineBuffers
 
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
-            _outlineHandle.Init(new RenderTargetIdentifier("_OutlineTexture"));
-            if (_hasDepth) _outlineDepth.Init(new RenderTargetIdentifier("_OutlineDepth"));
-            cmd.GetTemporaryRT(_source.id, cameraTextureDescriptor);
-            cmd.GetTemporaryRT(_combinedHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 24,
-                FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default,1, enableRandomWrite:true);
-            cmd.GetTemporaryRT(_outlineDepth.id, cameraTextureDescriptor);
-            cmd.GetTemporaryRT(_outlineHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 24,
-                FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default,1, enableRandomWrite:true);
+            var width = cameraTextureDescriptor.width;
+            var height = cameraTextureDescriptor.height;
+            
+            cmd.GetTemporaryRT(_sourceIntId, width, height, 24, FilterMode.Point, RenderTextureFormat.ARGBFloat);
+            
+            cmd.GetTemporaryRT(_combinedIntId, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat,
+                                RenderTextureReadWrite.Default, 1, true);
+            
+            cmd.GetTemporaryRT(_outlineDepthIntId, width, height, 24, FilterMode.Point, RenderTextureFormat.Depth);
+            
+            cmd.GetTemporaryRT(_outlineIntId, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat,
+                                RenderTextureReadWrite.Default, 1, true);
             if (_hasDepth)
             {
-                ConfigureTarget(_combinedHandle.Identifier(), _outlineDepth.Identifier());
+                ConfigureTarget(_combinedTargetId, depthAttachment: outlineDepthTargetId);
             }
             else
             {
-                ConfigureTarget(_combinedHandle.Identifier());
+                ConfigureTarget(_combinedTargetId);
             }
             
             ConfigureClear(ClearFlag.All, Color.black);
@@ -75,53 +91,38 @@ namespace Resources.RenderPass.OutlineBuffers
             var width = textureDescriptor.width;
             var height = textureDescriptor.height;
             var camSize = new Vector4(width, height, 0, 0);
-            // Camera camera = renderingData.cameraData.camera;
 
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Edge detection compute
-            // ---------------------------------------------------------------------------------------------------------------
-            var laplacian = _computeShader.FindKernel("MAIN_LAPLACIAN");
-            cmd.SetComputeVectorParam(_computeShader, "_Size", camSize );
-            cmd.SetComputeTextureParam(_computeShader, laplacian, "source", _source.Identifier());
-            cmd.SetComputeTextureParam(_computeShader, laplacian, "result", _outlineHandle.Identifier());
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            var laplacian = _computeShader.FindKernel("KLaplacian");
+            cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
+            cmd.SetComputeTextureParam(_computeShader, laplacian, "source", _sourceIntId, 0);
+            cmd.SetComputeTextureParam(_computeShader, laplacian, "result", _outlineIntId, 0);
             cmd.DispatchCompute(_computeShader, laplacian, Mathf.CeilToInt(width / 32f), Mathf.CeilToInt(height / 32f), 1);
 
-            // ---------------------------------------------------------------------------------------------------------------
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Set global texture _OutlineTexture with computed edge data.
-            cmd.SetGlobalTexture("_OutlineTexture", _outlineHandle.Identifier());
+            cmd.SetGlobalTexture("_OutlineTexture", outlineTargetId);
 
-            // if (debugTargetView != DebugTargetView.None)
-            // {
-            //     var debugHandle = debugTargetView switch
-            //     {
-            //         DebugTargetView.ColorTarget_1 => _source,
-            //         DebugTargetView.Depth => _outlineDepth,
-            //         DebugTargetView.BlurResults => _source,
-            //         DebugTargetView.EdgeResults => _outlineHandle,
-            //         _ => new RenderTargetHandle()
-            //     };
-                // cmd.Blit(debugHandle.Identifier(), renderingData.cameraData.renderer.cameraColorTarget);
-            // }
-            // else
-            // {
-                // Blit render feature camera color target to _combinedHandle to be combined with outline texture in _material's shader
-                cmd.Blit(_renderer.cameraColorTarget, _combinedHandle.Identifier(), _material);
-                // Copy CombinedTexture to active camera color target
-                cmd.Blit(_combinedHandle.Identifier(), renderingData.cameraData.renderer.cameraColorTarget);
-                // Copy outline depth to camera depth target for use in other features, like a transparent pass.
-                if (_hasDepth) cmd.Blit(_outlineDepth.Identifier(), renderingData.cameraData.renderer.cameraDepthTarget);
+            // Blit render feature camera color target to _combinedHandle to be combined with outline texture in _material's shader
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            cmd.Blit(renderingData.cameraData.renderer.cameraColorTarget, _combinedTargetId, _material);
+            // Copy CombinedTexture to active camera color target
+            cmd.Blit(_combinedTargetId, renderingData.cameraData.renderer.cameraColorTarget);
+            // Copy outline depth to camera depth target for use in other features, like a transparent pass.
+            if (_hasDepth) cmd.Blit(outlineDepthTargetId, renderingData.cameraData.renderer.cameraDepthTarget);
             // }
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public override void OnCameraCleanup(CommandBuffer cmd)
+        public override void FrameCleanup(CommandBuffer cmd)
         {
-            if (_source.id != -1)
-                cmd.ReleaseTemporaryRT(_source.id);
-            if (_combinedHandle.id != -1)
-                cmd.ReleaseTemporaryRT(_combinedHandle.id);
-            if (_outlineDepth.id != -1)
-                cmd.ReleaseTemporaryRT(_outlineDepth.id);
+                cmd.ReleaseTemporaryRT(_sourceIntId);
+                cmd.ReleaseTemporaryRT(_outlineIntId);
+                cmd.ReleaseTemporaryRT(_outlineDepthIntId);
+                cmd.ReleaseTemporaryRT(_combinedIntId);
         }
     }
 }

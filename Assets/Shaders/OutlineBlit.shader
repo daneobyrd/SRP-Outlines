@@ -18,7 +18,8 @@
     {
         Tags
         {
-            "RenderPipeline" = "Universal"
+            "RenderType" = "Opaque"
+            "RenderPipeline" = "UniversalPipeline"
         }
         Pass
         {
@@ -27,6 +28,8 @@
             // Reference:
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
@@ -39,21 +42,24 @@
                 float3 positionWS;
                 uint unity_InstanceID;
             };
-            
+
             StructuredBuffer<outlined_obj> outline_objBuffer;
 
             // float _OuterThreshold;
             // float _InnerThreshold;
-            CBUFFER_START(UnityPerMaterial)
+            // CBUFFER_START(UnityPerMaterial)
             TEXTURE2D(_OutlineOpaque);
             SAMPLER(sampler_OutlineOpaque);
+            TEXTURE2D(_OutlineDepth);
+            SAMPLER(sampler_OutlineDepth);
             TEXTURE2D(_OutlineTexture);
-            SAMPLER(sampler_OutlineTexture);            
-            CBUFFER_END
+            SAMPLER(sampler_OutlineTexture);
+            
+            // CBUFFER_END
 
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
-            
+
             Varyings vert(Attributes input)
             {
                 return FullscreenVert(input);

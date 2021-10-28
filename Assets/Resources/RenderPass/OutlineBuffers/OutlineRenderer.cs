@@ -3,9 +3,8 @@
 //      Pastebin: https://pastebin.com/rvju9psM
 // The original code was used in a recreation of a Mako illustration:
 //      https://twitter.com/harryh___h/status/1328006632102526976
-
+using System;
 using System.Collections.Generic;
-using Resources.RenderPass.OutlineBuffers;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -131,7 +130,6 @@ namespace Resources.RenderPass.OutlineBuffers
                     GetType().Name, outlineEncoderShader);
                 return;
             }
-
             // Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
             // Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
             // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
@@ -139,18 +137,18 @@ namespace Resources.RenderPass.OutlineBuffers
             // Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
             // Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
 
-            var textureNameAndDebugView = settings.debugTargetView switch
-            {
-                DebugTargetView.None => "_BlurResults",
-                DebugTargetView.ColorTarget_1 => "_OutlineOpaque",
-                DebugTargetView.BlurResults => "_BlurResults",
-                _ => "_BlurResults"
-            };
+            // var textureNameAndDebugView = settings.debugTargetView switch
+            // {
+            //     DebugTargetView.None => "_BlurResults",
+            //     DebugTargetView.ColorTarget_1 => "_OutlineOpaque",
+            //     DebugTargetView.BlurResults => "_BlurResults",
+            //     _ => "_BlurResults"
+            // };
 
             _lineworkPass.Init(true);
             renderer.EnqueuePass(_lineworkPass);
-            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, textureNameAndDebugView, linework.depthSubTarget.createTexture);
-            // renderer.EnqueuePass(_computeLinesAndBlitPass);
+            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, "_BlurResults", linework.depthSubTarget.createTexture);
+            renderer.EnqueuePass(_computeLinesAndBlitPass);
         }
 
 
@@ -165,17 +163,5 @@ namespace Resources.RenderPass.OutlineBuffers
             _outlineEncoderMaterial = CoreUtils.CreateEngineMaterial(outlineEncoderShader);
             return true;
         }
-
-        /*private bool GetComputeShader()
-        {
-            if (outlineSettings.edgeSettings.computeBlur != null) return true;
-            outlineSettings.edgeSettings.computeBlur = (ComputeShader)Resources.Load("ColorPyramid.compute");
-            return true;
-        }
-        private void OnValidate()
-        {
-            // GetComputeShader();
-            // GetMaterial();
-        }*/
     }
 }
