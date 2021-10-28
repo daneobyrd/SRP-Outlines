@@ -3,10 +3,10 @@
     Properties
     {
         _MainTex ("Main Texture", 2D) = "white" {}
-        [HideInInspector] _OutlineOpaque ("Outline Opaque", 2D) = "white" {}
-        [HideInInspector] _OutlineDepth ("Outline Depth", 2D) = "white" {}
-        [HideInInspector] _BlurResults ("Blur Results", 2D) = "white" {}
-        [HideInInspector] _OutlineTexture ("Outline Texture", 2D) = "white" {}
+//        [HideInInspector] _OutlineOpaque ("Outline Opaque", 2D) = "white" {}
+//        [HideInInspector] _OutlineDepth ("Outline Depth", 2D) = "white" {}
+//        [HideInInspector] _BlurResults ("Blur Results", 2D) = "white" {}
+//        [HideInInspector] _OutlineTexture ("Outline Texture", 2D) = "white" {}
 //        _OuterThreshold ("Outer Threshold", float) = 0.0
 //        _InnerThreshold ("Inner Threshold", float) = 0.0
 //        _Rotations ("Rotations", int) = 6
@@ -47,15 +47,14 @@
 
             // float _OuterThreshold;
             // float _InnerThreshold;
-            // CBUFFER_START(UnityPerMaterial)
+            CBUFFER_START(UnityPerMaterial)
             TEXTURE2D(_OutlineOpaque);
             SAMPLER(sampler_OutlineOpaque);
             TEXTURE2D(_OutlineDepth);
             SAMPLER(sampler_OutlineDepth);
             TEXTURE2D(_OutlineTexture);
             SAMPLER(sampler_OutlineTexture);
-            
-            // CBUFFER_END
+            CBUFFER_END
 
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);

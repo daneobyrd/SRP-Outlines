@@ -36,8 +36,8 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTargetIdentifier outlineDepthTargetId => new (_outlineDepthIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private int _combinedIntId = Shader.PropertyToID("_MainTex");
-        private RenderTargetIdentifier _combinedTargetId;
+        private int _combinedIntId = Shader.PropertyToID("_CombinedTexture");
+        private RenderTargetIdentifier _combinedTargetId => new (_combinedIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -70,16 +70,16 @@ namespace Resources.RenderPass.OutlineBuffers
             
             cmd.GetTemporaryRT(_outlineIntId, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat,
                                 RenderTextureReadWrite.Default, 1, true);
-            if (_hasDepth)
-            {
-                ConfigureTarget(_combinedTargetId, depthAttachment: outlineDepthTargetId);
-            }
-            else
-            {
-                ConfigureTarget(_combinedTargetId);
-            }
-            
-            ConfigureClear(ClearFlag.All, Color.black);
+            // if (_hasDepth)
+            // {
+            //     ConfigureTarget(_combinedTargetId, depthAttachment: outlineDepthTargetId);
+            // }
+            // else
+            // {
+            //     ConfigureTarget(_combinedTargetId);
+            // }
+            //
+            ConfigureClear(ClearFlag.All, Color.white);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -101,28 +101,44 @@ namespace Resources.RenderPass.OutlineBuffers
             cmd.SetComputeTextureParam(_computeShader, laplacian, "result", _outlineIntId, 0);
             cmd.DispatchCompute(_computeShader, laplacian, Mathf.CeilToInt(width / 32f), Mathf.CeilToInt(height / 32f), 1);
 
-            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Set global texture _OutlineTexture with computed edge data.
-            cmd.SetGlobalTexture("_OutlineTexture", outlineTargetId);
-
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            cmd.SetGlobalTexture(_outlineIntId, outlineTargetId);
+            
             // Blit render feature camera color target to _combinedHandle to be combined with outline texture in _material's shader
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            cmd.Blit(renderingData.cameraData.renderer.cameraColorTarget, _combinedTargetId, _material);
+            cmd.Blit(_renderer.cameraColorTarget, _combinedTargetId, _material);
+            
             // Copy CombinedTexture to active camera color target
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             cmd.Blit(_combinedTargetId, renderingData.cameraData.renderer.cameraColorTarget);
+            
             // Copy outline depth to camera depth target for use in other features, like a transparent pass.
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             if (_hasDepth) cmd.Blit(outlineDepthTargetId, renderingData.cameraData.renderer.cameraDepthTarget);
-            // }
+            
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public override void FrameCleanup(CommandBuffer cmd)
+        public override void OnCameraCleanup(CommandBuffer cmd)
         {
+            if (_sourceIntId != -1)
+            {
                 cmd.ReleaseTemporaryRT(_sourceIntId);
+            }
+            if (_outlineIntId != -1)
+            {
                 cmd.ReleaseTemporaryRT(_outlineIntId);
+            }
+            if (_outlineDepthIntId != -1)
+            {
                 cmd.ReleaseTemporaryRT(_outlineDepthIntId);
+            }
+            if (_combinedIntId != -1)
+            {
                 cmd.ReleaseTemporaryRT(_combinedIntId);
+            }
         }
     }
 }

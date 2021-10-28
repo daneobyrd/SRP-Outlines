@@ -55,7 +55,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
         private OutlineSettings _settings;
         private FilterSettings filter => _settings.filterSettings;
-        // private LineworkSettings linework => _settings.lineworkSettings;
+        private LineworkSettings linework => _settings.lineworkSettings;
         // private EdgeDetectionSettings edge => _settings.edgeSettings;
 
         private string _profilerTag;
@@ -64,7 +64,7 @@ namespace Resources.RenderPass.OutlineBuffers
         private int _textureDepthBufferBits;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private PassSubTarget colorSubTarget => _settings.lineworkSettings.colorSubTarget;
+        private PassSubTarget colorSubTarget => linework.colorSubTarget;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private int colorIntId => colorSubTarget.renderTargetInt;
@@ -73,7 +73,7 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTextureFormat colorFormat => colorSubTarget.renderTextureFormat;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private PassSubTarget depthSubTarget => _settings.lineworkSettings.depthSubTarget;
+        private PassSubTarget depthSubTarget => linework.depthSubTarget;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private int depthIntId => depthSubTarget.renderTargetInt;
@@ -87,7 +87,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
         private RenderTextureDescriptor _cameraTextureDescriptor;
         private int _blurIntId = Shader.PropertyToID("_BlurResults");
-        private RenderTargetIdentifier _blurTargetId;
+        private RenderTargetIdentifier blurTargetId => new(_blurIntId);
         
         private DebugTargetView debugTargetView => _settings.debugTargetView;
         #endregion
@@ -153,8 +153,6 @@ namespace Resources.RenderPass.OutlineBuffers
                                format: RenderTextureFormat.Depth);
             if (createDepthTexture) attachmentsToConfigure.Add(depthIntId);
 
-            // Manually assign _blurIdentifier and _blurIntId since blur target is not <PassSubTarget>.
-            _blurTargetId = new RenderTargetIdentifier(_blurIntId);
             cmd.GetTemporaryRTArray(nameID: _blurIntId,
                                     width: cameraTextureDescriptor.width,
                                     height: cameraTextureDescriptor.height,
@@ -171,13 +169,13 @@ namespace Resources.RenderPass.OutlineBuffers
                 ConfigureTarget(attachmentsToConfigure.ToArray());
                 
                 
-            if (createColorTexture)
-            {
+            // if (createColorTexture)
+            // {
                 cmd.SetGlobalTexture(colorIntId, colorTargetId);
                 ConfigureClear(ClearFlag.Color, Color.black);
-            }
+            // }
 
-            if (!createDepthTexture) return;
+            // if (!createDepthTexture) return;
             cmd.SetGlobalTexture(depthIntId, depthTargetId);
             ConfigureClear(ClearFlag.Depth, Color.black);
         }
@@ -206,23 +204,23 @@ namespace Resources.RenderPass.OutlineBuffers
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
             var gaussKernel = _computeShader.FindKernel("KColorGaussian");
             cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", colorTargetId, 0, RenderTextureSubElement.Color);
-            cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", _blurTargetId, 0);
+            cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurTargetId, 0);
             cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
             var downsampleKernel = _computeShader.FindKernel("KColorDownsample");
             cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", colorTargetId, 0, RenderTextureSubElement.Color);
-            cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", _blurTargetId, 0);
+            cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", blurTargetId, 0);
             cmd.DispatchCompute(_computeShader, downsampleKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
-            cmd.SetGlobalTexture(_blurIntId, _blurTargetId, RenderTextureSubElement.Color);
+            cmd.SetGlobalTexture(_blurIntId, blurTargetId, RenderTextureSubElement.Color);
             
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public override void FrameCleanup(CommandBuffer cmd)
+        public override void OnCameraCleanup(CommandBuffer cmd)
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorIntId);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthIntId);
