@@ -33,7 +33,7 @@ namespace Resources.RenderPass.OutlineBuffers
             this.textureName = textureName;
             this.createTexture = createTexture;
             TargetHandle = new RenderTargetHandle(new RenderTargetIdentifier(textureName));
-            TargetHandle.Init(textureName);
+            TargetHandle.Init(new RenderTargetIdentifier(textureName));
             renderTextureFormat = type switch
             {
                 TargetType.Color => rtFormat,
@@ -53,7 +53,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
         private OutlineSettings _settings;
         private FilterSettings filter => _settings.filterSettings;
-        private LineworkSettings linework => _settings.lineworkSettings;
+        // private LineworkSettings linework => _settings.lineworkSettings;
         // private EdgeDetectionSettings edge => _settings.edgeSettings;
 
         private string _profilerTag;
@@ -62,7 +62,7 @@ namespace Resources.RenderPass.OutlineBuffers
         private int _textureDepthBufferBits;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private PassSubTarget colorTargetConfig => linework.colorSubTarget;
+        private PassSubTarget colorTargetConfig => _settings.lineworkSettings.colorSubTarget;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private RenderTargetHandle colorHandle => colorTargetConfig.TargetHandle;
@@ -70,7 +70,7 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTextureFormat colorFormat => colorTargetConfig.renderTextureFormat;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
-        private PassSubTarget depthTargetConfig => linework.depthSubTarget;
+        private PassSubTarget depthTargetConfig => _settings.lineworkSettings.depthSubTarget;
 
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private RenderTargetHandle depthHandle => depthTargetConfig.TargetHandle;
@@ -122,6 +122,9 @@ namespace Resources.RenderPass.OutlineBuffers
 
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
+            // colorHandle.Init(new RenderTargetIdentifier(colorTargetConfig.textureName));
+            // depthHandle.Init(new RenderTargetIdentifier(depthTargetConfig.textureName));
+            // Debug.Log(nameof(colorTargetConfig.TargetHandle));
             _cameraTextureDescriptor = cameraTextureDescriptor;
             _cameraTextureDescriptor.enableRandomWrite = true;
 
@@ -193,11 +196,12 @@ namespace Resources.RenderPass.OutlineBuffers
             DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIdList, ref renderingData, sortingCriteria);
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
-            cmd.SetGlobalTexture("_OutlineOpaque", colorHandle.Identifier());
+
+            cmd.SetGlobalTexture(colorTargetConfig.textureName, colorHandle.Identifier());
 
             if (createDepthTexture)
             {
-                cmd.SetGlobalTexture("_OutlineDepth", depthHandle.Identifier());
+                cmd.SetGlobalTexture(depthTargetConfig.textureName, depthHandle.Identifier());
             }
 
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -219,11 +223,12 @@ namespace Resources.RenderPass.OutlineBuffers
             // -----------------------------------------------------------------------------------------------------------------------------------------------------
             cmd.SetGlobalTexture("_BlurResults", _blurHandle.Identifier(), RenderTextureSubElement.Color);
             
+            
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public override void FrameCleanup(CommandBuffer cmd)
+        public override void OnCameraCleanup(CommandBuffer cmd)
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorHandle.id);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthHandle.id);

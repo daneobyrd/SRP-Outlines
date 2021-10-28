@@ -80,7 +80,7 @@ MonoBehaviour:
         shaderNames:
         - Outline
         textureName: _OutlineOpaque
-        createTexture: 1
+        createTexture: 0
         renderTextureFormat: 11
       depthSubTarget:
         shaderNames:

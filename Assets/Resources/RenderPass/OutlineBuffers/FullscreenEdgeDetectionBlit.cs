@@ -46,22 +46,22 @@ namespace Resources.RenderPass.OutlineBuffers
 
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
-            _outlineHandle.Init("_OutlineTexture");
-            // if (m_HasDepth) m_OutlineDepth.Init("_OutlineDepth");
-            
+            _outlineHandle.Init(new RenderTargetIdentifier("_OutlineTexture"));
+            if (_hasDepth) _outlineDepth.Init(new RenderTargetIdentifier("_OutlineDepth"));
+            cmd.GetTemporaryRT(_source.id, cameraTextureDescriptor);
             cmd.GetTemporaryRT(_combinedHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 24,
                 FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default,1, enableRandomWrite:true);
-            // cmd.GetTemporaryRT(m_OutlineDepth.id, cameraTextureDescriptor);
+            cmd.GetTemporaryRT(_outlineDepth.id, cameraTextureDescriptor);
             cmd.GetTemporaryRT(_outlineHandle.id, cameraTextureDescriptor.width, cameraTextureDescriptor.height, 24,
                 FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default,1, enableRandomWrite:true);
-            // if (m_HasDepth)
-            // {
-            //     ConfigureTarget(m_CombinedRTHandle.Identifier(), m_OutlineDepth.Identifier());
-            // }
-            // else
-            // {
+            if (_hasDepth)
+            {
+                ConfigureTarget(_combinedHandle.Identifier(), _outlineDepth.Identifier());
+            }
+            else
+            {
                 ConfigureTarget(_combinedHandle.Identifier());
-            // }
+            }
             
             ConfigureClear(ClearFlag.All, Color.black);
         }
@@ -89,32 +89,32 @@ namespace Resources.RenderPass.OutlineBuffers
             // Set global texture _OutlineTexture with computed edge data.
             cmd.SetGlobalTexture("_OutlineTexture", _outlineHandle.Identifier());
 
-            if (debugTargetView != DebugTargetView.None)
-            {
-                var debugHandle = debugTargetView switch
-                {
-                    DebugTargetView.ColorTarget_1 => _source,
-                    DebugTargetView.Depth => _outlineDepth,
-                    DebugTargetView.BlurResults => _source,
-                    DebugTargetView.EdgeResults => _outlineHandle,
-                    _ => new RenderTargetHandle()
-                };
-                cmd.Blit(debugHandle.Identifier(), renderingData.cameraData.renderer.cameraColorTarget);
-            }
-            else
-            {
+            // if (debugTargetView != DebugTargetView.None)
+            // {
+            //     var debugHandle = debugTargetView switch
+            //     {
+            //         DebugTargetView.ColorTarget_1 => _source,
+            //         DebugTargetView.Depth => _outlineDepth,
+            //         DebugTargetView.BlurResults => _source,
+            //         DebugTargetView.EdgeResults => _outlineHandle,
+            //         _ => new RenderTargetHandle()
+            //     };
+                // cmd.Blit(debugHandle.Identifier(), renderingData.cameraData.renderer.cameraColorTarget);
+            // }
+            // else
+            // {
                 // Blit render feature camera color target to _combinedHandle to be combined with outline texture in _material's shader
                 cmd.Blit(_renderer.cameraColorTarget, _combinedHandle.Identifier(), _material);
                 // Copy CombinedTexture to active camera color target
-                cmd.CopyTexture(_combinedHandle.Identifier(), renderingData.cameraData.renderer.cameraColorTarget);
+                cmd.Blit(_combinedHandle.Identifier(), renderingData.cameraData.renderer.cameraColorTarget);
                 // Copy outline depth to camera depth target for use in other features, like a transparent pass.
-                if (_hasDepth) cmd.CopyTexture(_outlineDepth.Identifier(), renderingData.cameraData.renderer.cameraDepthTarget);
-            }
+                if (_hasDepth) cmd.Blit(_outlineDepth.Identifier(), renderingData.cameraData.renderer.cameraDepthTarget);
+            // }
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public override void FrameCleanup(CommandBuffer cmd)
+        public override void OnCameraCleanup(CommandBuffer cmd)
         {
             if (_source.id != -1)
                 cmd.ReleaseTemporaryRT(_source.id);

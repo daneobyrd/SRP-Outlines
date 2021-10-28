@@ -24,7 +24,7 @@ namespace Resources.RenderPass.OutlineBuffers
         ColorTarget_1,
         Depth,
         BlurResults,
-        EdgeResults
+        OutlinesOnly
     }
 
     [System.Serializable]
@@ -95,10 +95,10 @@ namespace Resources.RenderPass.OutlineBuffers
     public class OutlineRenderer : ScriptableRendererFeature
     {
         public OutlineSettings settings = new();
-        // public FilterSettings filter => settings.filterSettings;
+        public FilterSettings filter => settings.filterSettings;
         private LineworkSettings linework => settings.lineworkSettings;
         private EdgeDetectionSettings edge => settings.edgeSettings;
-        // private OutlineShaderProperties shaderProps => settings.outlineProperties;
+        private OutlineShaderProperties shaderProps => settings.outlineProperties;
 
 
 
@@ -149,7 +149,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
             _lineworkPass.Init(true);
             renderer.EnqueuePass(_lineworkPass);
-            // _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, textureNameAndDebugView, linework.depthSubTarget.createTexture);
+            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, textureNameAndDebugView, linework.depthSubTarget.createTexture);
             // renderer.EnqueuePass(_computeLinesAndBlitPass);
         }
 
