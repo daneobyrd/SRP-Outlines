@@ -175,6 +175,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
         // -vertex position are pushed out a bit base on normal direction
         // -also color is tinted
         // -Cull Front instead of Cull Back because Cull Front is a must for all extra pass outline method
+/*
         Pass 
         {
             Name "Outline"
@@ -193,7 +194,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
 
                 // For tutorial purpose, current everything is just shader files without any C#, so this Outline pass is actually NOT SRP-batcher friendly.
                 // If you are working on a project with lots of characters, make sure you use the above method to make Outline pass SRP-batcher friendly!
-                "LightMode" = "Outline"
+//                "LightMode" = "Outline"
             }
 
             Cull Front // Cull Front is a must for extra pass outline method
@@ -223,6 +224,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             ENDHLSL
         }
  
+*/
         // ShadowCaster pass. Used for rendering URP's shadowmaps
         Pass
         {

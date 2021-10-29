@@ -36,11 +36,15 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTargetIdentifier outlineDepthTargetId => new (_outlineDepthIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private readonly int _combinedIntId; //= Shader.PropertyToID("_CombinedTexture");
-        private RenderTargetIdentifier combinedTargetId;// => new (_combinedIntId);
+        private readonly int _combinedIntId; //= Shader.PropertyToID("_CombinedTex");
+        private RenderTargetIdentifier combinedTargetId => new (_combinedIntId);
+        private RenderTargetHandle combinedTargetHandle => new (new RenderTargetIdentifier(_combinedIntId));
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
+        private int destinationIntId = -1;
+        private RenderTargetIdentifier destinationTargetId => new (destinationIntId);
+        
+        
         public FullscreenEdgeDetectionBlit(string name)
         {
             renderPassEvent = RenderPassEvent.BeforeRenderingTransparents;
@@ -54,6 +58,7 @@ namespace Resources.RenderPass.OutlineBuffers
             _renderer = newRenderer;
             _hasDepth = hasDepth;
             _computeShader = computeShader;
+            combinedTargetHandle.Init(combinedTargetId);
         }
         
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
@@ -65,13 +70,11 @@ namespace Resources.RenderPass.OutlineBuffers
             
             cmd.GetTemporaryRT(_combinedIntId, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat,
                                 RenderTextureReadWrite.Default, 1, true);
-            
-            cmd.GetTemporaryRT(_outlineDepthIntId, width, height, 24, FilterMode.Point, RenderTextureFormat.Depth);
-            
+            if (_hasDepth) cmd.GetTemporaryRT(_outlineDepthIntId, width, height, 24, FilterMode.Point, RenderTextureFormat.Depth);
             cmd.GetTemporaryRT(_outlineIntId, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat,
                                 RenderTextureReadWrite.Default, 1, true);
 
-            combinedTargetId = new RenderTargetIdentifier(_combinedIntId);
+            cmd.GetTemporaryRT(destinationIntId, cameraTextureDescriptor);
             // if (_hasDepth)
             // {
             //     ConfigureTarget(combinedTargetId, depthAttachment: outlineDepthTargetId);
@@ -80,8 +83,9 @@ namespace Resources.RenderPass.OutlineBuffers
             // {
             // ConfigureTarget(combinedTargetId);
             // }
+            // _renderer.ConfigureCameraTarget(combinedTargetId, outlineTargetId);
             
-            ConfigureClear(ClearFlag.All, Color.black);
+            // ConfigureClear(ClearFlag.All, Color.black);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -95,6 +99,8 @@ namespace Resources.RenderPass.OutlineBuffers
             var height = textureDescriptor.height;
             var camSize = new Vector4(width, height, 0, 0);
 
+            // Camera camera = renderingData.cameraData.camera;
+            
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Edge detection compute
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -110,11 +116,16 @@ namespace Resources.RenderPass.OutlineBuffers
             
             // Blit render feature camera color target to _combinedHandle to be combined with outline texture in _material's shader
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            cmd.Blit(renderingData.cameraData.targetTexture, combinedTargetId, _material);
+            Blit(cmd,destinationTargetId, combinedTargetHandle.Identifier(), _material);
+            
+            // cmd.SetGlobalTexture("_MainTex", combinedTargetHandle.Identifier());
+            // cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
+            // cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
+            // cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
             
             // Copy CombinedTexture to active camera color target
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            cmd.Blit(combinedTargetId, renderingData.cameraData.renderer.cameraColorTarget);
+            Blit(cmd, combinedTargetHandle.Identifier(), destinationTargetId);
             
             // Copy outline depth to camera depth target for use in other features, like a transparent pass.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -126,22 +137,10 @@ namespace Resources.RenderPass.OutlineBuffers
 
         public override void FrameCleanup(CommandBuffer cmd)
         {
-            if (_sourceIntId != -1)
-            {
-                cmd.ReleaseTemporaryRT(_sourceIntId);
-            }
-            if (_outlineIntId != -1)
-            {
-                cmd.ReleaseTemporaryRT(_outlineIntId);
-            }
-            if (_outlineDepthIntId != -1)
-            {
-                cmd.ReleaseTemporaryRT(_outlineDepthIntId);
-            }
-            if (_combinedIntId != -1)
-            {
-                cmd.ReleaseTemporaryRT(_combinedIntId);
-            }
+            if (_sourceIntId != -1) cmd.ReleaseTemporaryRT(_sourceIntId);
+            if (_outlineIntId != -1) cmd.ReleaseTemporaryRT(_outlineIntId);
+            if (_outlineDepthIntId != -1) cmd.ReleaseTemporaryRT(_outlineDepthIntId);
+            if (_combinedIntId != -1) cmd.ReleaseTemporaryRT(_combinedIntId);
         }
     }
 }

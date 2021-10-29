@@ -196,14 +196,14 @@ namespace Resources.RenderPass.OutlineBuffers
                                        enableRandomWrite: true);
                     break;
                 // case BlurType.Kawase:
-                    // break;
+                // break;
                 // case BlurType.Box:
-                    // break;
+                // break;
                 default:
                     _blurType = BlurType.GaussianPyramid;
                     break;
             }
-            if (createColorTexture) attachmentsToConfigure.Add(colorIntId);
+            if (createColorTexture) attachmentsToConfigure.Add(colorTargetId);
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
             cmd.GetTemporaryRT(nameID: depthIntId, 
@@ -217,16 +217,10 @@ namespace Resources.RenderPass.OutlineBuffers
             
             // Configure color and depth targets
             ConfigureTarget(attachmentsToConfigure.ToArray());
-                
-            if (createColorTexture)
+            if (createColorTexture || createDepthTexture)
             {
-                cmd.SetGlobalTexture(colorIntId, colorTargetId);
-                ConfigureClear(ClearFlag.Color, Color.black);
+                ConfigureClear(ClearFlag.All, Color.black);
             }
-
-            if (!createDepthTexture) return;
-            cmd.SetGlobalTexture(depthIntId, depthTargetId);
-            ConfigureClear(ClearFlag.Depth, Color.black);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)

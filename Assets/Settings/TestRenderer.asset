@@ -74,12 +74,11 @@ MonoBehaviour:
       renderQueueType: 0
       layerMask:
         serializedVersion: 2
-        m_Bits: 1
+        m_Bits: 2147483647
     lineworkSettings:
       colorSubTarget:
         lightmodeTags:
         - Outline
-        - UniversalForward
         textureName: _OutlineOpaque
         renderTargetInt: 655
         createTexture: 1
