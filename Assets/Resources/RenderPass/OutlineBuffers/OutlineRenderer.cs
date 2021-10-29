@@ -74,6 +74,7 @@ namespace Resources.RenderPass.OutlineBuffers
         [Header("Blur")]
         public BlurType BlurType;
         public ComputeShader computeBlur;
+        [Range(1, 10)] public float gaussianSigma = 1;
         public ComputeShader computeLines;
         [Header("Blit to Screen")]
         public Material blitMaterial;
@@ -146,7 +147,7 @@ namespace Resources.RenderPass.OutlineBuffers
             //     _ => "_BlurResults"
             // };
 
-            _lineworkPass.Init(true);
+            _lineworkPass.Init(linework.depthSubTarget.createTexture);
             renderer.EnqueuePass(_lineworkPass);
             _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, "_BlurResults", linework.depthSubTarget.createTexture);
             renderer.EnqueuePass(_computeLinesAndBlitPass);

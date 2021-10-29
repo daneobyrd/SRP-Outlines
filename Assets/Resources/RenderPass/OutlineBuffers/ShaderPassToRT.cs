@@ -66,7 +66,7 @@ namespace Resources.RenderPass.OutlineBuffers
         private OutlineSettings _settings;
         private FilterSettings filter => _settings.filterSettings;
         private LineworkSettings linework => _settings.lineworkSettings;
-        // private EdgeDetectionSettings edge => _settings.edgeSettings;
+        private EdgeDetectionSettings edge => _settings.edgeSettings;
 
         private string _profilerTag;
 
@@ -216,7 +216,7 @@ namespace Resources.RenderPass.OutlineBuffers
             
             
             // Configure color and depth targets
-                ConfigureTarget(attachmentsToConfigure.ToArray());
+            ConfigureTarget(attachmentsToConfigure.ToArray());
                 
             if (createColorTexture)
             {
@@ -264,7 +264,7 @@ namespace Resources.RenderPass.OutlineBuffers
                     break;
                 case BlurType.GaussianPyramid:
                     var gaussKernel = _computeShader.FindKernel("GAUSSIAN_PYRAMID");
-                    cmd.SetComputeFloatParam(_computeShader, "_gaussian_sigma", 1.0f);
+                    cmd.SetComputeFloatParam(_computeShader, "_gaussian_sigma", edge.gaussianSigma);
                     cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", colorTargetId, 0, RenderTextureSubElement.Color);
                     cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurTargetId, 0);
                     cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
@@ -281,7 +281,7 @@ namespace Resources.RenderPass.OutlineBuffers
             CommandBufferPool.Release(cmd);
         }
 
-        public override void OnCameraCleanup(CommandBuffer cmd)
+        public override void FrameCleanup(CommandBuffer cmd)
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorIntId);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthIntId);

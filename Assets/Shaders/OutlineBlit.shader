@@ -29,7 +29,7 @@
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
@@ -66,9 +66,10 @@
 
             float4 frag(Varyings input) : SV_Target
             {
-                float4 outlineColor = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, input.uv);
+                float4 outlineTexColor = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, input.uv);
+                float outlineMask = saturate(outlineTexColor.x + outlineTexColor.y + outlineTexColor.z);
                 float4 cameraColorCopy = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
-                float4 col = CompositeOver(outlineColor, cameraColorCopy);
+                float4 col = lerp(cameraColorCopy, outlineTexColor, outlineMask);
                 return col;
             }
             ENDHLSL

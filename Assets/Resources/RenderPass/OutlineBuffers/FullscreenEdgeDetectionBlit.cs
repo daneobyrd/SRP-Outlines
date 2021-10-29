@@ -28,16 +28,16 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTargetIdentifier _sourceId;
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private int _outlineIntId = Shader.PropertyToID("_OutlineTexture");
+        private readonly int _outlineIntId = Shader.PropertyToID("_OutlineTexture");
         private RenderTargetIdentifier outlineTargetId => new (_outlineIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private int _outlineDepthIntId = Shader.PropertyToID("_OutlineDepth");
+        private readonly int _outlineDepthIntId = Shader.PropertyToID("_OutlineDepth");
         private RenderTargetIdentifier outlineDepthTargetId => new (_outlineDepthIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private int _combinedIntId = Shader.PropertyToID("_CombinedTexture");
-        private RenderTargetIdentifier _combinedTargetId => new (_combinedIntId);
+        private readonly int _combinedIntId; //= Shader.PropertyToID("_CombinedTexture");
+        private RenderTargetIdentifier combinedTargetId;// => new (_combinedIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ namespace Resources.RenderPass.OutlineBuffers
             _hasDepth = hasDepth;
             _computeShader = computeShader;
         }
-
+        
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             var width = cameraTextureDescriptor.width;
@@ -70,15 +70,17 @@ namespace Resources.RenderPass.OutlineBuffers
             
             cmd.GetTemporaryRT(_outlineIntId, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat,
                                 RenderTextureReadWrite.Default, 1, true);
+
+            combinedTargetId = new RenderTargetIdentifier(_combinedIntId);
             // if (_hasDepth)
             // {
-            //     ConfigureTarget(_combinedTargetId, depthAttachment: outlineDepthTargetId);
+            //     ConfigureTarget(combinedTargetId, depthAttachment: outlineDepthTargetId);
             // }
             // else
             // {
-            //     ConfigureTarget(_combinedTargetId);
+            // ConfigureTarget(combinedTargetId);
             // }
-            //
+            
             ConfigureClear(ClearFlag.All, Color.black);
         }
 
@@ -88,6 +90,7 @@ namespace Resources.RenderPass.OutlineBuffers
             CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
             RenderTextureDescriptor textureDescriptor = renderingData.cameraData.cameraTargetDescriptor;
             textureDescriptor.depthBufferBits = 0;
+            textureDescriptor.enableRandomWrite = true;
             var width = textureDescriptor.width;
             var height = textureDescriptor.height;
             var camSize = new Vector4(width, height, 0, 0);
@@ -107,21 +110,21 @@ namespace Resources.RenderPass.OutlineBuffers
             
             // Blit render feature camera color target to _combinedHandle to be combined with outline texture in _material's shader
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            cmd.Blit(renderingData.cameraData.renderer.cameraColorTarget, _combinedTargetId, _material);
+            cmd.Blit(renderingData.cameraData.targetTexture, combinedTargetId, _material);
             
             // Copy CombinedTexture to active camera color target
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            cmd.Blit(_combinedTargetId, renderingData.cameraData.renderer.cameraColorTarget);
+            cmd.Blit(combinedTargetId, renderingData.cameraData.renderer.cameraColorTarget);
             
             // Copy outline depth to camera depth target for use in other features, like a transparent pass.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            if (_hasDepth) cmd.Blit(outlineDepthTargetId, renderingData.cameraData.renderer.cameraDepthTarget);
+            // if (_hasDepth) cmd.Blit(outlineDepthTargetId, renderingData.cameraData.renderer.cameraDepthTarget);
             
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public override void OnCameraCleanup(CommandBuffer cmd)
+        public override void FrameCleanup(CommandBuffer cmd)
         {
             if (_sourceIntId != -1)
             {

@@ -10,15 +10,14 @@ float _gaussian_sigma;
 // uint _source_height;
 Texture2D<float4> _Source;
 RWTexture2D<float4> _BlurResults;
+SamplerState sampler_LinearClamp;
+
+//────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 CBUFFER_START(cb)
 float4 _Size; // x: src width, y: src height, zw: unused
 CBUFFER_END
 #define TAU  6.283185307
-
-//────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
-SamplerState sampler_LinearClamp;
 
 //────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -34,7 +33,7 @@ void GAUSSIAN_PYRAMID(uint3 id : SV_DispatchThreadID)
     float3 pixel_value = float3(0., 0., 0.);
 
     float2 step = float2(1.0 / _Size.xy);
-    const float2 texture_uv = float2(id.x * step.x, id.y * step.y);
+    const float2 texture_uv = float2(id.xy * step.xy);
 
     float sum = 0.0f;
     for (int x = -1; x <= 1; ++x)
