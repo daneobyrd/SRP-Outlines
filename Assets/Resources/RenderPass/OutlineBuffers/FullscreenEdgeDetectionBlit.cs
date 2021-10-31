@@ -17,7 +17,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
         private string _profilerTag;
         private Material _material;
-        private int blitIndex => _settings.edgeSettings.blitIndex;
+        private int blitIndex = 0;
         private DebugTargetView debugTargetView => _settings.debugTargetView;
 
         private ScriptableRenderer _renderer;
@@ -37,7 +37,7 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTargetIdentifier outlineDepthTargetId => new (_outlineDepthIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private readonly int _combinedIntId = Shader.PropertyToID("_MainTex");
+        private readonly int _combinedIntId; //= Shader.PropertyToID("_MainTex");
         private RenderTargetIdentifier combinedTargetId => new (_combinedIntId);
         private RenderTargetHandle combinedTargetHandle => new (new RenderTargetIdentifier(_combinedIntId));
         
@@ -52,15 +52,17 @@ namespace Resources.RenderPass.OutlineBuffers
             _profilerTag = name;
         }
 
-        public void Init(Material initMaterial, ScriptableRenderer newRenderer, ComputeShader computeShader, string sourceTextureName, bool hasDepth)
+        public void Init(OutlineSettings settings, Material initMaterial, ScriptableRenderer newRenderer, ComputeShader computeShader, string sourceTextureName, bool hasDepth)
         {
+            _settings = settings;
             _material = initMaterial;
             _sourceIntId = Shader.PropertyToID(sourceTextureName);
             _renderer = newRenderer;
             _hasDepth = hasDepth;
             _computeShader = computeShader;
             combinedTargetHandle.Init(combinedTargetId);
-        }
+            blitIndex = _settings.edgeSettings.blitIndex;
+    }
         
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
@@ -121,7 +123,7 @@ namespace Resources.RenderPass.OutlineBuffers
             
             // Blit render feature camera color target to _combinedHandle to be combined with outline texture in blit _material's shader
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            Blit(cmd, destinationTargetId, _combinedIntId, _material, blitIndex);
+            Blit(cmd, destinationTargetId, _combinedIntId, _material, 0);
 
             // Blit CombinedTexture to active camera color target
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

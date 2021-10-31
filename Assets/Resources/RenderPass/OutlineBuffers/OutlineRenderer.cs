@@ -153,7 +153,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
             _lineworkPass.Init(linework.depthSubTarget.createTexture);
             renderer.EnqueuePass(_lineworkPass);
-            _computeLinesAndBlitPass.Init(_outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, "_BlurResults", linework.depthSubTarget.createTexture);
+            _computeLinesAndBlitPass.Init(settings, _outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, "_BlurResults", linework.depthSubTarget.createTexture);
             renderer.EnqueuePass(_computeLinesAndBlitPass);
         }
 
