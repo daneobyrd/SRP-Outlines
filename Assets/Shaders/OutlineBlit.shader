@@ -3,10 +3,7 @@
     Properties
     {
         _MainTex ("Texture", 2D) = "clear" {}
-        //        [HideInInspector] _OutlineOpaque ("Outline Opaque", 2D) = "white" {}
-        //        [HideInInspector] _OutlineDepth ("Outline Depth", 2D) = "white" {}
-        //        [HideInInspector] _BlurResults ("Blur Results", 2D) = "white" {}
-        //        [HideInInspector] _OutlineTexture ("Outline Texture", 2D) = "white" {}
+        
         //        _OuterThreshold ("Outer Threshold", float) = 0.0
         //        _InnerThreshold ("Inner Threshold", float) = 0.0
         //        _Rotations ("Rotations", int) = 6
@@ -44,25 +41,23 @@
             //
             // StructuredBuffer<outlined_obj> outline_objBuffer;
 
-            // float _OuterThreshold;
-            // float _InnerThreshold;
             CBUFFER_START(UnityPerMaterial)
-            TEXTURE2D(_OutlineOpaque);
-            SAMPLER(sampler_OutlineOpaque);
-            TEXTURE2D(_OutlineDepth);
-            SAMPLER(sampler_OutlineDepth);
-            TEXTURE2D(_OutlineTexture);
-            SAMPLER(sampler_OutlineTexture);
+                TEXTURE2D(_OutlineOpaque);
+                SAMPLER(sampler_OutlineOpaque);
+                
+                TEXTURE2D(_OutlineDepth);
+                SAMPLER(sampler_OutlineDepth);
+                
+                TEXTURE2D(_BlurResults);
+                SAMPLER(sampler_BlurResults);
+                
+                TEXTURE2D(_OutlineTexture);
+                SAMPLER(sampler_OutlineTexture);
             CBUFFER_END
 
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
-
-            // Varyings vert(Attributes input)
-            // {
-            //     return FullscreenVert(input);
-            // }
-
+            
             float4 frag(Varyings input) : SV_Target
             {
                 float2 uv = input.uv;
@@ -70,14 +65,14 @@
                 float outlineMask = saturate(outlineTex.x + outlineTex.y + outlineTex.z);
                 float4 cameraColorCopy = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv);
                 // float4 cameraColorCopy = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, uv);
-                float4 col = lerp(cameraColorCopy, -outlineMask, -outlineMask);
+                float4 col = lerp(cameraColorCopy, outlineTex, outlineMask);
                 return col;
             }
             ENDHLSL
         }
 
         /*
-                // Relocated GaussianPyramid to gaussian_pyramid.compute
+                // Relocated GaussianPyramid to RenderPass/Blur/GaussianPyramid.compute
                 Tags
                 {
                     "LightMode" = "OutlinePost"

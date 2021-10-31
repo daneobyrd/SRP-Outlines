@@ -119,19 +119,43 @@ namespace Resources.RenderPass.OutlineBuffers
             
             // Blit render feature camera color target to _combinedHandle to be combined with outline texture in blit _material's shader
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            // cmd.SetGlobalTexture(_combinedIntId, -1);
-            // Blit(cmd, destinationTargetId, _combinedIntId, _material, blitIndex);
-            Blit(cmd, destinationTargetId, _combinedIntId, _material, 0);
-            
-            // Copy CombinedTexture to active camera color target
+            Blit(cmd, destinationTargetId, _combinedIntId, _material, blitIndex);
+
+            // Blit CombinedTexture to active camera color target
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             Blit(cmd, _combinedIntId, destinationTargetId);
-            
-            // cmd.SetGlobalTexture("_MainTex", combinedTargetHandle.Identifier());
-            // cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
-            // cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
-            // cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
 
+            // A whole bunch of ways to get the camera texture for use as a base texture to "paste" my outline texture on top.
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                // When either input int, RenderTargetIdentifier or RenderTargetHandle.id = -1 returns BuiltinRenderTextureType.CameraTarget;
+                // -----------------------------------------------------------------------------------------------------------------------------------------------------
+                    // cmd.SetGlobalTexture(_combinedIntId, -1);
+                    // Blit(cmd, -1, _combinedIntId, _material, blitIndex);
+                    // Blit(cmd, BuiltinRenderTextureType.CameraTarget, _combinedIntId, _material, blitIndex);
+                    //
+                    // RenderTargetHandle _exampleDestinationHandle = RenderTargetHandle.CameraTarget;
+                    // Blit(cmd, _exampleDestinationHandle.Identifier(), _combinedIntId, _material, blitIndex);
+                    // Blit(cmd, _exampleDestinationHandle.id, _combinedIntId, _material, blitIndex);
+                    //
+                    // Blit(cmd, renderingData.cameraData.targetTexture, _combinedIntId, _material, blitIndex);
+                    // Blit(cmd, renderingData.cameraData.camera.activeTexture, _combinedIntId, _material, blitIndex);
+                    // Blit(cmd, renderingData.cameraData.renderer.cameraColorTarget, _combinedIntId, _material, blitIndex);
+                // -----------------------------------------------------------------------------------------------------------------------------------------------------
+                // Pass in a new ScriptableRenderer from the RenderFeature in Init(): _renderer => newRenderer;
+                // -----------------------------------------------------------------------------------------------------------------------------------------------------
+                    // Blit(cmd, _renderer.cameraColorTarget, _combinedIntId, _material, blitIndex);
+                    // _renderer.ConfigureCameraTarget(colorTarget: , depthTarget: ); ???
+                // -----------------------------------------------------------------------------------------------------------------------------------------------------
+                // Manually recreate actions of blit function.
+                // This ↓ would blit the data to the screen (the data being whatever combinedTargetHandle.Identifier() points to).
+                // -----------------------------------------------------------------------------------------------------------------------------------------------------
+                    // cmd.SetGlobalTexture("_MainTex", combinedTargetHandle.Identifier());
+                    // cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
+                    // cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
+                    // cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                
+            // ↓ Currently commented out for simplicity during testing; test with color only rather than dealing with depth at the same time.
             // Copy outline depth to camera depth target for use in other features, like a transparent pass.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // if (_hasDepth) cmd.Blit(outlineDepthTargetId, renderingData.cameraData.renderer.cameraDepthTarget);

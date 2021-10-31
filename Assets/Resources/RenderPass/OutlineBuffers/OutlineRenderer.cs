@@ -134,6 +134,7 @@ namespace Resources.RenderPass.OutlineBuffers
                     GetType().Name, outlineEncoderShader);
                 return;
             }
+            // Properties Harry used in his outline encoder shader but I currently am not using.
             // Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
             // Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
             // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
@@ -141,6 +142,7 @@ namespace Resources.RenderPass.OutlineBuffers
             // Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
             // Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
 
+            // Old idea about how to use Debug enum, probably scrapped for simpler solution. 
             // var textureNameAndDebugView = settings.debugTargetView switch
             // {
             //     DebugTargetView.None => "_BlurResults",
