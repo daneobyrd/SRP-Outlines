@@ -8,8 +8,9 @@ An older *incomplete* attempt is currently in the `OldDraft` branch for preserva
 
 [v3.0](https://github.com/UnityTechnologies/PhotoMode/releases/tag/v3.0) of Unity's [PhotoMode](https://github.com/UnityTechnologies/PhotoMode) package can be found in `Assets/Plugins/PhotoMode`.
 
-I have been using the RenderObjectsPass for reference here and there but my scriptable render passes are not 1:1 in structure or implementation.
-A duplicate of the editor script for the RenderObjectPass can be found in `Assets/Shaders/CustomColorBufferOutlines/Editor`.
+Some scripts in this repo exist solely as a place for me to gather different SRP example scripts for reference/testing.
+I've included the DrawFullscreenFeature from Unity's [Universal Rendering Examples](https://github.com/Unity-Technologies/UniversalRenderingExamples/tree/master/Assets/Scripts/Runtime/RenderPasses) repo in `Assets/Plugins/DrawFullscreenFeature`.
+I have been using the RenderObjectsPass for reference here and there but my scriptable render passes are not 1:1 in structure or implementation to any of the reference scripts.
 
 _The original file and related files can be found at the following paths:_
 
