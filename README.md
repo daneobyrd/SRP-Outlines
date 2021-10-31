@@ -2,7 +2,7 @@
 
 This is a **Unity 2021.2.0b16** project using the **Universal Render Pipeline** and utilizing features of the Scriptable Render Pipeline to create a fullscreen outline effect.
 
-The important files can be found in `Assets/Shaders/OutlineBuffers/`.
+The important files can be found in `Assets/Resources/RenderPass/`. You can find different compute shaders I am using and my SRP feature/passes there.
 
 An older *incomplete* attempt is currently in the `OldDraft` branch for preservation/reference only. Do not try to use it, it doesn't work.
 
