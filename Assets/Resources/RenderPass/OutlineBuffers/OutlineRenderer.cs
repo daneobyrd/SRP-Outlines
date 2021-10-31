@@ -31,11 +31,12 @@ namespace Resources.RenderPass.OutlineBuffers
     {
         [HideInInspector] public string profilerTag = nameof(OutlineRenderer);
 
-        struct outline_obj
-        {
-            private Vector3 position;
-            private uint unity_InstanceID;
-        }
+        // NOTE: Leftover from when I thought about using structured buffers and then decided to put that off for now. 
+        // struct outline_obj
+        // {
+        //     private Vector3 position;
+        //     private uint unity_InstanceID;
+        // }
 
         public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
         public DebugTargetView debugTargetView;
@@ -78,6 +79,7 @@ namespace Resources.RenderPass.OutlineBuffers
         public ComputeShader computeLines;
         [Header("Blit to Screen")]
         public Material blitMaterial;
+        public int blitIndex = 0;
         public Shader outlineEncoder;
     }
 

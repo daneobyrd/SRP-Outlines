@@ -2,34 +2,31 @@
 {
     Properties
     {
-        _MainTex ("Texture", 2D) = "white" {}
-//        [HideInInspector] _OutlineOpaque ("Outline Opaque", 2D) = "white" {}
-//        [HideInInspector] _OutlineDepth ("Outline Depth", 2D) = "white" {}
-//        [HideInInspector] _BlurResults ("Blur Results", 2D) = "white" {}
-//        [HideInInspector] _OutlineTexture ("Outline Texture", 2D) = "white" {}
-//        _OuterThreshold ("Outer Threshold", float) = 0.0
-//        _InnerThreshold ("Inner Threshold", float) = 0.0
-//        _Rotations ("Rotations", int) = 6
-//        _DepthPush ("Depth Push", float) = 0.0
-//        _OuterLUT ("Outer LUT", 2D) = "white" {}
-//        _InnerLUT ("Inner Lut", 2D) = "white" {}
+        _MainTex ("Texture", 2D) = "clear" {}
+        //        [HideInInspector] _OutlineOpaque ("Outline Opaque", 2D) = "white" {}
+        //        [HideInInspector] _OutlineDepth ("Outline Depth", 2D) = "white" {}
+        //        [HideInInspector] _BlurResults ("Blur Results", 2D) = "white" {}
+        //        [HideInInspector] _OutlineTexture ("Outline Texture", 2D) = "white" {}
+        //        _OuterThreshold ("Outer Threshold", float) = 0.0
+        //        _InnerThreshold ("Inner Threshold", float) = 0.0
+        //        _Rotations ("Rotations", int) = 6
+        //        _DepthPush ("Depth Push", float) = 0.0
+        //        _OuterLUT ("Outer LUT", 2D) = "white" {}
+        //        _InnerLUT ("Inner Lut", 2D) = "white" {}
     }
     SubShader
     {
-        Tags
-        {
-            "RenderType" = "Opaque"
-            "RenderPipeline" = "UniversalPipeline"
-        }
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
         Pass
         {
             Name "OutlineBlit"
+            Blend Off Cull Off
+            
             HLSLPROGRAM
-            // Reference:
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
             // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
@@ -39,13 +36,13 @@
             #pragma vertex Vert
             #pragma fragment frag
 
-            struct outlined_obj
-            {
-                float3 positionWS;
-                uint unity_InstanceID;
-            };
-
-            StructuredBuffer<outlined_obj> outline_objBuffer;
+            // struct outlined_obj
+            // {
+            //     float3 positionWS;
+            //     uint unity_InstanceID;
+            // };
+            //
+            // StructuredBuffer<outlined_obj> outline_objBuffer;
 
             // float _OuterThreshold;
             // float _InnerThreshold;
@@ -68,15 +65,16 @@
 
             float4 frag(Varyings input) : SV_Target
             {
-                float4 outlineTexColor = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, input.uv);
-                float outlineMask = 1- saturate(outlineTexColor.x + outlineTexColor.y + outlineTexColor.z);
-                float4 cameraColorCopy = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
-                float4 col = lerp(cameraColorCopy, outlineTexColor, outlineMask);
+                float2 uv = input.uv;
+                float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, uv);
+                float outlineMask = saturate(outlineTex.x + outlineTex.y + outlineTex.z);
+                float4 cameraColorCopy = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv);
+                // float4 cameraColorCopy = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, uv);
+                float4 col = lerp(cameraColorCopy, -outlineMask, -outlineMask);
                 return col;
             }
             ENDHLSL
         }
-
 
         /*
                 // Relocated GaussianPyramid to gaussian_pyramid.compute

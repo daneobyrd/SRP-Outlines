@@ -17,6 +17,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
         private string _profilerTag;
         private Material _material;
+        private int blitIndex => _settings.edgeSettings.blitIndex;
         private DebugTargetView debugTargetView => _settings.debugTargetView;
 
         private ScriptableRenderer _renderer;
@@ -36,13 +37,13 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTargetIdentifier outlineDepthTargetId => new (_outlineDepthIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private readonly int _combinedIntId; //= Shader.PropertyToID("_CombinedTex");
+        private readonly int _combinedIntId = Shader.PropertyToID("_MainTex");
         private RenderTargetIdentifier combinedTargetId => new (_combinedIntId);
         private RenderTargetHandle combinedTargetHandle => new (new RenderTargetIdentifier(_combinedIntId));
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private int destinationIntId = -1;
-        private RenderTargetIdentifier destinationTargetId => new (destinationIntId);
+        private int _destinationIntId = -1;
+        private RenderTargetIdentifier destinationTargetId => new (_destinationIntId);
         
         
         public FullscreenEdgeDetectionBlit(string name)
@@ -74,7 +75,9 @@ namespace Resources.RenderPass.OutlineBuffers
             cmd.GetTemporaryRT(_outlineIntId, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat,
                                 RenderTextureReadWrite.Default, 1, true);
 
-            cmd.GetTemporaryRT(destinationIntId, cameraTextureDescriptor);
+            cmd.GetTemporaryRT(_destinationIntId, cameraTextureDescriptor);
+
+            ConfigureTarget(_destinationIntId);
             // if (_hasDepth)
             // {
             //     ConfigureTarget(combinedTargetId, depthAttachment: outlineDepthTargetId);
@@ -84,7 +87,7 @@ namespace Resources.RenderPass.OutlineBuffers
             // ConfigureTarget(combinedTargetId);
             // }
             // _renderer.ConfigureCameraTarget(combinedTargetId, outlineTargetId);
-            
+
             // ConfigureClear(ClearFlag.All, Color.black);
         }
 
@@ -110,23 +113,25 @@ namespace Resources.RenderPass.OutlineBuffers
             cmd.SetComputeTextureParam(_computeShader, laplacian, "result", _outlineIntId, 0);
             cmd.DispatchCompute(_computeShader, laplacian, Mathf.CeilToInt(width / 32f), Mathf.CeilToInt(height / 32f), 1);
 
-            // Set global texture _OutlineTexture with computed edge data.
+            // Set global texture _OutlineTexture with Computed edge data.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             cmd.SetGlobalTexture(_outlineIntId, outlineTargetId);
             
-            // Blit render feature camera color target to _combinedHandle to be combined with outline texture in _material's shader
+            // Blit render feature camera color target to _combinedHandle to be combined with outline texture in blit _material's shader
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            Blit(cmd,destinationTargetId, combinedTargetHandle.Identifier(), _material);
+            // cmd.SetGlobalTexture(_combinedIntId, -1);
+            // Blit(cmd, destinationTargetId, _combinedIntId, _material, blitIndex);
+            Blit(cmd, destinationTargetId, _combinedIntId, _material, 0);
+            
+            // Copy CombinedTexture to active camera color target
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            Blit(cmd, _combinedIntId, destinationTargetId);
             
             // cmd.SetGlobalTexture("_MainTex", combinedTargetHandle.Identifier());
             // cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
             // cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
             // cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
-            
-            // Copy CombinedTexture to active camera color target
-            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            Blit(cmd, combinedTargetHandle.Identifier(), destinationTargetId);
-            
+
             // Copy outline depth to camera depth target for use in other features, like a transparent pass.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // if (_hasDepth) cmd.Blit(outlineDepthTargetId, renderingData.cameraData.renderer.cameraDepthTarget);
