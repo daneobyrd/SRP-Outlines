@@ -102,7 +102,9 @@ namespace Resources.RenderPass.OutlineBuffers
             var height = textureDescriptor.height;
             var camSize = new Vector4(width, height, 0, 0);
 
-            // Camera camera = renderingData.cameraData.camera;
+            // NOTE: If you use RenderTargetIdentifier or RenderTargetHandle for cmd.SetComputeTextureParam() it may not work.
+            // Sometimes RenderTargetHandle.id or RenderTargetHandle.Identifier() may return the same value regardless of Handle.Init() input.
+            // https://forum.unity.com/threads/access-a-temporary-rendertexture-allocated-from-previous-frame.1018573/
             
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Edge detection compute
@@ -149,6 +151,7 @@ namespace Resources.RenderPass.OutlineBuffers
                 // Manually recreate actions of blit function.
                 // This ↓ would blit the data to the screen (the data being whatever combinedTargetHandle.Identifier() points to).
                 // -----------------------------------------------------------------------------------------------------------------------------------------------------
+                    // Camera camera = renderingData.cameraData.camera;
                     // cmd.SetGlobalTexture("_MainTex", combinedTargetHandle.Identifier());
                     // cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
                     // cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
