@@ -96,6 +96,7 @@ MonoBehaviour:
       gaussianSigma: 10
       computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
+      blitIndex: 0
       outlineEncoder: {fileID: 4800000, guid: 4518a8d553b9c4048990f28deef5c56c, type: 3}
     outlineProperties:
       outerThreshold: 1

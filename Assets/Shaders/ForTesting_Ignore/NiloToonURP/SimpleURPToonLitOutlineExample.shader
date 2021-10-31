@@ -165,7 +165,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             // (no special #define)
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "Assets/Shaders/NiloToonURP/SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
 
             ENDHLSL
         }
@@ -249,7 +249,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             #define ToonShaderApplyShadowBiasFix
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "Assets/Shaders/NiloToonURP/SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
 
             ENDHLSL
         }
@@ -279,7 +279,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             #define ToonShaderIsOutline
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "Assets/Shaders/NiloToonURP/SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
 
             ENDHLSL
         }

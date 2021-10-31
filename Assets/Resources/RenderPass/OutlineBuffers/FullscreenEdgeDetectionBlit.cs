@@ -127,7 +127,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
             // Blit CombinedTexture to active camera color target
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            Blit(cmd, _combinedIntId, destinationTargetId);
+            Blit(cmd, _outlineIntId, destinationTargetId);
 
             // A whole bunch of ways to get the camera texture for use as a base texture to "paste" my outline texture on top.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
