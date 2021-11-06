@@ -175,7 +175,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
         // -vertex position are pushed out a bit base on normal direction
         // -also color is tinted
         // -Cull Front instead of Cull Back because Cull Front is a must for all extra pass outline method
-/*
+
         Pass 
         {
             Name "Outline"
@@ -219,12 +219,12 @@ Shader "SimpleURPToonLitExample(With Outline)"
             #define ToonShaderIsOutline
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "Assets/Shaders/NiloToonURP/SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
 
             ENDHLSL
         }
  
-*/
+
         // ShadowCaster pass. Used for rendering URP's shadowmaps
         Pass
         {

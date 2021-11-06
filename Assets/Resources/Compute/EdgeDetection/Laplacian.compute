@@ -11,8 +11,11 @@
 // ↑ _kernel_size;
 // ↑ _kernel_type;
 
-Texture2D<float4> source;
-RWTexture2D<float4> result;
+Texture2D<float4> Source;
+RWTexture2D<float4> Result;
+Texture2D<float4> CameraTex;
+RWTexture2D<float4> Final;
+
 SamplerState sampler_LinearClamp;
 
 CBUFFER_START(cb)
@@ -47,7 +50,7 @@ groupshared uint gs_cacheB[128];
 groupshared uint gs_cacheA[128];
 
 
-// TODO: This is not correct, untested placeholder mutation of blur function.
+// TODO: This is not correct, untested placeholder mutation of blur function with laplacian filter.
 float4 DetectEdges(float4 a, float4 b, float4 c, float4 d, float4 e, float4 f, float4 g, float4 h, float4 i)
 {                           
     return (24 * e)
@@ -58,7 +61,7 @@ float4 DetectEdges(float4 a, float4 b, float4 c, float4 d, float4 e, float4 f, f
     + -(b)
     + -(h)
     + -(a)
-    + -(i);         
+    + -(i);       
 }                           
 
 void Store2Pixels(uint index, float4 pixel1, float4 pixel2)
@@ -164,7 +167,7 @@ void MAIN_LAPLACIAN(//uint2 groupId : SV_GroupID,                               
     //          ┌─────┬─────┬─────┐           ┌─────┬─────┬─────┐
     //          │  0  │ -1  │  0  │           │ -1  │ -1  │ -1  │
     //          ├─────┼─────┼─────┤           ├─────┼─────┼─────┤
-    //   1, 3 = │ -1  │  4  │ -1  │    2, 3 = │ -1  │  8  │ -1  │
+    //   1) 3 = │ -1  │  4  │ -1  │    2) 3 = │ -1  │  8  │ -1  │
     //          ├─────┼─────┼─────┤           ├─────┼─────┼─────┤
     //          │  0  │ -1  │  0  │           │ -1  │ -1  │ -1  │
     //          └─────┴─────┴─────┘           └─────┴─────┴─────┘
@@ -180,17 +183,17 @@ void MAIN_LAPLACIAN(//uint2 groupId : SV_GroupID,                               
     float3 sum = float3(0, 0, 0);
     // 9 sample
     // Top row
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  texelSize.y ), 0).rgb * -1; // -1_1
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  texelSize.y ), 0).rgb * -1;           // 0_1
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  texelSize.y ), 0).rgb * -1; // 1_1
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  texelSize.y ), 0).rgb * -1; // -1_1
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  texelSize.y ), 0).rgb * -1;           // 0_1
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  texelSize.y ), 0).rgb * -1; // 1_1
     // Center row
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  0 ), 0).rgb * -1; // -1_0
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  0 ), 0).rgb * 8;  // 0_0
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  0 ), 0).rgb * -1; // 1_0
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  0 ), 0).rgb * -1; // -1_0
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  0 ), 0).rgb * 8;  // 0_0
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  0 ), 0).rgb * -1; // 1_0
     // Bottom row
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x, -texelSize.y ), 0).rgb * -1; // -1_-1
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  0, -texelSize.y ), 0).rgb * -1;  // 0_-1
-    sum += source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x, -texelSize.y ), 0).rgb * -1; // 1_1
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x, -texelSize.y ), 0).rgb * -1; // -1_-1
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0, -texelSize.y ), 0).rgb * -1;  // 0_-1
+    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x, -texelSize.y ), 0).rgb * -1; // 1_1
 				
-    result[dispatchThreadID.xy] = float4(saturate(sum), 1.0f);
+    Result[dispatchThreadID.xy] = float4(saturate(sum), 1.0f);
 }

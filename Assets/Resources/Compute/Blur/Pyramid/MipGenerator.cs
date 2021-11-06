@@ -57,6 +57,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
         // Generates an in-place depth pyramid
         // TODO: Mip-mapping depth is problematic for precision at lower mips, generate a packed atlas instead
+        /*
         public void RenderMinDepthPyramid(CommandBuffer cmd, RenderTexture texture, HDUtils.PackedMipChainInfo info, bool mip1AlreadyComputed)
         {
             HDUtils.CheckRTCreated(texture);
@@ -94,6 +95,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 cmd.DispatchCompute(cs, kernel, HDUtils.DivRoundUp(dstSize.x, 8), HDUtils.DivRoundUp(dstSize.y, 8), texture.volumeDepth);
             }
         }
+        #1#
 
         // Generates the gaussian pyramid of source into destination
         // We can't do it in place as the color pyramid has to be read while writing to the color

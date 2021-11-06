@@ -79,7 +79,6 @@ namespace Resources.RenderPass.OutlineBuffers
         public ComputeShader computeLines;
         [Header("Blit to Screen")]
         public Material blitMaterial;
-        public int blitIndex = 0;
         public Shader outlineEncoder;
     }
 
@@ -102,26 +101,26 @@ namespace Resources.RenderPass.OutlineBuffers
         private LineworkSettings linework => settings.lineworkSettings;
         private EdgeDetectionSettings edge => settings.edgeSettings;
         private OutlineShaderProperties shaderProps => settings.outlineProperties;
-
-
-
+        
         private ShaderPassToRT _lineworkPass;
-        private FullscreenEdgeDetectionBlit _computeLinesAndBlitPass;
+        private GaussianBlurPass _gaussianBlurPass;
+        private FullscreenEdgeDetectionCompute _computeLinesPass;
 
         private Material _outlineEncoderMaterial;
         private Shader outlineEncoderShader => settings.edgeSettings.outlineEncoder;
 
-        // private static readonly int OuterThreshold = Shader.PropertyToID("_OuterThreshold");
-        // private static readonly int InnerThreshold = Shader.PropertyToID("_InnerThreshold");
+        private static readonly int OuterThreshold = Shader.PropertyToID("_OuterThreshold");
+        private static readonly int InnerThreshold = Shader.PropertyToID("_InnerThreshold");
         // private static readonly int Rotations = Shader.PropertyToID("_Rotations");
         // private static readonly int DepthPush = Shader.PropertyToID("_DepthPush");
-        // private static readonly int OuterLut = Shader.PropertyToID("_OuterLUT");
-        // private static readonly int InnerLut = Shader.PropertyToID("_InnerLUT");
+        private static readonly int OuterLut = Shader.PropertyToID("_OuterLUT");
+        private static readonly int InnerLut = Shader.PropertyToID("_InnerLUT");
 
         public override void Create()
         {
             _lineworkPass = new ShaderPassToRT(settings, "LineworkPass", edge.computeBlur, settings.renderPassEvent, 24);
-            _computeLinesAndBlitPass = new FullscreenEdgeDetectionBlit("Outline Encoder");
+            // _blurPass = new BlurPyramid();
+            _computeLinesPass = new FullscreenEdgeDetectionCompute("Outline Encoder");
             GetMaterial();
         }
 
@@ -134,27 +133,23 @@ namespace Resources.RenderPass.OutlineBuffers
                     GetType().Name, outlineEncoderShader);
                 return;
             }
-            // Properties Harry used in his outline encoder shader but I currently am not using.
-            // Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
-            // Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
+            Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
+            Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
             // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
             // Shader.SetGlobalFloat(DepthPush, shaderProps.depthPush);
-            // Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
-            // Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
-
-            // Old idea about how to use Debug enum, probably scrapped for simpler solution. 
-            // var textureNameAndDebugView = settings.debugTargetView switch
-            // {
-            //     DebugTargetView.None => "_BlurResults",
-            //     DebugTargetView.ColorTarget_1 => "_OutlineOpaque",
-            //     DebugTargetView.BlurResults => "_BlurResults",
-            //     _ => "_BlurResults"
-            // };
-
-            _lineworkPass.Init(linework.depthSubTarget.createTexture);
+            Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
+            Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
+            
+            var hasDepth = linework.depthSubTarget.createTexture;
+            
+            _lineworkPass.Init(hasDepth);
             renderer.EnqueuePass(_lineworkPass);
-            _computeLinesAndBlitPass.Init(settings, _outlineEncoderMaterial, renderer, settings.edgeSettings.computeLines, "_BlurResults", linework.depthSubTarget.createTexture);
-            renderer.EnqueuePass(_computeLinesAndBlitPass);
+            
+            _gaussianBlurPass.Setup(linework.colorSubTarget.textureName, renderer.cameraColorTarget);
+            
+            // _computeLinesPass.Setup( "_BlurResults", renderer.cameraColorTarget);
+            // _computeLinesPass.Init(_outlineEncoderMaterial, settings.edgeSettings.computeLines, hasDepth);
+            // renderer.EnqueuePass(_computeLinesPass);
         }
 
 

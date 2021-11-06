@@ -23,27 +23,32 @@
 
 #pragma kernel KColorGaussian                       KERNEL_SIZE=8  MAIN_GAUSSIAN=KColorGaussian
 #pragma kernel KColorDownsample                     KERNEL_SIZE=8  MAIN_DOWNSAMPLE=KColorDownsample
+// #pragma kernel KColorUpscale                        KERNEL_SIZE=8  MAIN_UPSCALE=KColorUpscale
 
 #pragma multi_compile _ DISABLE_TEXTURE2D_X_ARRAY
 #pragma multi_compile _ COPY_MIP_0
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+
 // #include "Packages/com.unity.shadergraph/Editor/Generation/Targets/BuiltIn/ShaderLibrary/Core.hlsl"
-#include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
+// #include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
 
 #if COPY_MIP_0
-       TEXTURE2D_X(_Source);
-    RW_TEXTURE2D_X(float4, _Mip0);
+       TEXTURE2D(_Source);
+    RW_TEXTURE2D(float4, _Mip0);
 #else
-RW_TEXTURE2D_X(float4, _Source);
+RW_TEXTURE2D(float4, _Source);
 #endif
 
-RW_TEXTURE2D_X(float4, _Destination);
+RW_TEXTURE2D(float4, _Destination);
+
+// RW_TEXTURE2D(float4, _UpscaledResult);
 
 SamplerState sampler_LinearClamp;
 
 CBUFFER_START(cb)
 float4 _Size; // x: src width, y: src height, zw: unused
+// float4 _UpscaleSize; // for final upscaled result
 CBUFFER_END
 
 // 16x16 pixels with an 8x8 center that we will be blurring writing out. Each uint is two color
@@ -125,24 +130,21 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex)
     float4 blurred = BlurPixels(s0, s1, s2, s3, s4, s5, s6, s7, s8);
 
     // Write to the final target
-    _Destination[COORD_TEXTURE2D_X(pixelCoord)] = blurred;
+    _Destination[pixelCoord] = blurred;
 }
 
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    // Note: previously UNITY_XR_ASSIGN_VIEW_INDEX.
-    // DEFAULT_UNITY_SETUP_INSTANCE_ID(dispatchThreadId.z);
-
     // Upper-left pixel coordinate of quad that this thread will read
     int2 threadUL = (groupThreadId << 1) + (groupId << 3) - 4;
     uint2 uthreadUL = uint2(max(0, threadUL));
 
     uint2 size = uint2(_Size.xy) - 1u;
-    float4 p00 = _Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(0u, 0u), size))];
-    float4 p10 = _Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(1u, 0u), size))];
-    float4 p11 = _Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(1u, 1u), size))];
-    float4 p01 = _Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(0u, 1u), size))];
+    float4 p00 = _Source[uint2(min((uthreadUL.x + 0u), size.x), min((uthreadUL.y + 0u), size.y))];
+    float4 p10 = _Source[uint2(min((uthreadUL.x + 1u), size.x), min((uthreadUL.y + 0u), size.y))];
+    float4 p11 = _Source[uint2(min((uthreadUL.x + 1u), size.x), min((uthreadUL.y + 1u), size.y))];
+    float4 p01 = _Source[uint2(min((uthreadUL.x + 0u), size.x), min((uthreadUL.y + 1u), size.y))];
 
     // Store the 4 downsampled pixels in LDS
     uint destIdx = groupThreadId.x + (groupThreadId.y << 4u);
@@ -164,9 +166,6 @@ void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThr
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_DOWNSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    // Note: previously UNITY_XR_ASSIGN_VIEW_INDEX.
-    // DEFAULT_UNITY_VERTEX_OUTPUT_STEREO(dispatchThreadId.z);
-
     uint2 offset = dispatchThreadId.xy * 2u;
     uint2 size = uint2(_Size.xy) - 1u;
 
@@ -174,17 +173,31 @@ void MAIN_DOWNSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
     uint2 c10 = min(offset + uint2(1u, 0u), size);
     uint2 c11 = min(offset + uint2(1u, 1u), size);
     uint2 c01 = min(offset + uint2(0u, 1u), size);
-    float4 p00 = _Source[COORD_TEXTURE2D_X(c00)];
-    float4 p10 = _Source[COORD_TEXTURE2D_X(c10)];
-    float4 p11 = _Source[COORD_TEXTURE2D_X(c11)];
-    float4 p01 = _Source[COORD_TEXTURE2D_X(c01)];
+    float4 p00 = _Source[c00];
+    float4 p10 = _Source[c10];
+    float4 p11 = _Source[c11];
+    float4 p01 = _Source[c01];
 
     #if COPY_MIP_0
-    _Mip0[COORD_TEXTURE2D_X(c00)] = p00;
-    _Mip0[COORD_TEXTURE2D_X(c10)] = p10;
-    _Mip0[COORD_TEXTURE2D_X(c11)] = p11;
-    _Mip0[COORD_TEXTURE2D_X(c01)] = p01;
+    _Mip0[c00] = p00;
+    _Mip0[c10] = p10;
+    _Mip0[c11] = p11;
+    _Mip0[c01] = p01;
     #endif
 
-    _Destination[COORD_TEXTURE2D_X(dispatchThreadId.xy)] = (p00 + p01 + p11 + p10) * 0.25;
+    _Destination[dispatchThreadId.xy] = (p00 + p01 + p11 + p10) * 0.25;
 }
+
+/*
+[numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
+void MAIN_UPSCALE(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint2 size = uint2(_UpscaleSize.xy);
+    
+    uint3 id = dispatchThreadId;
+    float2 fid = float2(id.xy);
+    float2 uv = float2(fid.x / size.x, fid.y / size.y);
+    float4 upscaleBlur = _Destination.SampleLevel(sampler_LinearClamp, uv, 0);
+    _UpscaledResult[id.xy] = upscaleBlur;
+}
+*/

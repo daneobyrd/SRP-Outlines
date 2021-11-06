@@ -2,14 +2,14 @@
 {
     Properties
     {
-        _MainTex ("Texture", 2D) = "clear" {}
-        
-        //        _OuterThreshold ("Outer Threshold", float) = 0.0
-        //        _InnerThreshold ("Inner Threshold", float) = 0.0
+        _MainTex ("MainTex", 2D) = "clear" {}
+        _SourceTex ("SourceTex", 2D) = "clear" {}        
+        _OuterThreshold ("Outer Threshold", float) = 1.0
+        _InnerThreshold ("Inner Threshold", float) = 1.0
         //        _Rotations ("Rotations", int) = 6
         //        _DepthPush ("Depth Push", float) = 0.0
-        //        _OuterLUT ("Outer LUT", 2D) = "white" {}
-        //        _InnerLUT ("Inner Lut", 2D) = "white" {}
+        _OuterLUT ("Outer LUT", 2D) = "white" {}
+        _InnerLUT ("Inner Lut", 2D) = "white" {}
     }
     SubShader
     {
@@ -17,31 +17,41 @@
         Pass
         {
             Name "OutlineBlit"
-            Blend Off Cull Off
+            Blend One One
+            ZTest Always
+            ZWrite Off
+            Cull Off
             
             HLSLPROGRAM
+
+            // #pragma prefer_hlslcc gles
+            #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+            #pragma target 5.0
+            #pragma vertex FullscreenVert
+            #pragma fragment Fragment
+            #pragma multi_compile_fragment _ _LINEAR_TO_SRGB_CONVERSION
+            #pragma multi_compile _ _USE_DRAW_PROCEDURAL
+            #pragma multi_compile_fragment _ DEBUG_DISPLAY
+            
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
+            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
             // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
-            #pragma prefer_hlslcc gles
-            #pragma exclude_renderers d3d11_9x
-            #pragma target 5.0
-            #pragma vertex Vert
-            #pragma fragment frag
-
-            // struct outlined_obj
-            // {
-            //     float3 positionWS;
-            //     uint unity_InstanceID;
-            // };
-            //
-            // StructuredBuffer<outlined_obj> outline_objBuffer;
+            /*struct outlined_obj
+            {
+                float3 positionWS;
+                uint unity_InstanceID;
+            };
+            
+            StructuredBuffer<outlined_obj> outline_objBuffer;*/
 
             CBUFFER_START(UnityPerMaterial)
+                float OuterThreshold;
+                float InnerThreshold;
+            
                 TEXTURE2D(_OutlineOpaque);
                 SAMPLER(sampler_OutlineOpaque);
                 
@@ -58,15 +68,17 @@
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
             
-            float4 frag(Varyings input) : SV_Target
+            TEXTURE2D(_SourceTex);
+            SAMPLER(sampler_SourceTex);
+            
+            float4 Fragment(Varyings input) : SV_Target
             {
                 float2 uv = input.uv;
                 float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, uv);
-                float outlineMask = saturate(outlineTex.x + outlineTex.y + outlineTex.z);
-                float4 cameraColorCopy = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv);
-                // float4 cameraColorCopy = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, uv);
-                float4 col = lerp(cameraColorCopy, outlineTex, outlineMask);
-                return col;
+                float outlineMask = saturate(step(outlineTex.x, OuterThreshold) + step(outlineTex.y, InnerThreshold) + outlineTex.z);
+                float4 cameraColorCopy = SAMPLE_TEXTURE2D(_SourceTex, sampler_SourceTex, uv);
+                float3 col = lerp(cameraColorCopy.xyz, -outlineMask, outlineMask);
+                return float4(col, 1);
             }
             ENDHLSL
         }

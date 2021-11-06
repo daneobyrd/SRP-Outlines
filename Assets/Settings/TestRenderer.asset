@@ -65,7 +65,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1368294b394042aea756980b82b8e024, type: 3}
   m_Name: OutlineRenderer
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   settings:
     profilerTag: OutlineRenderer
     renderPassEvent: 300
@@ -91,13 +91,12 @@ MonoBehaviour:
         createTexture: 0
         renderTextureFormat: 1
     edgeSettings:
-      BlurType: 1
-      computeBlur: {fileID: 7200000, guid: 1310d8b7de2157740bcd50e4ffe84ede, type: 3}
-      gaussianSigma: 10
+      BlurType: 0
+      computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
+      gaussianSigma: 1
       computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
-      blitIndex: 0
-      outlineEncoder: {fileID: 4800000, guid: 4518a8d553b9c4048990f28deef5c56c, type: 3}
+      outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
     outlineProperties:
       outerThreshold: 1
       innerThreshold: 1
