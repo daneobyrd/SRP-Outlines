@@ -77,6 +77,7 @@ namespace Resources.RenderPass.OutlineBuffers
         private int depthIdInt => depthSubTarget.renderTargetInt;
         private RenderTargetIdentifier depthTargetId => depthSubTarget.TargetIdentifier;
         private bool createDepthTexture => depthSubTarget.createTexture;
+        private RenderTextureFormat depthFormat => colorSubTarget.renderTextureFormat; // Redundant but exists for consistency.
 
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -126,39 +127,27 @@ namespace Resources.RenderPass.OutlineBuffers
             var height = _cameraTextureDescriptor.height;
             
             List<RenderTargetIdentifier> attachmentsToConfigure = new();
-            
-            cmd.GetTemporaryRT(nameID: colorIdInt, 
+
+            cmd.GetTemporaryRT(nameID: colorIdInt,
                                width: width,
-                               height: height, 
+                               height: height,
                                depthBuffer: _textureDepthBufferBits,
-                               filter: FilterMode.Bilinear,
-                               format: colorFormat,
-                               readWrite: RenderTextureReadWrite.Default,
-                               antiAliasing: 1,
-                               enableRandomWrite: true);
+                               filter: FilterMode.Point,
+                               format: colorFormat);
             if (createColorTexture) attachmentsToConfigure.Add(colorIdInt);
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
             cmd.GetTemporaryRT(nameID: depthIdInt, 
-                               width: cameraTextureDescriptor.width,
-                               height: cameraTextureDescriptor.height,
+                               width: width,
+                               height: height,
                                depthBuffer: _textureDepthBufferBits,
                                filter: FilterMode.Point,
-                               format: RenderTextureFormat.Depth);
+                               format: depthFormat);
             if (createDepthTexture) attachmentsToConfigure.Add(depthIdInt);
             
             // Configure color and depth targets
-            ConfigureTarget(attachmentsToConfigure.ToArray());
+            ConfigureTarget(attachmentsToConfigure[0], attachmentsToConfigure[1]);
             
-            // Set Global Textures (for... debug?)
-            // if (createColorTexture)
-            // {
-            //     cmd.SetGlobalTexture(colorIdInt, colorTargetId, RenderTextureSubElement.Color);
-            // }
-            // if (createDepthTexture)
-            // {
-            //     cmd.SetGlobalTexture(depthIdInt, depthTargetId, RenderTextureSubElement.Depth);
-            // }
             // Clear
             if (createColorTexture || createDepthTexture)
                 ConfigureClear(ClearFlag.All, Color.black);
@@ -168,7 +157,7 @@ namespace Resources.RenderPass.OutlineBuffers
         {
             CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
 
-            _cameraTextureDescriptor.enableRandomWrite = true;
+            // _cameraTextureDescriptor.enableRandomWrite = true;
 
             SortingCriteria sortingCriteria = renderQueueType == RenderQueueType.Opaque
                 ? renderingData.cameraData.defaultOpaqueSortFlags
@@ -177,6 +166,16 @@ namespace Resources.RenderPass.OutlineBuffers
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
             
+            // Set Global Textures (for... debug?)
+            if (createColorTexture)
+            {
+                cmd.SetGlobalTexture(colorIdInt, colorTargetId, RenderTextureSubElement.Color);
+            }
+            if (createDepthTexture)
+            {
+                cmd.SetGlobalTexture(depthIdInt, depthTargetId, RenderTextureSubElement.Depth);
+            }
+
             context.ExecuteCommandBuffer(cmd);
             // cmd.Clear();
             CommandBufferPool.Release(cmd);

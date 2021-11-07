@@ -25,7 +25,9 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTargetIdentifier tempColorTargetID => new(_sourceIntId); // _OutlineOpaque
         private RenderTargetIdentifier tempDownsampleTargetID => new(tempDownsampleIntId);
         private RenderTargetIdentifier finalTargetID => new(blurIntId);
-
+        private int _tempFinalInt = Shader.PropertyToID("tempFinalTex");
+        private RenderTargetIdentifier tempFinal => new(_tempFinalInt);
+        
         private RenderTextureDescriptor _cameraTextureDescriptor;
 
         #endregion
@@ -49,35 +51,43 @@ namespace Resources.RenderPass.OutlineBuffers
             var height = _cameraTextureDescriptor.height;
             
             // Source texture
-            cmd.GetTemporaryRT(nameID: _sourceIntId,
-                               width: width,
-                               height: height,
-                               depthBuffer: 0,
-                               filter: FilterMode.Bilinear,
-                               format: RenderTextureFormat.ARGBFloat,
-                               readWrite: RenderTextureReadWrite.Default,
-                               antiAliasing: 1,
-                               enableRandomWrite: true);
+            cmd.GetTemporaryRTArray(nameID: _sourceIntId,
+                                    width: width,
+                                    height: height,
+                                    slices: 1,
+                                    depthBuffer: 0,
+                                    filter: FilterMode.Point,
+                                    format: RenderTextureFormat.ARGBFloat,
+                                    readWrite: RenderTextureReadWrite.Default,
+                                    antiAliasing: 1,
+                                    enableRandomWrite: true);
             // Downsample texture
-            cmd.GetTemporaryRT(nameID: tempDownsampleIntId,
-                               width: width,
-                               height: height,
-                               depthBuffer: 0,
-                               filter: FilterMode.Bilinear,
-                               format: RenderTextureFormat.ARGBFloat,
-                               readWrite: RenderTextureReadWrite.Default,
-                               antiAliasing: 1,
-                               enableRandomWrite: true);
+            cmd.GetTemporaryRTArray(nameID: tempDownsampleIntId,
+                                    width: width,
+                                    height: height,
+                                    slices: 1,
+                                    depthBuffer: 0,
+                                    filter: FilterMode.Point,
+                                    format: RenderTextureFormat.ARGBFloat,
+                                    readWrite: RenderTextureReadWrite.Default,
+                                    antiAliasing: 1,
+                                    enableRandomWrite: true);
             // Blur result
             cmd.GetTemporaryRT(nameID: blurIntId,
                                width: width,
                                height: height,
                                depthBuffer: 0,
-                               filter: FilterMode.Bilinear,
+                               filter: FilterMode.Point,
                                format: RenderTextureFormat.ARGBFloat,
                                readWrite: RenderTextureReadWrite.Default,
                                antiAliasing: 1,
                                enableRandomWrite: true);
+
+            cmd.GetTemporaryRT(_tempFinalInt,
+                                width,
+                                height,
+                                0,
+                                FilterMode.Point);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -89,7 +99,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
             RenderColorGaussianPyramid(cmd, new Vector2Int(width, height), tempColorTargetID, tempDownsampleTargetID, finalTargetID);
 
-            cmd.SetGlobalTexture(blurIntId, finalTargetID, RenderTextureSubElement.Color);
+            cmd.SetGlobalTexture(blurIntId, tempFinal, RenderTextureSubElement.Color);
 
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
@@ -104,7 +114,7 @@ namespace Resources.RenderPass.OutlineBuffers
             
             bool firstIteration = true;
 
-            while (srcMipWidth >= 16 || srcMipHeight >= 16)
+            while (srcMipWidth >= 8 || srcMipHeight >= 8)
             {
                 int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1);
                 int dstMipHeight = Mathf.Max(1, srcMipHeight >> 1);
@@ -153,17 +163,12 @@ namespace Resources.RenderPass.OutlineBuffers
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Upscale Blurred Mip4
             // -----------------------------------------------------------------------------------------------------------------------------------
-            const int tempFinalInt = new();
-            RenderTargetIdentifier tempFinal = new(tempFinalInt);
-            cmd.GetTemporaryRT(tempFinalInt, _cameraTextureDescriptor);
+
             var upscaleKernel = _computeShader.FindKernel("KColorUpscale");
             cmd.SetComputeVectorParam(_computeShader, "_UpscaleSize", new Vector4(size.x, size.y, 0, 0));
-            cmd.SetComputeTextureParam(_computeShader, upscaleKernel, "_Final_Mip4", finalRT, 4);
+            cmd.SetComputeTextureParam(_computeShader, upscaleKernel, "_Final_Mip4", finalRT, 0);
             cmd.SetComputeTextureParam(_computeShader, upscaleKernel, "_Upscale", tempFinal, 0);
             cmd.DispatchCompute(_computeShader, upscaleKernel, Mathf.CeilToInt(srcMipWidth / 8f), Mathf.CeilToInt(srcMipHeight / 8f), 1);
-
-            cmd.SetGlobalTexture(blurIntId, tempFinal, RenderTextureSubElement.Color);
-            cmd.ReleaseTemporaryRT(tempFinalInt);
         }
 
 
@@ -172,6 +177,7 @@ namespace Resources.RenderPass.OutlineBuffers
             cmd.ReleaseTemporaryRT(_sourceIntId);
             cmd.ReleaseTemporaryRT(tempDownsampleIntId);
             cmd.ReleaseTemporaryRT(blurIntId); // Used by tempDownsampleTarget
+            cmd.ReleaseTemporaryRT(_tempFinalInt);
         }
     }
 }

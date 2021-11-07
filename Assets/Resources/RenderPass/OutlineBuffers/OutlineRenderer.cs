@@ -78,8 +78,8 @@ namespace Resources.RenderPass.OutlineBuffers
         public ComputeShader computeLines;
         public int kernelIndex = new();
         // [Header("Blit to Screen")]
-        // public Material blitMaterial;
-        // public Shader outlineEncoder;
+        public Material blitMaterial;
+        public Shader outlineEncoder;
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -106,8 +106,13 @@ namespace Resources.RenderPass.OutlineBuffers
         private GaussianBlurPass _blurPass;
         private FullscreenEdgeDetectionCompute _computeLinesPass;
 
-        // private Material _outlineEncoderMaterial;
-        // private Shader outlineEncoderShader => settings.edgeSettings.outlineEncoder;
+        private Material outlineEncoderMaterial
+        {
+            get => settings.edgeSettings.blitMaterial;
+            set => settings.edgeSettings.blitMaterial = value;
+        }
+
+        private Shader outlineEncoderShader => settings.edgeSettings.outlineEncoder;
 
         private static readonly int OuterThreshold = Shader.PropertyToID("_OuterThreshold");
         private static readonly int InnerThreshold = Shader.PropertyToID("_InnerThreshold");
@@ -121,18 +126,18 @@ namespace Resources.RenderPass.OutlineBuffers
             _lineworkPass = new ShaderPassToRT(settings, "Linework Pass", edge.computeBlur, settings.renderPassEvent, 24);
             _blurPass = new GaussianBlurPass("Blur Pass");
             _computeLinesPass = new FullscreenEdgeDetectionCompute("Outline Encoder", edge.kernelIndex);
-            // GetMaterial();
+            GetMaterial();
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            // if (!GetMaterial())
-            // {
-            //     Debug.LogErrorFormat(
-            //         "{0}.AddRenderPasses(): Missing material. Make sure to add a blit material, or make sure {1} exists.",
-            //         GetType().Name, outlineEncoderShader);
-            //     return;
-            // }
+            if (!GetMaterial())
+            {
+                Debug.LogErrorFormat(
+                    "{0}.AddRenderPasses(): Missing material. Make sure to add a blit material, or make sure {1} exists.",
+                    GetType().Name, outlineEncoderShader);
+                return;
+            }
             Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
             Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
             // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
@@ -148,20 +153,20 @@ namespace Resources.RenderPass.OutlineBuffers
             _blurPass.Setup(linework.colorSubTarget.textureName, edge.computeBlur);
             renderer.EnqueuePass(_blurPass);
 
-            _computeLinesPass.Init("_BlurResults", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
+            _computeLinesPass.Init(settings, outlineEncoderMaterial, "_BlurResults", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
             renderer.EnqueuePass(_computeLinesPass);
         }
 
-        // private bool GetMaterial()
-        // {
-        //     if (_outlineEncoderMaterial && settings.edgeSettings.blitMaterial)
-        //     {
-        //         return true;
-        //     }
-        //
-        //     if (outlineEncoderShader == null || !settings.edgeSettings.blitMaterial) return false;
-        //     _outlineEncoderMaterial = CoreUtils.CreateEngineMaterial(outlineEncoderShader);
-        //     return true;
-        // }
+        private bool GetMaterial()
+        {
+            if (outlineEncoderMaterial && settings.edgeSettings.blitMaterial)
+            {
+                return true;
+            }
+        
+            if (outlineEncoderShader == null || !settings.edgeSettings.blitMaterial) return false;
+            outlineEncoderMaterial = CoreUtils.CreateEngineMaterial(outlineEncoderShader);
+            return true;
+        }
     }
 }

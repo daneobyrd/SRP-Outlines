@@ -1,79 +1,74 @@
-﻿#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-CBUFFER_START(cb)
-float4 _Size; // x: src width, y: src height, zw: unused
-uint _KernelType;
-CBUFFER_END
-uint sample_size = 9;
+﻿uint2 size;
 
 // Row 1
 
-uint2 px00 = uint2(min(0u, _Size.x), min(0u, _Size.y));
-uint2 px01 = uint2(min(0u, _Size.x), min(1u, _Size.y));
-uint2 px02 = uint2(min(0u, _Size.x), min(2u, _Size.y));
-uint2 px03 = uint2(min(0u, _Size.x), min(3u, _Size.y));
-uint2 px04 = uint2(min(0u, _Size.x), min(4u, _Size.y));
-uint2 px05 = uint2(min(0u, _Size.x), min(5u, _Size.y));
-uint2 px06 = uint2(min(0u, _Size.x), min(6u, _Size.y));
+uint2 px00 = uint2(min(0u, size.x), min(0u, size.y));
+uint2 px01 = uint2(min(0u, size.x), min(1u, size.y));
+uint2 px02 = uint2(min(0u, size.x), min(2u, size.y));
+uint2 px03 = uint2(min(0u, size.x), min(3u, size.y));
+uint2 px04 = uint2(min(0u, size.x), min(4u, size.y));
+uint2 px05 = uint2(min(0u, size.x), min(5u, size.y));
+uint2 px06 = uint2(min(0u, size.x), min(6u, size.y));
 
 // Row 2
 
-uint2 px10 = uint2(min(1u, _Size.x), min(0u, _Size.y));
-uint2 px11 = uint2(min(1u, _Size.x), min(1u, _Size.y));
-uint2 px12 = uint2(min(1u, _Size.x), min(2u, _Size.y));
-uint2 px13 = uint2(min(1u, _Size.x), min(3u, _Size.y));
-uint2 px14 = uint2(min(1u, _Size.x), min(4u, _Size.y));
-uint2 px15 = uint2(min(1u, _Size.x), min(5u, _Size.y));
-uint2 px16 = uint2(min(1u, _Size.x), min(6u, _Size.y));
+uint2 px10 = uint2(min(1u, size.x), min(0u, size.y));
+uint2 px11 = uint2(min(1u, size.x), min(1u, size.y));
+uint2 px12 = uint2(min(1u, size.x), min(2u, size.y));
+uint2 px13 = uint2(min(1u, size.x), min(3u, size.y));
+uint2 px14 = uint2(min(1u, size.x), min(4u, size.y));
+uint2 px15 = uint2(min(1u, size.x), min(5u, size.y));
+uint2 px16 = uint2(min(1u, size.x), min(6u, size.y));
 
 // Row 3
  
-uint2 px20 = uint2(min(2u, _Size.x), min(0u, _Size.y));
-uint2 px21 = uint2(min(2u, _Size.x), min(1u, _Size.y));
-uint2 px22 = uint2(min(2u, _Size.x), min(2u, _Size.y));
-uint2 px23 = uint2(min(2u, _Size.x), min(3u, _Size.y));
-uint2 px24 = uint2(min(2u, _Size.x), min(4u, _Size.y));
-uint2 px25 = uint2(min(2u, _Size.x), min(5u, _Size.y));
-uint2 px26 = uint2(min(2u, _Size.x), min(6u, _Size.y));
+uint2 px20 = uint2(min(2u, size.x), min(0u, size.y));
+uint2 px21 = uint2(min(2u, size.x), min(1u, size.y));
+uint2 px22 = uint2(min(2u, size.x), min(2u, size.y));
+uint2 px23 = uint2(min(2u, size.x), min(3u, size.y));
+uint2 px24 = uint2(min(2u, size.x), min(4u, size.y));
+uint2 px25 = uint2(min(2u, size.x), min(5u, size.y));
+uint2 px26 = uint2(min(2u, size.x), min(6u, size.y));
 
 // Row 4
 
-uint2 px30 = uint2(min(3u, _Size.x), min(0u, _Size.y));
-uint2 px31 = uint2(min(3u, _Size.x), min(1u, _Size.y));
-uint2 px32 = uint2(min(3u, _Size.x), min(2u, _Size.y));
-uint2 px33 = uint2(min(3u, _Size.x), min(3u, _Size.y));
-uint2 px34 = uint2(min(3u, _Size.x), min(4u, _Size.y));
-uint2 px35 = uint2(min(3u, _Size.x), min(5u, _Size.y));
-uint2 px36 = uint2(min(3u, _Size.x), min(6u, _Size.y));
+uint2 px30 = uint2(min(3u, size.x), min(0u, size.y));
+uint2 px31 = uint2(min(3u, size.x), min(1u, size.y));
+uint2 px32 = uint2(min(3u, size.x), min(2u, size.y));
+uint2 px33 = uint2(min(3u, size.x), min(3u, size.y));
+uint2 px34 = uint2(min(3u, size.x), min(4u, size.y));
+uint2 px35 = uint2(min(3u, size.x), min(5u, size.y));
+uint2 px36 = uint2(min(3u, size.x), min(6u, size.y));
 
 // Row 5
  
-uint2 px40 = uint2(min(4u, _Size.x), min(0u, _Size.y));
-uint2 px41 = uint2(min(4u, _Size.x), min(1u, _Size.y));
-uint2 px42 = uint2(min(4u, _Size.x), min(2u, _Size.y));
-uint2 px43 = uint2(min(4u, _Size.x), min(3u, _Size.y));
-uint2 px44 = uint2(min(4u, _Size.x), min(4u, _Size.y));
-uint2 px45 = uint2(min(4u, _Size.x), min(5u, _Size.y));
-uint2 px46 = uint2(min(4u, _Size.x), min(6u, _Size.y));
+uint2 px40 = uint2(min(4u, size.x), min(0u, size.y));
+uint2 px41 = uint2(min(4u, size.x), min(1u, size.y));
+uint2 px42 = uint2(min(4u, size.x), min(2u, size.y));
+uint2 px43 = uint2(min(4u, size.x), min(3u, size.y));
+uint2 px44 = uint2(min(4u, size.x), min(4u, size.y));
+uint2 px45 = uint2(min(4u, size.x), min(5u, size.y));
+uint2 px46 = uint2(min(4u, size.x), min(6u, size.y));
 
 // Row 6
 
-uint2 px50 = uint2(min(5u, _Size.x), min(0u, _Size.y));
-uint2 px51 = uint2(min(5u, _Size.x), min(1u, _Size.y));
-uint2 px52 = uint2(min(5u, _Size.x), min(2u, _Size.y));
-uint2 px53 = uint2(min(5u, _Size.x), min(3u, _Size.y));
-uint2 px54 = uint2(min(5u, _Size.x), min(4u, _Size.y));
-uint2 px55 = uint2(min(5u, _Size.x), min(5u, _Size.y));
-uint2 px56 = uint2(min(5u, _Size.x), min(6u, _Size.y));
+uint2 px50 = uint2(min(5u, size.x), min(0u, size.y));
+uint2 px51 = uint2(min(5u, size.x), min(1u, size.y));
+uint2 px52 = uint2(min(5u, size.x), min(2u, size.y));
+uint2 px53 = uint2(min(5u, size.x), min(3u, size.y));
+uint2 px54 = uint2(min(5u, size.x), min(4u, size.y));
+uint2 px55 = uint2(min(5u, size.x), min(5u, size.y));
+uint2 px56 = uint2(min(5u, size.x), min(6u, size.y));
 
 // Row 7
 
-uint2 px60 = uint2(min(6u, _Size.x), min(0u, _Size.y));
-uint2 px61 = uint2(min(6u, _Size.x), min(1u, _Size.y));
-uint2 px62 = uint2(min(6u, _Size.x), min(2u, _Size.y));
-uint2 px63 = uint2(min(6u, _Size.x), min(3u, _Size.y));
-uint2 px64 = uint2(min(6u, _Size.x), min(4u, _Size.y));
-uint2 px65 = uint2(min(6u, _Size.x), min(5u, _Size.y));
-uint2 px66 = uint2(min(6u, _Size.x), min(6u, _Size.y));
+uint2 px60 = uint2(min(6u, size.x), min(0u, size.y));
+uint2 px61 = uint2(min(6u, size.x), min(1u, size.y));
+uint2 px62 = uint2(min(6u, size.x), min(2u, size.y));
+uint2 px63 = uint2(min(6u, size.x), min(3u, size.y));
+uint2 px64 = uint2(min(6u, size.x), min(4u, size.y));
+uint2 px65 = uint2(min(6u, size.x), min(5u, size.y));
+uint2 px66 = uint2(min(6u, size.x), min(6u, size.y));
 
 // ┌──────┬──────┬──────┐
 // │ px00 │ px01 │ px02 │

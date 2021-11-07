@@ -14,9 +14,10 @@ namespace Resources.RenderPass.OutlineBuffers
 {
     public class FullscreenEdgeDetectionCompute : ScriptableRenderPass
     {
-        // private OutlineSettings _settings;
+        private OutlineSettings _settings;
 
         private string _profilerTag;
+        private Material _material;
         // private DebugTargetView debugTargetView => _settings.debugTargetView;
 
         private bool _hasDepth;
@@ -43,8 +44,8 @@ namespace Resources.RenderPass.OutlineBuffers
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
         private RenderTargetIdentifier _tempColor;
 
-        private static int destinationIntId => -1;
-        private static RenderTargetIdentifier destinationTargetId => new (destinationIntId);
+        // private static int destinationIntId => -1;
+        private static RenderTargetIdentifier _destinationTargetId;// => new (destinationIntId);
         
         public FullscreenEdgeDetectionCompute(string name, int kernelIndex)
         {
@@ -53,10 +54,12 @@ namespace Resources.RenderPass.OutlineBuffers
             _index = kernelIndex;
         }
 
-        public void Init( string sourceTextureName, RenderTargetIdentifier cameraTempColor, ComputeShader computeShader,  bool hasDepth)
+        public void Init(OutlineSettings settings, Material initMaterial, string sourceTextureName, RenderTargetIdentifier cameraTempColor, ComputeShader computeShader,  bool hasDepth)
         {
+            _settings = settings;
+            _material = initMaterial;
             _sourceIntId = Shader.PropertyToID(sourceTextureName);
-            _tempColor = cameraTempColor;
+            _destinationTargetId = cameraTempColor;
             _hasDepth = hasDepth;
             _computeShader = computeShader;
         }
@@ -77,7 +80,7 @@ namespace Resources.RenderPass.OutlineBuffers
             cmd.GetTemporaryRT(outlineIntId, width, height, depthBuffer, FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, msaa, true);
             
             // See CopyColorPass.cs (65)
-            cmd.GetTemporaryRT(destinationIntId, width, height, depthBuffer, FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, msaa);
+            // cmd.GetTemporaryRT(destinationIntId, width, height, depthBuffer, FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, msaa);
 
             // if (_hasDepth)
             // {
@@ -93,7 +96,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            // if (_material == null) return;
+            if (_material == null) return;
             CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
             RenderTextureDescriptor textureDescriptor = renderingData.cameraData.cameraTargetDescriptor;
             textureDescriptor.depthBufferBits = 0;
@@ -128,14 +131,14 @@ namespace Resources.RenderPass.OutlineBuffers
             var composite = _computeShader.FindKernel("KComposite");
             cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
             cmd.SetComputeTextureParam(_computeShader, composite, "Source", outlineTargetId, 0);
-            cmd.SetComputeTextureParam(_computeShader, composite, "CameraTex", _tempColor, 0);
+            cmd.SetComputeTextureParam(_computeShader, composite, "CameraTex", _destinationTargetId, 0);
             cmd.SetComputeTextureParam(_computeShader, composite, "Final", combinedTargetId, 0);
             cmd.DispatchCompute(_computeShader, composite, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
             
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Blit _OutlineTexture to the screen
             // ---------------------------------------------------------------------------------------------------------------------------------------
-            RenderTargetIdentifier opaqueColorRT = destinationTargetId;
+            RenderTargetIdentifier opaqueColorRT = _destinationTargetId;
             
             Blit(cmd, combinedTargetId, opaqueColorRT);
 

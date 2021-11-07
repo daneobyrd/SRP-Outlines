@@ -1,8 +1,6 @@
 ﻿// Some laplacian kernels: https://legacy.imagemagick.org/Usage/convolve/#laplacian
 #include "ComputeSampleArrays.hlsl"
 
-// TODO: Move to cbuffer (existing or new)
-
 /*
 ┌──────────────┬───────────────────────────────────────────────────────────────────┐
 │ Laplacian: 0 │ 3x3 Laplacian, with center:8 edge:-1 corner:-1                    │
@@ -147,52 +145,3 @@ float laplacian_7x7_0[49] = {
      -5,  0,  3,  4,  3,  0,  -5,
     -10, -5, -2, -1, -2, -5, -10,
 };
-
-float laplacian[] = {};
-uint2 sample_points[sample_size] = {};
-
-void set_laplacian()
-{
-    switch (_KernelType)
-    {
-    case _KernelType == 330:
-        sample_size = 9;
-        sample_points[sample_size] = sample_3x3[sample_size];
-        laplacian[sample_size] = laplacian_3x3_0[sample_size];
-        break;
-    case _KernelType == 331:
-        sample_size = 9;
-        sample_points[sample_size] = sample_3x3[sample_size];
-        laplacian[sample_size] = laplacian_3x3_1[sample_size];
-        break;
-    case _KernelType == 332:
-        sample_size = 9;
-        sample_points[sample_size] = sample_3x3[sample_size];
-        laplacian[sample_size] = laplacian_3x3_2[sample_size];
-        break;
-    case _KernelType == 333:
-        sample_size = 9;
-        sample_points[sample_size] = sample_3x3[sample_size];
-        laplacian[sample_size] = laplacian_3x3_3[sample_size];
-        break;
-    case _KernelType == 550:
-        sample_size = 25;
-        sample_points[sample_size] = sample_5x5[sample_size];
-        laplacian[sample_size] = laplacian_5x5_0[sample_size];
-        break;
-    case _KernelType == 551:
-        sample_size = 25;
-        sample_points[sample_size] = sample_5x5[sample_size];
-        laplacian[sample_size] = laplacian_5x5_1[sample_size];
-        break;
-    case _KernelType == 770:
-        sample_size = 49;
-        sample_points[sample_size] = sample_7x7[sample_size];
-        laplacian[sample_size] = laplacian_7x7_0[sample_size];
-        break;
-    default:
-        _KernelType = 330;
-        sample_size = 9;
-        break;
-    }
-}

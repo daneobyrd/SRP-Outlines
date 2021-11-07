@@ -4,7 +4,12 @@
 #pragma kernel KComposite                           GROUP_SIZE=8    MAIN_COMPOSITE=KComposite
 // #define REGION_PER_THREAD 8
 
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "LaplacianFilters.hlsl"
+CBUFFER_START(cb)
+float4 _Size; // x: src width, y: src height, zw: unused
+uint _KernelType;
+CBUFFER_END
 
 TEXTURE2D(Source);
 RW_TEXTURE2D(float4, Result);
@@ -13,195 +18,69 @@ RW_TEXTURE2D(float4, Final);
 
 SamplerState sampler_LinearClamp;
 
+// An attempty at letting me change what kernel I am using from the render feature settings
+float laplacian[] = {};
+uint sample_size;
+uint2 sample_points[sample_size] = {};
 
-/*
-float SobelEdge(float2 coord, float threshold, float thickness)
+
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]                                 // Image should ba multiple of 32
+void MAIN_LAPLACIAN( uint2 groupId : SV_GroupID,                        // ID of thread group; range depends on Dispatch call.
+                     uint2 groupThreadId : SV_GroupThreadID,            // ID of thread in a thread group; range depends on numthreads.
+                     uint3 dispatchThreadID : SV_DispatchThreadID)      // = SV_GroupID * numthreads + SV_GroupThreadID.
 {
-    /*
-     *Sobel 3x3 tap filter: approximate magnitude
-    Cheaper than the full Sobel kernel evaluation
-    https://homepages.inf.ed.ac.uk/rbf/HIPR2/sobel.htm
-    ────────────┬────────────────
-    p1  p2  p3  │ x
-    p4 (p5) p6  │ convolution kernel
-    p7  p8  p9  │
-    ────────────┴────────────────
-    Gx  = pow((p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9), 2);
-    ────────────┬────────────────
-    p3  p6  p9  │ y (x rotated counter cw)
-    p2 (p5) p8  │ convolution kernel
-    p1  p4  p7  │
-    ────────────┴────────────────
-    Gy  = pow((p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7), 2);
-    ─────────────────────────────
-    Formula:
-    |G| = |Gx|² + |Gy|² => pow(G,2) = Gx*Gx + Gy*Gy
-    |G| = |(p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9)| + 
-          |(p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7)|
-    p5 == current pixel, 
-    sample neighbors to create 3x3 kernel
-    #1#
-    float p1 = Luminance(Source[uint2(coord + float2(-thickness, -thickness))]);
-    float p2 = Luminance(Source[uint2(coord + float2(0, -thickness))]);
-    float p3 = Luminance(Source[uint2(coord + float2(thickness, -thickness))]);
+    switch (_KernelType)
+    {
+    case _KernelType == 330:
+        sample_size = 9;
+        sample_points[sample_size] = *sample_3x3;
+        laplacian[sample_size] = *laplacian_3x3_0;
+        break;
+    case _KernelType == 331:
+        sample_size = 9;
+        sample_points[sample_size] = *sample_3x3;
+        laplacian[sample_size] = *laplacian_3x3_1;
+        break;
+    case _KernelType == 332:
+        sample_size = 9;
+        sample_points[sample_size] = *sample_3x3;
+        laplacian[sample_size] = *laplacian_3x3_2;
+        break;
+    case _KernelType == 333:
+        sample_size = 9;
+        sample_points[sample_size] = *sample_3x3;
+        laplacian[sample_size] = *laplacian_3x3_3;
+        break;
+    case _KernelType == 550:
+        sample_size = 25;
+        sample_points[sample_size] = *sample_5x5;
+        laplacian[sample_size] = *laplacian_5x5_0;
+        break;
+    case _KernelType == 551:
+        sample_size = 25;
+        sample_points[sample_size] = *sample_5x5;
+        laplacian[sample_size] = *laplacian_5x5_1;
+        break;
+    case _KernelType == 770:
+        sample_size = 49;
+        sample_points[sample_size] = *sample_7x7;
+        laplacian[sample_size] = *laplacian_7x7_0;
+        break;
+    default:
+        _KernelType = 330;
+        sample_size = 9;
+        break;
+    }
 
-    float p4 = Luminance(Source[uint2(coord + float2(-thickness, 0))]);
-
-    float p6 = Luminance(Source[uint2(coord + float2(thickness, 0))]);
-
-    float p7 = Luminance(Source[uint2(coord + float2(-thickness, thickness))]);
-    float p8 = Luminance(Source[uint2(coord + float2(0, thickness))]);
-    float p9 = Luminance(Source[uint2(coord + float2(thickness, thickness))]);
-    //float sobelX = (p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9);
-    //float sobelY = (p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7);
-    float sobelX = mad(2, p2, p1 + p3) - mad(2, p8, p7 + p9);
-    float sobelY = mad(2, p6, p3 + p9) - mad(2, p4, p1 + p7);
-    float edgeSqr = (sobelX * sobelX + sobelY * sobelY);
-    float result = 1.0 - (edgeSqr > threshold * threshold);
-    // if (edgeSqr > threshold * threshold) { is edge }
-    return result; // black (0) = edge, otherwise white (1)
-} // End SobelEdge
-*/
-
-// 16x16 pixels with an 8x8 center that we will be edge-detecting.
-/* Each uint is two color channels packed together.
-    ┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
-    ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
-    ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
-    ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
-    ├──┼──┼──┼─ ╔══╦══╦══╦══╦══╦══╦══╦══╗ ─┼──┼──┼──┤
-    ├──┼──┼──┼─ ╠══╬══╬══╬══╬══╬══╬══╬══╣ ─┼──┼──┼──┤
-    ├──┼──┼──┼─ ╠══╬══╬══╬══╬══╬══╬══╬══╣ ─┼──┼──┼──┤
-    ├──┼──┼──┼─ ╠══╬══╬══╬══╬══╬══╬══╬══╣ ─┼──┼──┼──┤
-    ├──┼──┼──┼─ ╠══╬══╬══╬══╬══╬══╬══╬══╣ ─┼──┼──┼──┤
-    ├──┼──┼──┼─ ╠══╬══╬══╬══╬══╬══╬══╬══╣ ─┼──┼──┼──┤
-    ├──┼──┼──┼─ ╠══╬══╬══╬══╬══╬══╬══╬══╣ ─┼──┼──┼──┤
-    ├──┼──┼──┼─ ╠══╬══╬══╬══╬══╬══╬══╬══╣ ─┼──┼──┼──┤
-    ├──┼──┼──┼─ ╚══╩══╩══╩══╩══╩══╩══╩══╝ ─┼──┼──┼──┤
-    ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
-    ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
-    ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
-    └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘       */
-// The reason for separating channels is to reduce bank conflicts in the local data memory
-// controller. A large stride will cause more threads to collide on the same memory bank.
-/*
-groupshared uint gs_cacheR[128];
-groupshared uint gs_cacheG[128];
-groupshared uint gs_cacheB[128];
-groupshared uint gs_cacheA[128];
-
-
-// TODO: This is not correct, untested placeholder mutation of blur function with laplacian filter.
-float4 DetectEdges(float4 a, float4 b, float4 c, float4 d, float4 e, float4 f, float4 g, float4 h, float4 i)
-{                           
-    return (24 * e)
-    + -(d)
-    + -(f)              
-    + -(c)
-    + -(g)
-    + -(b)
-    + -(h)
-    + -(a)
-    + -(i);       
-}                           
-
-void Store2Pixels(uint index, float4 pixel1, float4 pixel2)
-{
-    gs_cacheR[index] = f32tof16(pixel1.r) | f32tof16(pixel2.r) << 16;
-    gs_cacheG[index] = f32tof16(pixel1.g) | f32tof16(pixel2.g) << 16;
-    gs_cacheB[index] = f32tof16(pixel1.b) | f32tof16(pixel2.b) << 16;
-    gs_cacheA[index] = f32tof16(pixel1.a) | f32tof16(pixel2.a) << 16;
-}
-
-void Load2Pixels(uint index, out float4 pixel1, out float4 pixel2)
-{
-    uint rr = gs_cacheR[index];
-    uint gg = gs_cacheG[index];
-    uint bb = gs_cacheB[index];
-    uint aa = gs_cacheA[index];
-    pixel1 = float4(f16tof32(rr), f16tof32(gg), f16tof32(bb), f16tof32(aa));
-    pixel2 = float4(f16tof32(rr >> 16), f16tof32(gg >> 16), f16tof32(bb >> 16), f16tof32(aa >> 16));
-}
-
-void Store1Pixel(uint index, float4 pixel)
-{
-    gs_cacheR[index] = asuint(pixel.r);
-    gs_cacheG[index] = asuint(pixel.g);
-    gs_cacheB[index] = asuint(pixel.b);
-    gs_cacheA[index] = asuint(pixel.a);
-}
-
-void Load1Pixel(uint index, out float4 pixel)
-{
-    pixel = asfloat(uint4(gs_cacheR[index], gs_cacheG[index], gs_cacheB[index], gs_cacheA[index]));
-}
-
-// Detect two pixels horizontally. This reduces LDS reads and pixel unpacking.
-void DetectEdgesHorizontally(uint outIndex, uint leftMostIndex)
-{
-    float4 s0, s1, s2, s3, s4, s5, s6, s7, s8, s9;
-    Load2Pixels(leftMostIndex + 0, s0, s1);
-    Load2Pixels(leftMostIndex + 1, s2, s3);
-    Load2Pixels(leftMostIndex + 2, s4, s5);
-    Load2Pixels(leftMostIndex + 3, s6, s7);
-    Load2Pixels(leftMostIndex + 4, s8, s9);
-
-    Store1Pixel(outIndex, DetectEdges(s0, s1, s2, s3, s4, s5, s6, s7, s8));
-    Store1Pixel(outIndex + 1, DetectEdges(s1, s2, s3, s4, s5, s6, s7, s8, s9));
-}
-
-void DetectEdgesVertically(uint2 pixelCoord, uint topMostIndex)
-{
-    float4 s0, s1, s2, s3, s4, s5, s6, s7, s8;
-    Load1Pixel(topMostIndex, s0);
-    Load1Pixel(topMostIndex + 8, s1);
-    Load1Pixel(topMostIndex + 16, s2);
-    Load1Pixel(topMostIndex + 24, s3);
-    Load1Pixel(topMostIndex + 32, s4);
-    Load1Pixel(topMostIndex + 40, s5);
-    Load1Pixel(topMostIndex + 48, s6);
-    Load1Pixel(topMostIndex + 56, s7);
-    Load1Pixel(topMostIndex + 64, s8);
-
-    float4 edges = DetectEdges(s0, s1, s2, s3, s4, s5, s6, s7, s8);
-
-    // Write to the final target
-    result[pixelCoord] = edges;
-}
-*/
-
-[numthreads(GROUP_SIZE, GROUP_SIZE, 1)] // Image should ba multiple of 32
-void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID, // ID of thread group; range depends on Dispatch call.
-                    uint2 groupThreadId : SV_GroupThreadID, // ID of thread in a thread group; range depends on numthreads.
-                    uint3 dispatchThreadID : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
-{
-    // Upper-left pixel coordinate of quad that this thread will read.
-    /*
-    int2 threadUL = (groupThreadId << 1) + (groupId << 3) - 4; 
-    uint2 uthreadUL = uint2(max(0, threadUL));
-
-    uint2 size = uint2(_Size.xy) - 1u;                                          // ┌─────┬─────┐
-    float4 p00 = source[min(uthreadUL + uint2(0u, 0u), size)];                  // │ p00 │ p01 │
-    float4 p10 = source[min(uthreadUL + uint2(1u, 0u), size)];                  // ├─────┼─────┤
-    float4 p11 = source[min(uthreadUL + uint2(1u, 1u), size)];                  // │ p10 │ p11 │
-    float4 p01 = source[min(uthreadUL + uint2(0u, 1u), size)];                  // └─────┴─────┘
-
-    // Store the 4 downsampled pixels in LDS.
-    uint destIdx = groupThreadId.x + (groupThreadId.y << 4u);
-    Store2Pixels(destIdx, p00, p10);
-    Store2Pixels(destIdx + 8u, p01, p11);
-
-    GroupMemoryBarrierWithGroupSync();
-
-    // Horizontally detect edges of the pixels in LDS.
-    uint row = groupThreadId.y << 4u;
-    */
-
-    //────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-    set_laplacian();
-    
     float2 texelSize = float2(1.0 / _Size.xy);
     float2 uv = float2(dispatchThreadID.xy * texelSize);
+
+    // Sanity null check
+    if (_KernelType == 0) _KernelType = 330;
+    if (sample_size == 0) sample_size = 9;
+    sample_points[sample_size] = *sample_3x3;
+
+
     
     float4 outline_edge = float4(0, 0, 0, 0);
     // UNITY_UNROLL
@@ -234,6 +113,6 @@ void MAIN_COMPOSITE(uint3 dispatchThreadID : SV_DispatchThreadID)
     float2 texelSize = float2(1.0 / _Size.xy);
     float2 uv = float2(dispatchThreadID.xy * texelSize);
 
-    Final[dispatchThreadID.xy] = Source.SampleLevel(sampler_LinearClamp, uv + float2(dispatchThreadID.xy) / _Size.xy,0)
-                 + CameraTex.SampleLevel(sampler_LinearClamp, uv + float2(dispatchThreadID.xy) / _Size.xy, 0);
+    Final[dispatchThreadID.xy] = Source.SampleLevel(sampler_LinearClamp, uv + float2(dispatchThreadID.xy) / _Size.xy, 0)
+        + CameraTex.SampleLevel(sampler_LinearClamp, uv + float2(dispatchThreadID.xy) / _Size.xy, 0);
 }
