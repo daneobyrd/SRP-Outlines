@@ -11,7 +11,7 @@
 │ -1 │ -1 │ -1 │ Forming a output range from -8 to 8 (Zero-Summing).               │
 └────┴────┴────┴───────────────────────────────────────────────────────────────────┘
 */
-float laplacian_3x3_0[9]
+float laplacian_3x3_0[9] =
 {
     -1, -1, -1,
     -1,  8, -1,
@@ -29,7 +29,7 @@ float laplacian_3x3_0[9]
 │  0 │ -1 │  0 │ 8-neighbour laplacian.                                        │
 └────┴────┴────┴───────────────────────────────────────────────────────────────┘
 */
-float laplacian_3x3_1[9]
+float laplacian_3x3_1[9] =
 {
      0, -1,  0,
     -1,  4, -1,
@@ -47,7 +47,7 @@ float laplacian_3x3_1[9]
 │ -2 │  1 │ -2 │                                                               │
 └────┴────┴────┴───────────────────────────────────────────────────────────────┘
 */
-float laplacian_3x3_2[9]
+float laplacian_3x3_2[9] =
 {
     -2,  1, -2,
      1,  4,  1,
@@ -65,7 +65,8 @@ float laplacian_3x3_2[9]
 │  1 │ -2 │  1 │ scale the results to see make any result visible.             │
 └────┴────┴────┴───────────────────────────────────────────────────────────────┘
 */
-float laplacian_3x3_3[9] = {
+float laplacian_3x3_3[9] =
+{
      1, -2,  1,
     -2,  4, -2,
      1, -2,  1
@@ -86,7 +87,8 @@ float laplacian_3x3_3[9] = {
 │ -4 │ -1 │  0 │ -1 │ -4 │                                                              │
 └────┴────┴────┴────┴────┴──────────────────────────────────────────────────────────────┘
 */
-float laplacian_5x5_0[25] = {
+float laplacian_5x5_0[25] =
+{
     -4, -1,  0, -1, -4,
     -1,  2,  3,  2, -1,
      0,  3,  4,  3,  0,
@@ -108,7 +110,8 @@ Another 5x5
 │ -1 │ -1 │ -1 │ -1 │ -1 │
 └────┴────┴────┴────┴────┘
 */
-float laplacian_5x5_1[25] = {
+float laplacian_5x5_1[25] =
+{
     -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1,
     -1, -1, 24, -1, -1,
@@ -135,7 +138,8 @@ float laplacian_5x5_1[25] = {
 │-10 │ -5 │ -2 │ -1 │ -2 │ -5 │-10 │
 └────┴────┴────┴────┴────┴────┴────┘
 */
-float laplacian_7x7_0[49] = {
+float laplacian_7x7_0[49] =
+{
     -10, -5, -2, -1, -2, -5, -10,
      -5,  0,  3,  4,  3,  0,  -5,
      -2,  3,  6,  7,  6,  3,  -2,
@@ -145,38 +149,38 @@ float laplacian_7x7_0[49] = {
     -10, -5, -2, -1, -2, -5, -10,
 };
 
-void get_330(in uint array_size, out float laplacian[])
+void get_330(out uint array_size, out float laplacian[9])
 {
     array_size = 9;
     laplacian = laplacian_3x3_0;
 }
 
-void get_331(in uint array_size, out float laplacian[])
+void get_331(out uint array_size, out float laplacian[9])
 {
     array_size = 9;
     laplacian = laplacian_3x3_1;
 }
-void get_332(in uint array_size, out float laplacian[])
+void get_332(out uint array_size, out float laplacian[9])
 {
     array_size = 9;
     laplacian = laplacian_3x3_2;
 }
-void get_333(in uint array_size, out float laplacian[])
+void get_333(out uint array_size, out float laplacian[9])
 {
     array_size = 9;
     laplacian = laplacian_3x3_3;
 }
-void get_550(in uint array_length, out float laplacian[])
+void get_550(out uint array_length, out float laplacian[25])
 {
     array_length = 25;
     laplacian = laplacian_5x5_0;
 }
-void get_551(in uint array_size, out float laplacian[])
+void get_551(out uint array_size, out float laplacian[25])
 {
     array_size = 25;
     laplacian = laplacian_5x5_1;
 }
-void get_770(in uint array_size, out float laplacian[])
+void get_770(out uint array_size, out float laplacian[49])
 {
     array_size = 49;
     laplacian = laplacian_7x7_0;

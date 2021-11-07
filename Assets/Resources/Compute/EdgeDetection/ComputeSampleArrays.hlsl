@@ -21,7 +21,7 @@ void get_sample_3x3(float4 size, out uint2 sample_3x3[9]) {
         p00, p01, p02,
         p10, p11, p12,
         p20, p21, p22
-      };
+    };
     sample_3x3 = temp;
 }
 
@@ -152,8 +152,7 @@ void get_sample_7x7(float4 size, out uint2 sample_7x7[49])
     uint2 p65 = uint2(min(6u, size.x), min(5u, size.y));
     uint2 p66 = uint2(min(6u, size.x), min(6u, size.y));
 
-    uint2 temp[49]
-    {
+    uint2 temp[49] = {
         p00, p01, p02, p03, p04, p05, p06,
         p10, p11, p12, p13, p14, p15, p16,
         p20, p21, p22, p23, p24, p25, p26,

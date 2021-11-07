@@ -42,7 +42,6 @@ namespace Resources.RenderPass.OutlineBuffers
         private RenderTargetIdentifier combinedTargetId => new (_combinedIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private RenderTargetIdentifier _tempColor;
 
         // private static int destinationIntId => -1;
         private static RenderTargetIdentifier _destinationTargetId;// => new (destinationIntId);
