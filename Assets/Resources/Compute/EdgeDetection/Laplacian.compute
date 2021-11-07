@@ -1,26 +1,67 @@
 ﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
 
 #pragma kernel KLaplacian                           GROUP_SIZE=32   MAIN_LAPLACIAN=KLaplacian
+#pragma kernel KComposite                           GROUP_SIZE=8    MAIN_COMPOSITE=KComposite
 // #define REGION_PER_THREAD 8
 
+#include "LaplacianFilters.hlsl"
 
-// Sobel based on https://www.shadertoy.com/view/Xdf3Rf by Jeroen Baert
-
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-// #include "Laplacian.hlsl"
-// ↑ _kernel_size;
-// ↑ _kernel_type;
-
-Texture2D<float4> Source;
-RWTexture2D<float4> Result;
-Texture2D<float4> CameraTex;
-RWTexture2D<float4> Final;
+TEXTURE2D(Source);
+RW_TEXTURE2D(float4, Result);
+TEXTURE2D(CameraTex);
+RW_TEXTURE2D(float4, Final);
 
 SamplerState sampler_LinearClamp;
 
-CBUFFER_START(cb)
-float4 _Size; // x: src width, y: src height, zw: unused
-CBUFFER_END
+
+/*
+float SobelEdge(float2 coord, float threshold, float thickness)
+{
+    /*
+     *Sobel 3x3 tap filter: approximate magnitude
+    Cheaper than the full Sobel kernel evaluation
+    https://homepages.inf.ed.ac.uk/rbf/HIPR2/sobel.htm
+    ────────────┬────────────────
+    p1  p2  p3  │ x
+    p4 (p5) p6  │ convolution kernel
+    p7  p8  p9  │
+    ────────────┴────────────────
+    Gx  = pow((p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9), 2);
+    ────────────┬────────────────
+    p3  p6  p9  │ y (x rotated counter cw)
+    p2 (p5) p8  │ convolution kernel
+    p1  p4  p7  │
+    ────────────┴────────────────
+    Gy  = pow((p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7), 2);
+    ─────────────────────────────
+    Formula:
+    |G| = |Gx|² + |Gy|² => pow(G,2) = Gx*Gx + Gy*Gy
+    |G| = |(p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9)| + 
+          |(p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7)|
+    p5 == current pixel, 
+    sample neighbors to create 3x3 kernel
+    #1#
+    float p1 = Luminance(Source[uint2(coord + float2(-thickness, -thickness))]);
+    float p2 = Luminance(Source[uint2(coord + float2(0, -thickness))]);
+    float p3 = Luminance(Source[uint2(coord + float2(thickness, -thickness))]);
+
+    float p4 = Luminance(Source[uint2(coord + float2(-thickness, 0))]);
+
+    float p6 = Luminance(Source[uint2(coord + float2(thickness, 0))]);
+
+    float p7 = Luminance(Source[uint2(coord + float2(-thickness, thickness))]);
+    float p8 = Luminance(Source[uint2(coord + float2(0, thickness))]);
+    float p9 = Luminance(Source[uint2(coord + float2(thickness, thickness))]);
+    //float sobelX = (p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9);
+    //float sobelY = (p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7);
+    float sobelX = mad(2, p2, p1 + p3) - mad(2, p8, p7 + p9);
+    float sobelY = mad(2, p6, p3 + p9) - mad(2, p4, p1 + p7);
+    float edgeSqr = (sobelX * sobelX + sobelY * sobelY);
+    float result = 1.0 - (edgeSqr > threshold * threshold);
+    // if (edgeSqr > threshold * threshold) { is edge }
+    return result; // black (0) = edge, otherwise white (1)
+} // End SobelEdge
+*/
 
 // 16x16 pixels with an 8x8 center that we will be edge-detecting.
 /* Each uint is two color channels packed together.
@@ -130,9 +171,9 @@ void DetectEdgesVertically(uint2 pixelCoord, uint topMostIndex)
 */
 
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)] // Image should ba multiple of 32
-void MAIN_LAPLACIAN(//uint2 groupId : SV_GroupID,                                 // ID of thread group; range depends on Dispatch call.
-                    //uint2 groupThreadId : SV_GroupThreadID,                     // ID of thread in a thread group; range depends on numthreads.
-                    uint3 dispatchThreadID : SV_DispatchThreadID)               // = SV_GroupID * numthreads + SV_GroupThreadID.
+void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID, // ID of thread group; range depends on Dispatch call.
+                    uint2 groupThreadId : SV_GroupThreadID, // ID of thread in a thread group; range depends on numthreads.
+                    uint3 dispatchThreadID : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
 {
     // Upper-left pixel coordinate of quad that this thread will read.
     /*
@@ -157,43 +198,42 @@ void MAIN_LAPLACIAN(//uint2 groupId : SV_GroupID,                               
     */
 
     //────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    set_laplacian();
     
     float2 texelSize = float2(1.0 / _Size.xy);
-    float2 uv   = float2(dispatchThreadID.xy * texelSize);
+    float2 uv = float2(dispatchThreadID.xy * texelSize);
+    
+    float4 outline_edge = float4(0, 0, 0, 0);
+    // UNITY_UNROLL
+    for (uint i = 0; i <= sample_size; ++i)
+    {
+        outline_edge += Source.SampleLevel(sampler_LinearClamp, uv + sample_points[i], 0) * laplacian[i];
+    }
 
-    // texelSize *= _kernel_size;
-    
-    // Laplacian filer (see http://en.wikipedia.org/wiki/Laplace_operator)
-    //          ┌─────┬─────┬─────┐           ┌─────┬─────┬─────┐
-    //          │  0  │ -1  │  0  │           │ -1  │ -1  │ -1  │
-    //          ├─────┼─────┼─────┤           ├─────┼─────┼─────┤
-    //   1) 3 = │ -1  │  4  │ -1  │    2) 3 = │ -1  │  8  │ -1  │
-    //          ├─────┼─────┼─────┤           ├─────┼─────┼─────┤
-    //          │  0  │ -1  │  0  │           │ -1  │ -1  │ -1  │
-    //          └─────┴─────┴─────┘           └─────┴─────┴─────┘
-    //                Default                  Include diagonals
-    
-    // for (int i = 0; i <= (_kernel_size * _kernel_size); ++i)
-    // {
-    //     float4 outlineEdge = float4(0, 0, 0, 1.0f);
-    //     // float sum;
-    //     outlineEdge += source.SampleLevel(sampler_LinearClamp, uv + sample_points[i], 0).rgb * laplace_filter[i];
-    // }
-    
-    float3 sum = float3(0, 0, 0);
+    // float4 sum = float4(0, 0, 0, 0);
     // 9 sample
     // Top row
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  texelSize.y ), 0).rgb * -1; // -1_1
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  texelSize.y ), 0).rgb * -1;           // 0_1
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  texelSize.y ), 0).rgb * -1; // 1_1
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  texelSize.y ), 0).rgb * -1; // -1_1
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  texelSize.y ), 0).rgb * -1;           // 0_1
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  texelSize.y ), 0).rgb * -1; // 1_1
     // Center row
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  0 ), 0).rgb * -1; // -1_0
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  0 ), 0).rgb * 8;  // 0_0
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  0 ), 0).rgb * -1; // 1_0
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  0 ), 0).rgb * -1; // -1_0
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  0 ), 0).rgb * 8;  // 0_0
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  0 ), 0).rgb * -1; // 1_0
     // Bottom row
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x, -texelSize.y ), 0).rgb * -1; // -1_-1
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0, -texelSize.y ), 0).rgb * -1;  // 0_-1
-    sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x, -texelSize.y ), 0).rgb * -1; // 1_1
-				
-    Result[dispatchThreadID.xy] = float4(saturate(sum), 1.0f);
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(-texelSize.x, -texelSize.y), 0).rgb * -1; // -1_-1
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(0, -texelSize.y), 0).rgb * -1; // 0_-1
+    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(texelSize.x, -texelSize.y), 0).rgb * -1; // 1_1
+
+    Result[dispatchThreadID.xy] = float4(normalize(outline_edge));
+}
+
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+void MAIN_COMPOSITE(uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    float2 texelSize = float2(1.0 / _Size.xy);
+    float2 uv = float2(dispatchThreadID.xy * texelSize);
+
+    Final[dispatchThreadID.xy] = Source.SampleLevel(sampler_LinearClamp, uv + float2(dispatchThreadID.xy) / _Size.xy,0)
+                 + CameraTex.SampleLevel(sampler_LinearClamp, uv + float2(dispatchThreadID.xy) / _Size.xy, 0);
 }
