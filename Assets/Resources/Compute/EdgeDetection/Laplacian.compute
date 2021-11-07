@@ -1,11 +1,13 @@
 ﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
 
 #pragma kernel KLaplacian                           GROUP_SIZE=32   MAIN_LAPLACIAN=KLaplacian
-#pragma kernel KComposite                           GROUP_SIZE=8    MAIN_COMPOSITE=KComposite
+#pragma kernel KComposite                           KERNEL_SIZE=8   MAIN_COMPOSITE=KComposite
 // #define REGION_PER_THREAD 8
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "ComputeSampleArrays.hlsl"
 #include "LaplacianFilters.hlsl"
+
 CBUFFER_START(cb)
 float4 _Size; // x: src width, y: src height, zw: unused
 uint _KernelType;
@@ -14,74 +16,57 @@ CBUFFER_END
 TEXTURE2D(Source);
 RW_TEXTURE2D(float4, Result);
 TEXTURE2D(CameraTex);
-RW_TEXTURE2D(float4, Final);
 
 SamplerState sampler_LinearClamp;
 
-// An attempty at letting me change what kernel I am using from the render feature settings
 float laplacian[] = {};
 uint sample_size;
-uint2 sample_points[sample_size] = {};
+uint2 sample_points[] = {};
 
 
-[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]                                 // Image should ba multiple of 32
-void MAIN_LAPLACIAN( uint2 groupId : SV_GroupID,                        // ID of thread group; range depends on Dispatch call.
-                     uint2 groupThreadId : SV_GroupThreadID,            // ID of thread in a thread group; range depends on numthreads.
-                     uint3 dispatchThreadID : SV_DispatchThreadID)      // = SV_GroupID * numthreads + SV_GroupThreadID.
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)] // Image should ba multiple of 32
+void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID, // ID of thread group; range depends on Dispatch call.
+                    uint2 groupThreadId : SV_GroupThreadID, // ID of thread in a thread group; range depends on numthreads.
+                    uint3 dispatchThreadID : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
 {
     switch (_KernelType)
     {
     case _KernelType == 330:
-        sample_size = 9;
-        sample_points[sample_size] = *sample_3x3;
-        laplacian[sample_size] = *laplacian_3x3_0;
+        get_330(sample_size, laplacian);
+        get_sample_3x3(_Size, sample_points);
         break;
     case _KernelType == 331:
-        sample_size = 9;
-        sample_points[sample_size] = *sample_3x3;
-        laplacian[sample_size] = *laplacian_3x3_1;
+        get_331(sample_size, laplacian);
+        get_sample_3x3(_Size, sample_points);
         break;
     case _KernelType == 332:
-        sample_size = 9;
-        sample_points[sample_size] = *sample_3x3;
-        laplacian[sample_size] = *laplacian_3x3_2;
+        get_332(sample_size, laplacian);
+        get_sample_3x3(_Size, sample_points);
         break;
     case _KernelType == 333:
-        sample_size = 9;
-        sample_points[sample_size] = *sample_3x3;
-        laplacian[sample_size] = *laplacian_3x3_3;
+        get_333(sample_size, laplacian);
+        get_sample_3x3(_Size, sample_points);
         break;
     case _KernelType == 550:
-        sample_size = 25;
-        sample_points[sample_size] = *sample_5x5;
-        laplacian[sample_size] = *laplacian_5x5_0;
+        get_550(sample_size, laplacian);
+        get_sample_5x5(_Size, sample_points);
         break;
     case _KernelType == 551:
-        sample_size = 25;
-        sample_points[sample_size] = *sample_5x5;
-        laplacian[sample_size] = *laplacian_5x5_1;
+        get_551(sample_size, laplacian);
+        get_sample_5x5(_Size, sample_points);
         break;
     case _KernelType == 770:
-        sample_size = 49;
-        sample_points[sample_size] = *sample_7x7;
-        laplacian[sample_size] = *laplacian_7x7_0;
+        get_770(sample_size, laplacian);
+        get_sample_5x5(_Size, sample_points);
         break;
     default:
         _KernelType = 330;
-        sample_size = 9;
         break;
     }
 
     float2 texelSize = float2(1.0 / _Size.xy);
     float2 uv = float2(dispatchThreadID.xy * texelSize);
 
-    // Sanity null check
-    if (_KernelType == 0) _KernelType = 330;
-    if (sample_size == 0) sample_size = 9;
-    sample_points[sample_size] = *sample_3x3;
-
-
-    
     float4 outline_edge = float4(0, 0, 0, 0);
     // UNITY_UNROLL
     for (uint i = 0; i <= sample_size; ++i)
@@ -89,30 +74,15 @@ void MAIN_LAPLACIAN( uint2 groupId : SV_GroupID,                        // ID of
         outline_edge += Source.SampleLevel(sampler_LinearClamp, uv + sample_points[i], 0) * laplacian[i];
     }
 
-    // float4 sum = float4(0, 0, 0, 0);
-    // 9 sample
-    // Top row
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  texelSize.y ), 0).rgb * -1; // -1_1
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  texelSize.y ), 0).rgb * -1;           // 0_1
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  texelSize.y ), 0).rgb * -1; // 1_1
-    // Center row
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2( -texelSize.x,  0 ), 0).rgb * -1; // -1_0
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  0,  0 ), 0).rgb * 8;  // 0_0
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(  texelSize.x,  0 ), 0).rgb * -1; // 1_0
-    // Bottom row
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(-texelSize.x, -texelSize.y), 0).rgb * -1; // -1_-1
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(0, -texelSize.y), 0).rgb * -1; // 0_-1
-    // sum += Source.SampleLevel(sampler_LinearClamp, uv + float2(texelSize.x, -texelSize.y), 0).rgb * -1; // 1_1
-
     Result[dispatchThreadID.xy] = float4(normalize(outline_edge));
 }
 
-[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+[numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_COMPOSITE(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     float2 texelSize = float2(1.0 / _Size.xy);
     float2 uv = float2(dispatchThreadID.xy * texelSize);
 
-    Final[dispatchThreadID.xy] = Source.SampleLevel(sampler_LinearClamp, uv + float2(dispatchThreadID.xy) / _Size.xy, 0)
-        + CameraTex.SampleLevel(sampler_LinearClamp, uv + float2(dispatchThreadID.xy) / _Size.xy, 0);
+    Result[dispatchThreadID.xy] =
+        Source.SampleLevel(sampler_LinearClamp, uv, 0) + CameraTex.SampleLevel(sampler_LinearClamp, uv, 0);
 }

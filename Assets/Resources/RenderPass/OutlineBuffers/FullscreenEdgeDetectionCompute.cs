@@ -132,7 +132,7 @@ namespace Resources.RenderPass.OutlineBuffers
             cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
             cmd.SetComputeTextureParam(_computeShader, composite, "Source", outlineTargetId, 0);
             cmd.SetComputeTextureParam(_computeShader, composite, "CameraTex", _destinationTargetId, 0);
-            cmd.SetComputeTextureParam(_computeShader, composite, "Final", combinedTargetId, 0);
+            cmd.SetComputeTextureParam(_computeShader, composite, "Result", combinedTargetId, 0);
             cmd.DispatchCompute(_computeShader, composite, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
             
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

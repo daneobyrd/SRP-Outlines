@@ -1,5 +1,4 @@
 ﻿// Some laplacian kernels: https://legacy.imagemagick.org/Usage/convolve/#laplacian
-#include "ComputeSampleArrays.hlsl"
 
 /*
 ┌──────────────┬───────────────────────────────────────────────────────────────────┐
@@ -145,3 +144,40 @@ float laplacian_7x7_0[49] = {
      -5,  0,  3,  4,  3,  0,  -5,
     -10, -5, -2, -1, -2, -5, -10,
 };
+
+void get_330(in uint array_size, out float laplacian[])
+{
+    array_size = 9;
+    laplacian = laplacian_3x3_0;
+}
+
+void get_331(in uint array_size, out float laplacian[])
+{
+    array_size = 9;
+    laplacian = laplacian_3x3_1;
+}
+void get_332(in uint array_size, out float laplacian[])
+{
+    array_size = 9;
+    laplacian = laplacian_3x3_2;
+}
+void get_333(in uint array_size, out float laplacian[])
+{
+    array_size = 9;
+    laplacian = laplacian_3x3_3;
+}
+void get_550(in uint array_length, out float laplacian[])
+{
+    array_length = 25;
+    laplacian = laplacian_5x5_0;
+}
+void get_551(in uint array_size, out float laplacian[])
+{
+    array_size = 25;
+    laplacian = laplacian_5x5_1;
+}
+void get_770(in uint array_size, out float laplacian[])
+{
+    array_size = 49;
+    laplacian = laplacian_7x7_0;
+}
