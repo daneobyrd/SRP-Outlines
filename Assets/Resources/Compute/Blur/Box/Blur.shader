@@ -37,11 +37,13 @@ Shader "Hidden/Blur"
         TEXTURE2D(_MainTex);
 
         SAMPLER(sampler_MainTex);
+        CBUFFER_START(UnityPerMaterial)
         float4 _MainTex_TexelSize;
         float4 _MainTex_ST;
 
         int _BlurStrength;
-
+        CBUFFER_END
+        
         Varyings vert(Attributes IN)
         {
             Varyings OUT;

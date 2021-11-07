@@ -23,7 +23,7 @@
 
 #pragma kernel KColorGaussian                       KERNEL_SIZE=8  MAIN_GAUSSIAN=KColorGaussian
 #pragma kernel KColorDownsample                     KERNEL_SIZE=8  MAIN_DOWNSAMPLE=KColorDownsample
-// #pragma kernel KColorUpscale                        KERNEL_SIZE=8  MAIN_UPSCALE=KColorUpscale
+#pragma kernel KColorUpscale                        KERNEL_SIZE=8  MAIN_UPSCALE=KColorUpscale
 
 #pragma multi_compile _ DISABLE_TEXTURE2D_X_ARRAY
 #pragma multi_compile _ COPY_MIP_0
@@ -42,13 +42,14 @@ RW_TEXTURE2D(float4, _Source);
 
 RW_TEXTURE2D(float4, _Destination);
 
-// RW_TEXTURE2D(float4, _UpscaledResult);
+TEXTURE2D(_Final_Mip4);
+RW_TEXTURE2D(float4, _Upscale);
 
 SamplerState sampler_LinearClamp;
 
 CBUFFER_START(cb)
 float4 _Size; // x: src width, y: src height, zw: unused
-// float4 _UpscaleSize; // for final upscaled result
+float4 _UpscaleSize; // for final upscaled result
 CBUFFER_END
 
 // 16x16 pixels with an 8x8 center that we will be blurring writing out. Each uint is two color
@@ -188,16 +189,15 @@ void MAIN_DOWNSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
     _Destination[dispatchThreadId.xy] = (p00 + p01 + p11 + p10) * 0.25;
 }
 
-/*
-[numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
+[numthreads(8, 8, 1)]
 void MAIN_UPSCALE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
+    float4 upscaleBlur;
     uint2 size = uint2(_UpscaleSize.xy);
     
     uint3 id = dispatchThreadId;
     float2 fid = float2(id.xy);
     float2 uv = float2(fid.x / size.x, fid.y / size.y);
-    float4 upscaleBlur = _Destination.SampleLevel(sampler_LinearClamp, uv, 0);
-    _UpscaledResult[id.xy] = upscaleBlur;
+    _Upscale[id.xy] = _Final_Mip4.Sample(sampler_LinearClamp, uv, 0);
 }
-*/
+

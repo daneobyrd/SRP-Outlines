@@ -16,7 +16,7 @@ namespace Resources.RenderPass.OutlineBuffers
         #region Variables
         
         private string _profilerTag;
-        private readonly ComputeShader _computeShader;
+        private ComputeShader _computeShader;
 
         private int _sourceIntId;
         private int tempDownsampleIntId => Shader.PropertyToID("_DownsampleTex");
@@ -24,16 +24,21 @@ namespace Resources.RenderPass.OutlineBuffers
 
         private RenderTargetIdentifier tempColorTargetID => new(_sourceIntId); // _OutlineOpaque
         private RenderTargetIdentifier tempDownsampleTargetID => new(tempDownsampleIntId);
-        private RenderTargetIdentifier _finalTargetID => new(blurIntId); 
+        private RenderTargetIdentifier finalTargetID => new(blurIntId);
 
         private RenderTextureDescriptor _cameraTextureDescriptor;
 
         #endregion
 
-        public void Setup(string sourceName, RenderTargetIdentifier cameraTarget)
+        public GaussianBlurPass(string profilerTag)
+        {
+            _profilerTag = profilerTag;
+        }
+        
+        public void Setup(string sourceName, ComputeShader computeShader)
         {
             _sourceIntId = Shader.PropertyToID(sourceName);
-            // _finalTargetID = cameraTarget;
+            _computeShader = computeShader;
         }
 
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor camTexDesc) //called before execute. if not overriden renders to camera target?
@@ -82,9 +87,9 @@ namespace Resources.RenderPass.OutlineBuffers
             var width = _cameraTextureDescriptor.width;
             var height = _cameraTextureDescriptor.height;
 
-            RenderColorGaussianPyramid(cmd, new Vector2Int(width, height), tempColorTargetID, tempDownsampleTargetID, _finalTargetID);
+            RenderColorGaussianPyramid(cmd, new Vector2Int(width, height), tempColorTargetID, tempDownsampleTargetID, finalTargetID);
 
-            cmd.SetGlobalTexture(blurIntId, _finalTargetID, RenderTextureSubElement.Color);
+            cmd.SetGlobalTexture(blurIntId, finalTargetID, RenderTextureSubElement.Color);
 
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
@@ -137,8 +142,7 @@ namespace Resources.RenderPass.OutlineBuffers
                 cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(dstMipWidth, dstMipHeight, 0, 0));
                 
                 cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
-                cmd.SetGlobalTexture(blurIntId, finalRT, RenderTextureSubElement.Color);
-
+                
                 srcMipLevel++;
                 // Bitwise operation; same as srcMipWidth /= 2.
                 srcMipWidth = srcMipWidth >> 1;
@@ -146,6 +150,20 @@ namespace Resources.RenderPass.OutlineBuffers
 
                 firstIteration = false;
             }
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            // Upscale Blurred Mip4
+            // -----------------------------------------------------------------------------------------------------------------------------------
+            const int tempFinalInt = new();
+            RenderTargetIdentifier tempFinal = new(tempFinalInt);
+            cmd.GetTemporaryRT(tempFinalInt, _cameraTextureDescriptor);
+            var upscaleKernel = _computeShader.FindKernel("KColorUpscale");
+            cmd.SetComputeVectorParam(_computeShader, "_UpscaleSize", new Vector4(size.x, size.y, 0, 0));
+            cmd.SetComputeTextureParam(_computeShader, upscaleKernel, "_Final_Mip4", finalRT, 4);
+            cmd.SetComputeTextureParam(_computeShader, upscaleKernel, "_Upscale", tempFinal, 0);
+            cmd.DispatchCompute(_computeShader, upscaleKernel, Mathf.CeilToInt(srcMipWidth / 8f), Mathf.CeilToInt(srcMipHeight / 8f), 1);
+
+            cmd.SetGlobalTexture(blurIntId, tempFinal, RenderTextureSubElement.Color);
+            cmd.ReleaseTemporaryRT(tempFinalInt);
         }
 
 
