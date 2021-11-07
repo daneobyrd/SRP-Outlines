@@ -91,16 +91,14 @@ MonoBehaviour:
         createTexture: 0
         renderTextureFormat: 1
     edgeSettings:
-      BlurType: 0
       computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
-      gaussianSigma: 1
+      gaussianSigma: 10
       computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
-      blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
-      outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
+      kernelIndex: 0
     outlineProperties:
       outerThreshold: 1
       innerThreshold: 1
       rotations: 8
       depthPush: 0.000001
-      outerLUT: {fileID: 0}
-      innerLUT: {fileID: 0}
+      outerLUT: {fileID: 2800000, guid: 6d470e62de90c4342a9ffa868238a6c9, type: 3}
+      innerLUT: {fileID: 2800000, guid: 199332b6792c5ae4a893300213de51f5, type: 3}

@@ -364,8 +364,6 @@ GameObject:
   - component: {fileID: 1011204586}
   - component: {fileID: 1011204585}
   - component: {fileID: 1011204584}
-  - component: {fileID: 1011204589}
-  - component: {fileID: 1011204588}
   m_Layer: 0
   m_Name: Quad
   m_TagString: Untagged
@@ -407,7 +405,6 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 4785d545a2e24064d9ed0884f3b9d077, type: 2}
   - {fileID: 2100000, guid: c1625796e8ff3114ea1b4a21439e2aaa, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -453,38 +450,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: -155.465, z: 0}
---- !u!114 &1011204588
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1011204583}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e52de21a22b6dd44c9cc19f810c65059, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Events:
-    m_Signals: []
-    m_Events: []
---- !u!320 &1011204589
-PlayableDirector:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1011204583}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_PlayableAsset: {fileID: 11400000, guid: e126a5989a1c91e4eac8aeb189e4376d, type: 2}
-  m_InitialState: 1
-  m_WrapMode: 2
-  m_DirectorUpdateMode: 1
-  m_InitialTime: 0
-  m_SceneBindings: []
-  m_ExposedReferences:
-    m_References: []
 --- !u!1 &1145444333
 GameObject:
   m_ObjectHideFlags: 0
