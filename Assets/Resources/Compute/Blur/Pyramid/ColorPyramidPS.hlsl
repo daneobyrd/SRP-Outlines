@@ -39,6 +39,7 @@ half4 Frag(Varyings input) : SV_Target
     // Gaussian weights for 9 texel kernel from center texel to furthest texel. Keep in sync with ColorPyramid.compute
     static const half gaussWeights[] = { 0.27343750, 0.21875000, 0.10937500, 0.03125000, 0.00390625 };
     //                                 { 70f / 256f, 56f / 256f, 28f / 256f, 8f / 256f,  1f / 256f };
+    //                                 { 0, +-1, +-2, +-3, +-4}
 
     half2 offset = _SrcUvLimits.zw;
     half2 offset1 = offset * (1.0 + (gaussWeights[2] / (gaussWeights[1] + gaussWeights[2])));

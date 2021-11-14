@@ -150,11 +150,11 @@ namespace Resources.RenderPass.OutlineBuffers
             _lineworkPass.Init(hasDepth);
             renderer.EnqueuePass(_lineworkPass);
             
-            _blurPass.Setup(linework.colorSubTarget.textureName, edge.computeBlur);
-            renderer.EnqueuePass(_blurPass);
+            // _blurPass.Setup(linework.colorSubTarget.textureName, edge.computeBlur);
+            // renderer.EnqueuePass(_blurPass);
 
-            _computeLinesPass.Init(settings, outlineEncoderMaterial, "_BlurResults", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
-            renderer.EnqueuePass(_computeLinesPass);
+            // _computeLinesPass.Init(settings, outlineEncoderMaterial, "_BlurResults", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
+            // renderer.EnqueuePass(_computeLinesPass);
         }
 
         private bool GetMaterial()

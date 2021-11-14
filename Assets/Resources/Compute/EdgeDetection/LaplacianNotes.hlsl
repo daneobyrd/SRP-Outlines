@@ -21,12 +21,13 @@
 
 // Sha sobel.compute
 // float3 top_left      = _source.SampleLevel(sampler_source, uv + float2(-step.x,  step.y), 0).xyz;  // 1_1
-// float3 center_left   = _source.SampleLevel(sampler_source, uv + float2(-step.x,     0.0), 0).xyz;  // 2_1
-// float3 bottom_left   = _source.SampleLevel(sampler_source, uv + float2(-step.x, -step.y), 0).xyz;  // 3_1
 // float3 top_center    = _source.SampleLevel(sampler_source, uv + float2(     0.,  step.y), 0).xyz;  // 1_2
-// float3 bottom_center = _source.SampleLevel(sampler_source, uv + float2(     0., -step.y), 0).xyz;  // 3_2
 // float3 top_right     = _source.SampleLevel(sampler_source, uv + float2( step.x,  step.y), 0).xyz;  // 1_3
+// float3 center_left   = _source.SampleLevel(sampler_source, uv + float2(-step.x,     0.0), 0).xyz;  // 2_1
+
 // float3 center_right  = _source.SampleLevel(sampler_source, uv + float2( step.x,     0.0), 0).xyz;  // 2_3
+// float3 bottom_left   = _source.SampleLevel(sampler_source, uv + float2(-step.x, -step.y), 0).xyz;  // 3_1
+// float3 bottom_center = _source.SampleLevel(sampler_source, uv + float2(     0., -step.y), 0).xyz;  // 3_2
 // float3 buttom_right  = _source.SampleLevel(sampler_source, uv + float2( step.x, -step.y), 0).xyz;  // 3_3
 
 // Sobel masks (see http://en.wikipedia.org/wiki/Sobel_operator)
@@ -90,6 +91,10 @@
         ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
         └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘       */
 
+//  ┌─────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+//  │ sqrt(8) │ sqrt(-7)  │ -2  │ -1  │  0  │ +1  │ +2  │ +3  │ +4  │
+//  └─────────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+
 //  ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
 //  │ -4  │ -3  │ -2  │ -1  │  0  │ +1  │ +2  │ +3  │ +4  │
 //  └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
@@ -116,3 +121,7 @@
 // ┌─┘ b     +     h └─┐
 // │ a       +       i │
 // └───────────────────┘
+
+// ╔════╗
+// ║    ║
+// ╚════╝

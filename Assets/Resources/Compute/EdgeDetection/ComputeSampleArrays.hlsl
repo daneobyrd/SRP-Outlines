@@ -1,165 +1,99 @@
-﻿
+﻿float4
+    c00, c01, c02, c03, c04, c05, c06, c07, c08,
+    c10, c11, c12, c13, c14, c15, c16, c17, c18,
+    c20, c21, c22, c23, c24, c25, c26, c27, c28,
+    c30, c31, c32, c33, c34, c35, c36, c37, c38,
+    c40, c41, c42, c43, c44, c45, c46, c47, c48,
+    c50, c51, c52, c53, c54, c55, c56, c57, c58,
+    c60, c61, c62, c63, c64, c65, c66, c67, c68,
+    c70, c71, c72, c73, c74, c75, c76, c77, c78,
+    c80, c81, c82, c83, c84, c85, c86, c87, c88;
+
 // ┌─────┬─────┬─────┐
-// │ p00 │ p01 │ p02 │
-// ├─────┼─────┼─────┤
-// │ p10 │ p11 │ p12 │
-// ├─────┼─────┼─────┤
-// │ p20 │ p21 │ p22 │
+// │ c00 │ c01 │ c02 │
+// ├──── ╔═════╗ ────┤
+// │ c10 ║ c11 ║ c12 │
+// ├──── ╚═════╝ ────┤
+// │ c20 │ c21 │ c22 │
 // └─────┴─────┴─────┘
-void get_sample_3x3(float4 size, out uint2 sample_3x3[9]) {
-    uint2 p00 = uint2(min(0u, size.x), min(0u, size.y));
-    uint2 p01 = uint2(min(0u, size.x), min(1u, size.y));
-    uint2 p02 = uint2(min(0u, size.x), min(2u, size.y));
-    uint2 p10 = uint2(min(1u, size.x), min(0u, size.y));
-    uint2 p11 = uint2(min(1u, size.x), min(1u, size.y));
-    uint2 p12 = uint2(min(1u, size.x), min(2u, size.y));
-    uint2 p20 = uint2(min(2u, size.x), min(0u, size.y));
-    uint2 p21 = uint2(min(2u, size.x), min(1u, size.y));
-    uint2 p22 = uint2(min(2u, size.x), min(2u, size.y));
-    
-    uint2 temp[9] = {
-        p00, p01, p02,
-        p10, p11, p12,
-        p20, p21, p22
-    };
-    sample_3x3 = temp;
-}
+float4 sample_3x3[9] = {
+    c00, c01, c02,
+    c10, c11, c12,
+    c20, c21, c22
+};
 
 // ┌─────┬─────┬─────┬─────┬─────┐
-// │ p00 │ p01 │ p02 │ p03 │ p04 │
+// │ c00 │ c01 │ c02 │ c03 │ c04 │
 // ├─────┼─────┼─────┼─────┼─────┤
-// │ p10 │ p11 │ p12 │ p13 │ p14 │
+// │ c10 │ c11 │ c12 │ c13 │ c14 │
 // ├─────┼──── ╔═════╗ ────┼─────┤
-// │ p20 │ p21 ║ p22 ║ p23 │ p24 │
+// │ c20 │ c21 ║ c22 ║ c23 │ c24 │
 // ├─────┼──── ╚═════╝ ────┼─────┤
-// │ p30 │ p31 │ p32 │ p33 │ p34 │
+// │ c30 │ c31 │ c32 │ c33 │ c34 │
 // ├─────┼─────┼─────┼─────┼─────┤
-// │ p40 │ p41 │ p42 │ p43 │ p44 │
+// │ c40 │ c41 │ c42 │ c43 │ c44 │
 // └─────┴─────┴─────┴─────┴─────┘
-void get_sample_5x5(float4 size, out uint2 sample_5x5[25]) {
-    uint2 p00 = uint2(min(0u, size.x), min(0u, size.y));
-    uint2 p01 = uint2(min(0u, size.x), min(1u, size.y));
-    uint2 p02 = uint2(min(0u, size.x), min(2u, size.y));
-    uint2 p03 = uint2(min(0u, size.x), min(3u, size.y));
-    uint2 p04 = uint2(min(0u, size.x), min(4u, size.y));
-
-    uint2 p10 = uint2(min(1u, size.x), min(0u, size.y));
-    uint2 p11 = uint2(min(1u, size.x), min(1u, size.y));
-    uint2 p12 = uint2(min(1u, size.x), min(2u, size.y));
-    uint2 p13 = uint2(min(1u, size.x), min(3u, size.y));
-    uint2 p14 = uint2(min(1u, size.x), min(4u, size.y));
-    
-    uint2 p20 = uint2(min(2u, size.x), min(0u, size.y));
-    uint2 p21 = uint2(min(2u, size.x), min(1u, size.y));
-    uint2 p22 = uint2(min(2u, size.x), min(2u, size.y));
-    uint2 p23 = uint2(min(2u, size.x), min(3u, size.y));
-    uint2 p24 = uint2(min(2u, size.x), min(4u, size.y));
-    
-    uint2 p30 = uint2(min(3u, size.x), min(0u, size.y));
-    uint2 p31 = uint2(min(3u, size.x), min(1u, size.y));
-    uint2 p32 = uint2(min(3u, size.x), min(2u, size.y));
-    uint2 p33 = uint2(min(3u, size.x), min(3u, size.y));
-    uint2 p34 = uint2(min(3u, size.x), min(4u, size.y));
-    
-    uint2 p40 = uint2(min(4u, size.x), min(0u, size.y));
-    uint2 p41 = uint2(min(4u, size.x), min(1u, size.y));
-    uint2 p42 = uint2(min(4u, size.x), min(2u, size.y));
-    uint2 p43 = uint2(min(4u, size.x), min(3u, size.y));
-    uint2 p44 = uint2(min(4u, size.x), min(4u, size.y));
-    
-    uint2 temp[25] = {
-        p00, p01, p02, p03, p04,
-        p10, p11, p12, p13, p14,
-        p20, p21, p22, p23, p24,
-        p30, p31, p32, p33, p34,
-        p40, p41, p42, p43, p44
-    };
-    sample_5x5 = temp;
-}
+float4 sample_5x5[25] = {
+    c00, c01, c02, c03, c04,
+    c10, c11, c12, c13, c14,
+    c20, c21, c22, c23, c24,
+    c30, c31, c32, c33, c34,
+    c40, c41, c42, c43, c44
+};
 
 
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐
-// │ p00 │ p01 │ p02 │ p03 │ p04 │ p05 │ p06 │
+// │ c00 │ c01 │ c02 │ c03 │ c04 │ c05 │ c06 │
 // ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-// │ p10 │ p11 │ p12 │ p13 │ p14 │ p15 │ p16 │
+// │ c10 │ c11 │ c12 │ c13 │ c14 │ c15 │ c16 │
 // ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-// │ p20 │ p21 │ p22 │ p23 │ p24 │ p25 │ p26 │
-// ├───────────┼──── ╔═════╗ ────┼─────┼─────┤
-// │ p30 │ p31 │ p32 ║ p33 ║ p34 │ p35 │ p36 │
+// │ c20 │ c21 │ c22 │ c23 │ c24 │ c25 │ c26 │
+// ├─────┼─────┼──── ╔═════╗ ────┼─────┼─────┤
+// │ c30 │ c31 │ c32 ║ c33 ║ c34 │ c35 │ c36 │
 // ├─────┼─────┼──── ╚═════╝ ────┼─────┼─────┤
-// │ p40 │ p41 │ p42 │ p43 │ p44 │ p45 │ p45 │
+// │ c40 │ c41 │ c42 │ c43 │ c44 │ c45 │ c45 │
 // ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-// │ p50 │ p51 │ p52 │ p53 │ p54 │ p55 │ p56 │
+// │ c50 │ c51 │ c52 │ c53 │ c54 │ c55 │ c56 │
 // ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-// │ p60 │ p61 │ p62 │ p63 │ p64 │ p65 │ p66 │
+// │ c60 │ c61 │ c62 │ c63 │ c64 │ c65 │ c66 │
 // └─────┴─────┴─────┴─────┴─────┴─────┴─────┘
-void get_sample_7x7(float4 size, out uint2 sample_7x7[49])
-{
-    // Row 1
-    uint2 p00 = uint2(min(0u, size.x), min(0u, size.y));
-    uint2 p01 = uint2(min(0u, size.x), min(1u, size.y));
-    uint2 p02 = uint2(min(0u, size.x), min(2u, size.y));
-    uint2 p03 = uint2(min(0u, size.x), min(3u, size.y));
-    uint2 p04 = uint2(min(0u, size.x), min(4u, size.y));
-    uint2 p05 = uint2(min(0u, size.x), min(5u, size.y));
-    uint2 p06 = uint2(min(0u, size.x), min(6u, size.y));
-    // Row 2
-    uint2 p10 = uint2(min(1u, size.x), min(0u, size.y));
-    uint2 p11 = uint2(min(1u, size.x), min(1u, size.y));
-    uint2 p12 = uint2(min(1u, size.x), min(2u, size.y));
-    uint2 p13 = uint2(min(1u, size.x), min(3u, size.y));
-    uint2 p14 = uint2(min(1u, size.x), min(4u, size.y));
-    uint2 p15 = uint2(min(1u, size.x), min(5u, size.y));
-    uint2 p16 = uint2(min(1u, size.x), min(6u, size.y));
-    // Row 3
-    uint2 p20 = uint2(min(2u, size.x), min(0u, size.y));
-    uint2 p21 = uint2(min(2u, size.x), min(1u, size.y));
-    uint2 p22 = uint2(min(2u, size.x), min(2u, size.y));
-    uint2 p23 = uint2(min(2u, size.x), min(3u, size.y));
-    uint2 p24 = uint2(min(2u, size.x), min(4u, size.y));
-    uint2 p25 = uint2(min(2u, size.x), min(5u, size.y));
-    uint2 p26 = uint2(min(2u, size.x), min(6u, size.y));
-    // Row 4
-    uint2 p30 = uint2(min(3u, size.x), min(0u, size.y));
-    uint2 p31 = uint2(min(3u, size.x), min(1u, size.y));
-    uint2 p32 = uint2(min(3u, size.x), min(2u, size.y));
-    uint2 p33 = uint2(min(3u, size.x), min(3u, size.y));
-    uint2 p34 = uint2(min(3u, size.x), min(4u, size.y));
-    uint2 p35 = uint2(min(3u, size.x), min(5u, size.y));
-    uint2 p36 = uint2(min(3u, size.x), min(6u, size.y));
-    // Row 5
-    uint2 p40 = uint2(min(4u, size.x), min(0u, size.y));
-    uint2 p41 = uint2(min(4u, size.x), min(1u, size.y));
-    uint2 p42 = uint2(min(4u, size.x), min(2u, size.y));
-    uint2 p43 = uint2(min(4u, size.x), min(3u, size.y));
-    uint2 p44 = uint2(min(4u, size.x), min(4u, size.y));
-    uint2 p45 = uint2(min(4u, size.x), min(5u, size.y));
-    uint2 p46 = uint2(min(4u, size.x), min(6u, size.y));
-    // Row 6
-    uint2 p50 = uint2(min(5u, size.x), min(0u, size.y));
-    uint2 p51 = uint2(min(5u, size.x), min(1u, size.y));
-    uint2 p52 = uint2(min(5u, size.x), min(2u, size.y));
-    uint2 p53 = uint2(min(5u, size.x), min(3u, size.y));
-    uint2 p54 = uint2(min(5u, size.x), min(4u, size.y));
-    uint2 p55 = uint2(min(5u, size.x), min(5u, size.y));
-    uint2 p56 = uint2(min(5u, size.x), min(6u, size.y));
-    // Row 7
-    uint2 p60 = uint2(min(6u, size.x), min(0u, size.y));
-    uint2 p61 = uint2(min(6u, size.x), min(1u, size.y));
-    uint2 p62 = uint2(min(6u, size.x), min(2u, size.y));
-    uint2 p63 = uint2(min(6u, size.x), min(3u, size.y));
-    uint2 p64 = uint2(min(6u, size.x), min(4u, size.y));
-    uint2 p65 = uint2(min(6u, size.x), min(5u, size.y));
-    uint2 p66 = uint2(min(6u, size.x), min(6u, size.y));
+float4 sample_7x7[49] = {
+    c00, c01, c02, c03, c04, c05, c06,
+    c10, c11, c12, c13, c14, c15, c16,
+    c20, c21, c22, c23, c24, c25, c26,
+    c30, c31, c32, c33, c34, c35, c36,
+    c40, c41, c42, c43, c44, c45, c46,
+    c50, c51, c52, c53, c54, c55, c56,
+    c60, c61, c62, c63, c64, c65, c66
+};
 
-    uint2 temp[49] = {
-        p00, p01, p02, p03, p04, p05, p06,
-        p10, p11, p12, p13, p14, p15, p16,
-        p20, p21, p22, p23, p24, p25, p26,
-        p30, p31, p32, p33, p34, p35, p36,
-        p40, p41, p42, p43, p44, p45, p46,
-        p50, p51, p52, p53, p54, p55, p56,
-        p60, p61, p62, p63, p64, p65, p66
-    };
-    sample_7x7 = temp;
-}
+// ┌────┬────┬────┬────┬────┬────┬────┬────┬────┐
+// │ 00 │ 01 │ 02 │ 03 │ 04 │ 05 │ 06 │ 07 │ 08 │
+// ├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+// │ 09 │ 10 │ 11 │ 12 │ 13 │ 14 │ 15 │ 16 │ 17 │
+// ├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+// │ 18 │ 19 │ 20 │ 21 │ 22 │ 23 │ 24 │ 25 │ 26 │
+// ├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+// │ 27 │ 28 │ 29 │ 30 │ 31 │ 32 │ 33 │ 34 │ 35 │
+// ├────┼────┼────┼─── ╔════╗ ───┼────┼────┼────┤
+// │ 36 │ 37 │ 38 │ 39 ║ 40 ║ 41 │ 42 │ 43 │ 44 │
+// ├────┼────┼────┼─── ╚════╝ ───┼────┼────┼────┤
+// │ 45 │ 46 │ 47 │ 48 │ 49 │ 50 │ 51 │ 52 │ 53 │
+// ├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+// │ 54 │ 55 │ 56 │ 57 │ 58 │ 59 │ 60 │ 61 │ 62 │
+// ├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+// │ 63 │ 64 │ 65 │ 66 │ 67 │ 68 │ 69 │ 70 │ 71 │
+// ├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+// │ 72 │ 73 │ 74 │ 75 │ 76 │ 77 │ 78 │ 79 │ 80 │
+// └────┴────┴────┴────┴────┴────┴────┴────┴────┘
+float4 sample_9x9[81] = {
+    c00, c01, c02, c03, c04, c05, c06, c07, c08,
+    c10, c11, c12, c13, c14, c15, c16, c17, c18,
+    c20, c21, c22, c23, c24, c25, c26, c27, c28,
+    c30, c31, c32, c33, c34, c35, c36, c37, c38,
+    c40, c41, c42, c43, c44, c45, c46, c47, c48,
+    c50, c51, c52, c53, c54, c55, c56, c57, c58,
+    c60, c61, c62, c63, c64, c65, c66, c67, c68,
+    c70, c71, c72, c73, c74, c75, c76, c77, c78,
+    c80, c81, c82, c83, c84, c85, c86, c87, c88
+};

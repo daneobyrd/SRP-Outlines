@@ -166,7 +166,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
             
-            // Set Global Textures (for... debug?)
+            // Set Global Textures (for... debug?). This may be deprecated.
             if (createColorTexture)
             {
                 cmd.SetGlobalTexture(colorIdInt, colorTargetId, RenderTextureSubElement.Color);

@@ -13,7 +13,7 @@
     }
     SubShader
     {
-        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Shader Model" = "5.0"}
         Pass
         {
             Name "OutlineBlit"

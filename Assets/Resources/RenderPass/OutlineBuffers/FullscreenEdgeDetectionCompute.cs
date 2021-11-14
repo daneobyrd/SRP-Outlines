@@ -22,7 +22,7 @@ namespace Resources.RenderPass.OutlineBuffers
 
         private bool _hasDepth;
         private ComputeShader _computeShader;
-        private int _index;
+        private int _index = 0;
         private int[] _kernelType = { 330, 331, 332, 333, 550, 551, 770 };
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ namespace Resources.RenderPass.OutlineBuffers
             
             #region Compute Edges
             // NOTE: If you use RenderTargetHandle for cmd.SetComputeTextureParam() it may not work as RenderTargetHandle.id may be outside of the range kShaderTexEnvCount.
-            // Sometimes RenderTargetHandle.id or RenderTargetHandle.Identifier() may return the same value regardless of RenderTargetHandle.Init()'s input.
+            // Sometimes RenderTargetHandle.id or RenderTargetHandle.Identifier() may return -2 or a different value regardless of RenderTargetHandle.Init()'s input.
             // https://forum.unity.com/threads/access-a-temporary-rendertexture-allocated-from-previous-frame.1018573/
             
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ namespace Resources.RenderPass.OutlineBuffers
             // ---------------------------------------------------------------------------------------------------------------------------------------
             var laplacian = _computeShader.FindKernel("KLaplacian");
             cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
-            cmd.SetComputeIntParam(_computeShader, "_KernelType", _kernelType[_index]);
+            cmd.SetComputeIntParam(_computeShader, "selectedKernel", _kernelType[_index]);
             cmd.SetComputeTextureParam(_computeShader, laplacian, "Source", sourceId, 0);
             cmd.SetComputeTextureParam(_computeShader, laplacian, "Result", outlineTargetId, 0);
             cmd.DispatchCompute(_computeShader, laplacian, Mathf.CeilToInt(width / 32f), Mathf.CeilToInt(height / 32f), 1);

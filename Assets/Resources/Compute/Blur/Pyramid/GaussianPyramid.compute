@@ -24,7 +24,7 @@ CBUFFER_END
 float gaussian(float x, float y)
 {
     const float sigma2 = _gaussian_sigma * _gaussian_sigma;
-    return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / sqrt(TAU * _gaussian_sigma));
+    return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / TAU * sigma2);
 }
 
 [numthreads(8,8,1)]
