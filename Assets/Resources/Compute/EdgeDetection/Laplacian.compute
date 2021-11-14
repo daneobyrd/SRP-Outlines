@@ -113,17 +113,17 @@ float4 ApplyLaplacian_9x9(uint index) // outer rim is currently "0" padding
     const float4 edge_2c  = filter_9x9_0[index + 8] + (sample_9x9[11] + sample_9x9[15] + sample_9x9[19] + sample_9x9[25] + sample_9x9[55] + sample_9x9[61] + sample_9x9[65] + sample_9x9[69]);
     const float4 corner_2 = filter_9x9_0[index + 9] + (sample_9x9[10] + sample_9x9[16] + sample_9x9[64] + sample_9x9[70]);
 
-    const float4 edge_3a  = (sample_9x9[4] + sample_9x9[36] + sample_9x9[44] + sample_9x9[76]);
-    const float4 edge_3b  = (sample_9x9[3] + sample_9x9[5] + sample_9x9[27] + sample_9x9[35] + sample_9x9[45] + sample_9x9[53] + sample_9x9[75] + sample_9x9[77]);
-    const float4 edge_3c  = (sample_9x9[2] + sample_9x9[6] + sample_9x9[18] + sample_9x9[26] + sample_9x9[54] + sample_9x9[62] + sample_9x9[74] + sample_9x9[78]);
-    const float4 edge_3d  = (sample_9x9[1] + sample_9x9[7] + sample_9x9[9] + sample_9x9[17] + sample_9x9[63] + sample_9x9[71] + sample_9x9[73] + sample_9x9[79]);
-    const float4 corner_3 = (sample_9x9[0] + sample_9x9[8] + sample_9x9[72] + sample_9x9[80]);
+    // const float4 edge_3a  = (sample_9x9[4] + sample_9x9[36] + sample_9x9[44] + sample_9x9[76]);
+    // const float4 edge_3b  = (sample_9x9[3] + sample_9x9[5] + sample_9x9[27] + sample_9x9[35] + sample_9x9[45] + sample_9x9[53] + sample_9x9[75] + sample_9x9[77]);
+    // const float4 edge_3c  = (sample_9x9[2] + sample_9x9[6] + sample_9x9[18] + sample_9x9[26] + sample_9x9[54] + sample_9x9[62] + sample_9x9[74] + sample_9x9[78]);
+    // const float4 edge_3d  = (sample_9x9[1] + sample_9x9[7] + sample_9x9[9] + sample_9x9[17] + sample_9x9[63] + sample_9x9[71] + sample_9x9[73] + sample_9x9[79]);
+    // const float4 corner_3 = (sample_9x9[0] + sample_9x9[8] + sample_9x9[72] + sample_9x9[80]);
 
     return
         center + edge_0 + corner_0
         + edge_1a + edge_1b + corner_1
-        + edge_2a + edge_2b + edge_2c + corner_2
-        + edge_3a + edge_3b + edge_3c + edge_3d + corner_3;
+        + edge_2a + edge_2b + edge_2c + corner_2;
+        // + edge_3a + edge_3b + edge_3c + edge_3d + corner_3;
 }
 
 void Store2Pixels(uint index, float4 pixel1, float4 pixel2)
