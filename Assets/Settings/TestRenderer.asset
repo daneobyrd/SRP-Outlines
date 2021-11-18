@@ -65,7 +65,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1368294b394042aea756980b82b8e024, type: 3}
   m_Name: OutlineRenderer
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   settings:
     profilerTag: OutlineRenderer
     renderPassEvent: 300
@@ -95,6 +95,8 @@ MonoBehaviour:
       gaussianSigma: 10
       computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
       kernelIndex: 0
+      blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
+      outlineEncoder: {fileID: 10752, guid: 0000000000000000f000000000000000, type: 0}
     outlineProperties:
       outerThreshold: 1
       innerThreshold: 1

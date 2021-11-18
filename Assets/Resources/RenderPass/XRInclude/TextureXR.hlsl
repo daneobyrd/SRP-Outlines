@@ -54,7 +54,7 @@
 
     #define COORD_TEXTURE2D_X(pixelCoord)                                    uint3(pixelCoord, SLICE_ARRAY_INDEX)
     #define INDEX_TEXTURE2D_ARRAY_X(slot)                                    ((slot) * _XRViewCount + SLICE_ARRAY_INDEX)
-
+    // As of 2021.2.2, some of these macros can be found in "Library/PackageCache/com.unity.render-pipelines.universal@12.1.1/ShaderLibrary/Core.hlsl"
     #define TEXTURE2D_X                                                      TEXTURE2D_ARRAY
     #define TEXTURE2D_X_PARAM                                                TEXTURE2D_ARRAY_PARAM
     #define TEXTURE2D_X_ARGS                                                 TEXTURE2D_ARRAY_ARGS
@@ -63,7 +63,7 @@
     #define TEXTURE2D_X_UINT(textureName)                                    Texture2DArray<uint> textureName
     #define TEXTURE2D_X_UINT2(textureName)                                   Texture2DArray<uint2> textureName
     #define TEXTURE2D_X_UINT4(textureName)                                   Texture2DArray<uint4> textureName
-    //Using explicit sample count of 1 to force DXC to actually reflect the texture as MS. The actual count appears to be irrelevant and any 2D MS texture array should bind to it
+    // Using explicit sample count of 1 to force DXC to actually reflect the texture as MS. The actual count appears to be irrelevant and any 2D MS texture array should bind to it
     #define TEXTURE2D_X_MSAA(type, textureName)                              Texture2DMSArray<type, 1> textureName
 
     #define RW_TEXTURE2D_X(type, textureName)                                RW_TEXTURE2D_ARRAY(type, textureName)
@@ -91,7 +91,7 @@
     #define TEXTURE2D_X_UINT(textureName)                                    Texture2D<uint> textureName
     #define TEXTURE2D_X_UINT2(textureName)                                   Texture2D<uint2> textureName
     #define TEXTURE2D_X_UINT4(textureName)                                   Texture2D<uint4> textureName
-    //Using explicit sample count of 1 to force DXC to actually reflect the texture as MS. The actual count appears to be irrelevant and any 2D MS texture should bind to it
+    // Using explicit sample count of 1 to force DXC to actually reflect the texture as MS. The actual count appears to be irrelevant and any 2D MS texture should bind to it
     #define TEXTURE2D_X_MSAA(type, textureName)                              Texture2DMS<type, 1> textureName
 
     #define RW_TEXTURE2D_X                                                   RW_TEXTURE2D

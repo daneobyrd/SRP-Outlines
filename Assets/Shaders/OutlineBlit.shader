@@ -3,7 +3,7 @@
     Properties
     {
         _MainTex ("MainTex", 2D) = "clear" {}
-        _SourceTex ("SourceTex", 2D) = "clear" {}        
+        _SourceTex ("SourceTex", 2D) = "clear" {}
         _OuterThreshold ("Outer Threshold", float) = 1.0
         _InnerThreshold ("Inner Threshold", float) = 1.0
         //        _Rotations ("Rotations", int) = 6
@@ -13,7 +13,10 @@
     }
     SubShader
     {
-        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Shader Model" = "5.0"}
+        Tags
+        {
+            "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Shader Model" = "5.0"
+        }
         Pass
         {
             Name "OutlineBlit"
@@ -21,22 +24,22 @@
             ZTest Always
             ZWrite Off
             Cull Off
-            
-            HLSLPROGRAM
 
-            // #pragma prefer_hlslcc gles
-            #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+            HLSLPROGRAM
+            // #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+            #pragma exclude_renderers gles
             #pragma target 5.0
             #pragma vertex FullscreenVert
             #pragma fragment Fragment
             #pragma multi_compile_fragment _ _LINEAR_TO_SRGB_CONVERSION
             #pragma multi_compile _ _USE_DRAW_PROCEDURAL
             #pragma multi_compile_fragment _ DEBUG_DISPLAY
-            
+
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
             // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
@@ -49,32 +52,27 @@
             StructuredBuffer<outlined_obj> outline_objBuffer;*/
 
             CBUFFER_START(UnityPerMaterial)
-                float OuterThreshold;
-                float InnerThreshold;
-            
-                TEXTURE2D(_OutlineOpaque);
-                SAMPLER(sampler_OutlineOpaque);
-                
-                TEXTURE2D(_OutlineDepth);
-                SAMPLER(sampler_OutlineDepth);
-                
-                TEXTURE2D(_BlurResults);
-                SAMPLER(sampler_BlurResults);
-                
-                TEXTURE2D(_OutlineTexture);
-                SAMPLER(sampler_OutlineTexture);
+            float OuterThreshold;
+            float InnerThreshold;
             CBUFFER_END
 
+            TEXTURE2D_X(_OutlineOpaque);
+            TEXTURE2D(_OutlineDepth);
+            TEXTURE2D(_BlurUpscaledTex);
+            TEXTURE2D(_OutlineTexture);
+
+            SAMPLER(sampler_LinearClamp);
+            
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
-            
+
             TEXTURE2D(_SourceTex);
             SAMPLER(sampler_SourceTex);
-            
+
             float4 Fragment(Varyings input) : SV_Target
             {
                 float2 uv = input.uv;
-                float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, uv);
+                float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_LinearClamp, uv);
                 float outlineMask = saturate(step(outlineTex.x, OuterThreshold) + step(outlineTex.y, InnerThreshold) + outlineTex.z);
                 float4 cameraColorCopy = SAMPLE_TEXTURE2D(_SourceTex, sampler_SourceTex, uv);
                 float3 col = lerp(cameraColorCopy.xyz, -outlineMask, outlineMask);

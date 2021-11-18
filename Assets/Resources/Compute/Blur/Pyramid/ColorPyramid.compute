@@ -23,12 +23,13 @@
 
 #pragma kernel KColorGaussian                       KERNEL_SIZE=8  MAIN_GAUSSIAN=KColorGaussian
 #pragma kernel KColorDownsample                     KERNEL_SIZE=8  MAIN_DOWNSAMPLE=KColorDownsample
-#pragma kernel KColorUpscale                        KERNEL_SIZE=8  MAIN_UPSCALE=KColorUpscale
+#pragma kernel KColorUpsample                        KERNEL_SIZE=8  MAIN_UPSAMPLE=KColorUpsample
 
 #pragma multi_compile _ DISABLE_TEXTURE2D_X_ARRAY
 #pragma multi_compile _ COPY_MIP_0
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Library/PackageCache/com.unity.render-pipelines.core@12.1.1/ShaderLibrary/UnityInstancing.hlsl"
 #include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
 
 #if COPY_MIP_0
@@ -40,14 +41,14 @@ RW_TEXTURE2D_X(float4, _Source);
 
 RW_TEXTURE2D_X(float4, _Destination);
 
-TEXTURE2D(_Final_Mip4);
-RW_TEXTURE2D(float4, _Upscale);
+TEXTURE2D_X(_Mip8);
+RW_TEXTURE2D(float4, _UpsampleTex);
 
 SamplerState sampler_LinearClamp;
 
 CBUFFER_START(cb)
 float4 _Size; // x: src width, y: src height, zw: unused
-float4 _UpscaleSize;
+float4 _UpsampleSize;
 CBUFFER_END
 
 // 16x16 pixels with an 8x8 center that we will be blurring writing out. Each uint is two color
@@ -135,8 +136,7 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex)
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    // Note: previously UNITY_XR_ASSIGN_VIEW_INDEX.
-    // DEFAULT_UNITY_SETUP_INSTANCE_ID(dispatchThreadId.z);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
 
     // Upper-left pixel coordinate of quad that this thread will read
     int2 threadUL = (groupThreadId << 1) + (groupId << 3) - 4;
@@ -194,12 +194,11 @@ void MAIN_DOWNSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 }
 
 [numthreads(8, 8, 1)]
-void MAIN_UPSCALE(uint3 dispatchThreadId : SV_DispatchThreadID)
+void MAIN_UPSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    uint2 size = uint2(_UpscaleSize.xy);
+    float2 fid = float2(dispatchThreadId.xy);
     uint3 id = dispatchThreadId;
-    float2 fid = float2(id.xy);
-    float2 uv = float2(fid.x / size.x, fid.y / size.y);
-    _Upscale[id.xy] = _Final_Mip4.SampleLevel(sampler_LinearClamp, uv, 0);
+    float2 uv = float2(fid.x / _UpsampleSize.x, fid.y / _UpsampleSize.y);
+    _UpsampleTex[id.xy] = SAMPLE_TEXTURE2D_X_LOD(_Mip8, sampler_LinearClamp, uv, 0);
 }
 

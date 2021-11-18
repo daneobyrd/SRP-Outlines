@@ -1,6 +1,6 @@
-﻿/*
-namespace UnityEngine.Rendering.HighDefinition
-{
+﻿// namespace UnityEngine.Rendering.HighDefinition
+// {
+    /*
     class MipGenerator
     {
         RTHandle[] m_TempColorTargets;
@@ -96,7 +96,9 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
         #1#
+*/
 
+        /*
         // Generates the gaussian pyramid of source into destination
         // We can't do it in place as the color pyramid has to be read while writing to the color
         // buffer in some cases (e.g. refraction, distortion)
@@ -247,7 +249,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
 
             return srcMipLevel + 1;
-        }
-    }
-}
-*/
+        }*/
+    // }
+// }

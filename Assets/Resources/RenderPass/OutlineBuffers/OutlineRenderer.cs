@@ -5,6 +5,7 @@
 //      https://twitter.com/harryh___h/status/1328006632102526976
 using System;
 using System.Collections.Generic;
+using PhotoMode;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -78,7 +79,7 @@ namespace Resources.RenderPass.OutlineBuffers
         public ComputeShader computeLines;
         public int kernelIndex = new();
         // [Header("Blit to Screen")]
-        public Material blitMaterial;
+        public Material blitMaterial = null;
         public Shader outlineEncoder;
     }
 
@@ -102,9 +103,10 @@ namespace Resources.RenderPass.OutlineBuffers
         private EdgeDetectionSettings edge => settings.edgeSettings;
         private OutlineShaderProperties shaderProps => settings.outlineProperties;
         
-        private ShaderPassToRT _lineworkPass;
-        private GaussianBlurPass _blurPass;
+        private ShaderPassToRT                 _lineworkPass;
+        private GaussianBlurPass               _blurPass;
         private FullscreenEdgeDetectionCompute _computeLinesPass;
+        private BlitRenderPass                 _debugBlit;
 
         private Material outlineEncoderMaterial
         {
@@ -126,6 +128,12 @@ namespace Resources.RenderPass.OutlineBuffers
             _lineworkPass = new ShaderPassToRT(settings, "Linework Pass", edge.computeBlur, settings.renderPassEvent, 24);
             _blurPass = new GaussianBlurPass("Blur Pass");
             _computeLinesPass = new FullscreenEdgeDetectionCompute("Outline Encoder", edge.kernelIndex);
+            
+            _debugBlit = new BlitRenderPass(RenderPassEvent.AfterRendering, Blitter.GetBlitMaterial(TextureDimension.Tex2D), "DebugBlit")
+            {
+                source = "_BlurUpsampleTex"
+            };
+            
             GetMaterial();
         }
 
@@ -150,11 +158,13 @@ namespace Resources.RenderPass.OutlineBuffers
             _lineworkPass.Init(hasDepth);
             renderer.EnqueuePass(_lineworkPass);
             
-            // _blurPass.Setup(linework.colorSubTarget.textureName, edge.computeBlur);
-            // renderer.EnqueuePass(_blurPass);
-
+            _blurPass.Setup(linework.colorSubTarget.textureName, edge.computeBlur);
+            renderer.EnqueuePass(_blurPass);
+            
             // _computeLinesPass.Init(settings, outlineEncoderMaterial, "_BlurResults", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
             // renderer.EnqueuePass(_computeLinesPass);
+            
+            // renderer.EnqueuePass(_debugBlit);
         }
 
         private bool GetMaterial()
@@ -163,9 +173,9 @@ namespace Resources.RenderPass.OutlineBuffers
             {
                 return true;
             }
-        
+
             if (outlineEncoderShader == null || !settings.edgeSettings.blitMaterial) return false;
-            outlineEncoderMaterial = CoreUtils.CreateEngineMaterial(outlineEncoderShader);
+            outlineEncoderMaterial = new Material(outlineEncoderShader);
             return true;
         }
     }

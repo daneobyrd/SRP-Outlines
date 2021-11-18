@@ -146,7 +146,7 @@ namespace Resources.RenderPass.OutlineBuffers
             if (createDepthTexture) attachmentsToConfigure.Add(depthIdInt);
             
             // Configure color and depth targets
-            ConfigureTarget(attachmentsToConfigure[0], attachmentsToConfigure[1]);
+            ConfigureTarget(attachmentsToConfigure.ToArray());
             
             // Clear
             if (createColorTexture || createDepthTexture)
@@ -167,17 +167,16 @@ namespace Resources.RenderPass.OutlineBuffers
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
             
             // Set Global Textures (for... debug?). This may be deprecated.
-            if (createColorTexture)
-            {
-                cmd.SetGlobalTexture(colorIdInt, colorTargetId, RenderTextureSubElement.Color);
-            }
-            if (createDepthTexture)
-            {
-                cmd.SetGlobalTexture(depthIdInt, depthTargetId, RenderTextureSubElement.Depth);
-            }
+            // if (createColorTexture)
+            // {
+            //     cmd.SetGlobalTexture(colorIdInt, colorTargetId, RenderTextureSubElement.Color);
+            // }
+            // if (createDepthTexture)
+            // {
+            //     cmd.SetGlobalTexture(depthIdInt, depthTargetId, RenderTextureSubElement.Depth);
+            // }
 
             context.ExecuteCommandBuffer(cmd);
-            // cmd.Clear();
             CommandBufferPool.Release(cmd);
         }
 
