@@ -12,7 +12,7 @@
 │ -1 │ -1 │ -1 │ Forming a output range from -8 to 8 (Zero-Summing).               │
 └────┴────┴────┴───────────────────────────────────────────────────────────────────┘
 */
-float filter_3x3_0[3] = { 8, -1, -1 };
+float laplace_3x3_0[3] = { 8, -1, -1 };
 float laplacian_3x3_0[9] =
 {
     -1, -1, -1,
@@ -31,7 +31,7 @@ float laplacian_3x3_0[9] =
 │  0 │ -1 │  0 │ 8-neighbour laplacian.                                        │
 └────┴────┴────┴───────────────────────────────────────────────────────────────┘
 */
-float filter_3x3_1[3] = { 4, -1, 0 };
+float laplace_3x3_1[3] = { 4, -1, 0 };
 float laplacian_3x3_1[9] =
 {
     0, -1,  0,
@@ -50,7 +50,7 @@ float laplacian_3x3_1[9] =
 │ -2 │  1 │ -2 │                                                               │
 └────┴────┴────┴───────────────────────────────────────────────────────────────┘
 */
-float filter_3x3_2[3] = { 4, 1, -2 };
+float laplace_3x3_2[3] = { 4, 1, -2 };
 float laplacian_3x3_2[9] =
 {
     -2,  1, -2,
@@ -69,7 +69,7 @@ float laplacian_3x3_2[9] =
 │  1 │ -2 │  1 │ scale the results to see make any result visible.             │
 └────┴────┴────┴───────────────────────────────────────────────────────────────┘
 */
-float filter_3x3_3[3] = { 4, -2, 1 };
+float laplace_3x3_3[3] = { 4, -2, 1 };
 /*float laplacian_3x3_3[9] =
 {
     1, -2,  1,
@@ -91,7 +91,7 @@ float filter_3x3_3[3] = { 4, -2, 1 };
 │ -4 │ -1 │  0 │ -1 │ -4 │                                                              │
 └────┴────┴────┴────┴────┴──────────────────────────────────────────────────────────────┘
 */
-float filter_5x5_0[6] = { 4, 3, 2, 0, -1, -4 };
+float laplace_5x5_0[6] = { 4, 3, 2, 0, -1, -4 };
 /*float laplacian_5x5_0[25] =
 {
     -4, -1,  0, -1, -4,
@@ -115,7 +115,14 @@ Another 5x5
 │ -1 │ -1 │ -1 │ -1 │ -1 │
 └────┴────┴────┴────┴────┘
 */
-float filter_5x5_1[6] = { 24, -1, -1, -1, -1, -1 };
+float laplace_5x5_1[6] = { 24, -1, -1, -1, -1, -1 };
+float SafeSplitKernel5(float source_input[6], out float sqrt_input, out float result)
+{
+    sqrt_input = sqrt(abs(source_input[6]));
+
+    result = pow(sqrt_input, 2)*sign(source_input[6]);
+    return result;
+}
 /*float laplacian_5x5_1[25] =
 {
     -1, -1, -1, -1, -1,
@@ -144,7 +151,18 @@ float filter_5x5_1[6] = { 24, -1, -1, -1, -1, -1 };
 │-10 │ -5 │ -2 │ -1 │ -2 │ -5 │-10 │
 └────┴────┴────┴────┴────┴────┴────┘
 */
-float filter_7x7_0[10] = { 8, 7, 6, 4, 3, 0, -1, -2, -5, -10 };
+float laplace_7x7_0[10] = { 8, 7, 6, 4, 3, 0, -1, -2, -5, -10 };
+float SafeSplitKernel7(float source_input[10], out float sqrt_input, out float result)
+{
+    if (source_input == 0)
+    {
+        return *source_input;
+    }
+    sqrt_input = sqrt(abs(source_input[10]));
+
+    result = pow(sqrt_input, 2)*sign(source_input[10]);
+    return result;
+}
 /*float laplacian_7x7_0[49] =
 {
     -10, -5, -2, -1, -2, -5, -10,
@@ -155,8 +173,9 @@ float filter_7x7_0[10] = { 8, 7, 6, 4, 3, 0, -1, -2, -5, -10 };
      -5,  0,  3,  4,  3,  0,  -5,
     -10, -5, -2, -1, -2, -5, -10,
 };*/
+// -9m -4, -1, 0, -1, -4, -9
 
-float filter_9x9_0[10] = { 8, 7, 6, 4, 3, 0, -1, -2, -5, -10 };
+float laplace_9x9_0[10] = { 8, 7, 6, 4, 3, 0, -1, -2, -5, -10 };
 /*float laplacian_9x9_0[81] =
 {
     0,   0,  0,  0,  0,  0,  0,   0,  0,
