@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace Resources.RenderPass.OutlineBuffers
+namespace RenderPass.OutlineBuffers
 {
     public class GaussianBlurPass : ScriptableRenderPass
     {

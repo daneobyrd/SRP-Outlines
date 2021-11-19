@@ -10,7 +10,7 @@ using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace Resources.RenderPass.OutlineBuffers
+namespace RenderPass.OutlineBuffers
 {
     public class FullscreenEdgeDetectionCompute : ScriptableRenderPass
     {

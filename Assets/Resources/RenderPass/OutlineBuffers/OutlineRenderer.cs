@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace Resources.RenderPass.OutlineBuffers
+namespace RenderPass.OutlineBuffers
 {
     public enum RenderQueueType
     {
