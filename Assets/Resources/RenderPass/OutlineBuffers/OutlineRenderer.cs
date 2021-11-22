@@ -106,7 +106,7 @@ namespace RenderPass.OutlineBuffers
         private ShaderPassToRT                 _lineworkPass;
         private GaussianBlurPass               _blurPass;
         private FullscreenEdgeDetectionCompute _computeLinesPass;
-        private BlitRenderPass                 _debugBlit;
+        // private BlitRenderPass                 _debugBlit;
 
         private Material outlineEncoderMaterial
         {
@@ -129,10 +129,10 @@ namespace RenderPass.OutlineBuffers
             _blurPass = new GaussianBlurPass("Blur Pass");
             _computeLinesPass = new FullscreenEdgeDetectionCompute("Outline Encoder", edge.kernelIndex);
             
-            _debugBlit = new BlitRenderPass(RenderPassEvent.AfterRendering, Blitter.GetBlitMaterial(TextureDimension.Tex2D), "DebugBlit")
-            {
-                source = "_BlurUpsampleTex"
-            };
+            // _debugBlit = new BlitRenderPass(RenderPassEvent.AfterRendering, Blitter.GetBlitMaterial(TextureDimension.Tex2D), "DebugBlit")
+            // {
+            //     source = "_BlurUpsampleTex"
+            // };
             
             GetMaterial();
         }

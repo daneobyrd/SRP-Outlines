@@ -94,7 +94,7 @@ MonoBehaviour:
       computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
       gaussianSigma: 10
       computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
-      kernelIndex: 0
+      kernelIndex: 1
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
       outlineEncoder: {fileID: 10752, guid: 0000000000000000f000000000000000, type: 0}
     outlineProperties:

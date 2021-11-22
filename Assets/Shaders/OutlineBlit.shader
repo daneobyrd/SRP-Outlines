@@ -58,7 +58,7 @@
 
             TEXTURE2D_X(_OutlineOpaque);
             TEXTURE2D(_OutlineDepth);
-            TEXTURE2D(_BlurUpscaledTex);
+            TEXTURE2D(_BlurUpsampleTex);
             TEXTURE2D(_OutlineTexture);
 
             SAMPLER(sampler_LinearClamp);

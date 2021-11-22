@@ -48,53 +48,26 @@ namespace RenderPass.OutlineBuffers
             _camTexDesc = cameraTextureDescriptor;
             var width = _camTexDesc.width;
             var height = _camTexDesc.height;
+            _camTexDesc.msaaSamples = 1;
+            _camTexDesc.mipCount = 8;
             _camTexDesc.colorFormat = RenderTextureFormat.ARGBFloat;
             _camTexDesc.depthBufferBits = 0;
-            _camTexDesc.msaaSamples = 1;
+            _camTexDesc.dimension = TextureDimension.Tex2DArray;
             _camTexDesc.enableRandomWrite = true;
             
-            // Source texture
-            cmd.GetTemporaryRTArray(nameID: _sourceIntId,
-                                    width: width,
-                                    height: height,
-                                    slices: 1,
-                                    depthBuffer: 0,
-                                    filter: FilterMode.Point,
-                                    format: RenderTextureFormat.ARGBFloat,
-                                    readWrite: RenderTextureReadWrite.Default,
-                                    antiAliasing: 1,
-                                    enableRandomWrite: true);
-            // Downsample texture
-            cmd.GetTemporaryRTArray(nameID: _tempDownsampleIntId,
-                                    width: width,
-                                    height: height,
-                                    slices: 1,
-                                    depthBuffer: 0,
-                                    filter: FilterMode.Point,
-                                    format: RenderTextureFormat.ARGBFloat,
-                                    readWrite: RenderTextureReadWrite.Default,
-                                    antiAliasing: 1,
-                                    enableRandomWrite: true);
-            // Blur smallest downsample texture
-            cmd.GetTemporaryRTArray(nameID: _blurIntId,
-                                    width: width,
-                                    height: height,
-                                    1,
-                                    depthBuffer: 0,
-                                    filter: FilterMode.Point,
-                                    format: RenderTextureFormat.ARGBFloat,
-                                    readWrite: RenderTextureReadWrite.Default,
-                                    antiAliasing: 1,
-                                    enableRandomWrite: true);
+            // Source TEXTURE ARRAY
+            cmd.GetTemporaryRT(_sourceIntId, _camTexDesc, FilterMode.Point);
+            // Downsample TEXTURE ARRAY
+            cmd.GetTemporaryRT(_tempDownsampleIntId, _camTexDesc, FilterMode.Point);
+            // Blur smallest downsample texture ARRAY
+            cmd.GetTemporaryRT(_blurIntId, _camTexDesc, FilterMode.Point);
             // Blur upsample texture
-            cmd.GetTemporaryRT(_finalIntId, _camTexDesc, FilterMode.Point);
+            cmd.GetTemporaryRT(_finalIntId, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, 1, true);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
-            // _cameraTextureDescriptor.enableRandomWrite = true;
-            var rtDesc = renderingData.cameraData.cameraTargetDescriptor;
             var width  = _camTexDesc.width;
             var height = _camTexDesc.height;
 
@@ -105,6 +78,8 @@ namespace RenderPass.OutlineBuffers
             RenderColorGaussianPyramid(cmd, new Vector2Int(width, height), sourceColorTargetID, tempDownsampleTargetID, blurTargetID, finalTargetID);
 
             cmd.SetGlobalTexture(_finalIntId, finalTargetID);
+            // Added blit here for testing - haven't gotten to try it yet because scene is freezing when I switch renderer data
+            Blit(cmd, finalTargetID, -1);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
@@ -123,7 +98,7 @@ namespace RenderPass.OutlineBuffers
             
             bool firstIteration = true;
             
-            while (srcMipWidth >= 8 || srcMipHeight >= 8)
+            while (srcMipWidth >= srcMipWidth/8 || srcMipHeight >= srcMipHeight/8)
             {
                 int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1);
                 int dstMipHeight = Mathf.Max(1, srcMipHeight >> 1);
@@ -134,15 +109,15 @@ namespace RenderPass.OutlineBuffers
                 if (firstIteration)
                 {
                     cmd.EnableShaderKeyword("COPY_MIP_0");
-                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", sourceRT);
-                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Mip0", blurRT);
+                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", sourceRT, 0);
+                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Mip0", blurRT, 0);
                 }
                 else
                 {
                     cmd.DisableShaderKeyword("COPY_MIP_0");
-                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", blurRT);
+                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", blurRT, srcMipLevel);
                 }
-                cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", tempDownsampleRT);
+                cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", tempDownsampleRT, srcMipLevel);
                 cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(srcMipWidth, srcMipHeight, 0, 0));
                 
                 // This is what makes the compute write to a smaller region of the tempDownsampleTargetID.
@@ -156,9 +131,10 @@ namespace RenderPass.OutlineBuffers
                 cmd.DisableShaderKeyword("COPY_MIP_0");
                 // The data we want to blur is in the area defined by (dstMipWidth, dstMipHeight)
                 cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(dstMipWidth, dstMipHeight, 0, 0));
-                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", tempDownsampleRT);
-                
-                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurRT);
+                // Set _Source to the downsampled texture
+                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", tempDownsampleRT, srcMipLevel);
+                // srcMipLevel + 1 because we are writing to the next mip level.
+                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurRT, srcMipLevel + 1);
                 
                 cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
                 
@@ -170,13 +146,27 @@ namespace RenderPass.OutlineBuffers
                 firstIteration = false;
             }
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            // Upsample Blurred Mip4
+            // Upsample Blurred Downsampled Texture
             // -----------------------------------------------------------------------------------------------------------------------------------
             var upsampleKernel = _computeShader.FindKernel("KColorUpsample");
-            cmd.SetComputeVectorParam(_computeShader, "_UpsampleSize", new Vector4(size.x, size.y, 0, 0));
-            cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_Mip8", blurRT);
-            cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_UpsampleTex", finalRT);
-            cmd.DispatchCompute(_computeShader, upsampleKernel, Mathf.CeilToInt(srcMipWidth / 8f), Mathf.CeilToInt(srcMipHeight / 8f), 1);
+            while (srcMipWidth < size.x || srcMipHeight < size.y)
+            {
+                srcMipLevel = Mathf.Max(0, srcMipLevel);
+                // dstMipWidth&Height are now 2x srcMipWidth&Height
+                int dstMipWidth  = Mathf.Min(size.x, srcMipWidth << 1);
+                int dstMipHeight = Mathf.Min(size.y, srcMipHeight << 1);
+                
+                cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(srcMipWidth, srcMipHeight, 0, 0));
+                cmd.SetComputeVectorParam(_computeShader, "_UpsampleSize", new Vector4(dstMipWidth, dstMipHeight, 0, 0));
+                cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_LowMip", blurRT, srcMipLevel);
+                cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_HighMip", finalRT, srcMipLevel - 1);
+                cmd.DispatchCompute(_computeShader, upsampleKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
+
+                srcMipLevel--;
+                // Bitwise operation; same as srcMipWidth *= 2.
+                srcMipWidth = srcMipWidth << 1;
+                srcMipHeight = srcMipHeight << 1;
+            }
         }
         
         public override void FrameCleanup(CommandBuffer cmd)
