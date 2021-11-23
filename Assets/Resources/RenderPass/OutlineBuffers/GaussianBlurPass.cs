@@ -82,8 +82,8 @@ namespace RenderPass.OutlineBuffers
             var height = opaqueDesc.height;
             opaqueDesc.mipCount = 8;
             opaqueDesc.useMipMap = true;
-            // opaqueDesc.autoGenerateMips = true;
             opaqueDesc.enableRandomWrite = true;
+            opaqueDesc.colorFormat = RenderTextureFormat.ARGBFloat;
 
             RenderColorGaussianPyramid(cmd, new Vector2Int(width, height), sourceColorTargetID, tempDownsampleTargetID, blurTargetID, finalTargetID);
 
@@ -92,24 +92,34 @@ namespace RenderPass.OutlineBuffers
         }
 
 
-        /* Process
-         FirstIteration:
-            Downsample
-            1. Set _Size to full-screen
-            2. Copy _Source (sourceRT) to _Mip0 (blurRT) ───→ Copy TEXTURE2D_X to RW_TEXTURE2D_X
-            3. Set downsample output (_Destination) as tempDownsampleRT mipLevel: 0
-            4. Dispatch compute using _Size/2 (dstMipWidth, dstMipHeight)
-               - This writes _Mip0 (a copy of sourceRT) to an area half its size.
-            
-            Blur
-            5. Set _Size to the same size as the downsample texture (the area we just wrote to).
-            6. Set blur input (_Source) as tempDownsampleRT mipLevel: 0
-            7. Set blur output (_Destination) as blurRT mipLevel: 1
-            8. Dispatch compute to the same area used for downsampling
-            
-            9. Increase mip level by 1.
-            10. Divide width and height by 2.
-            11. Set firstIteration = false;
+        /* Step-by-step
+        Mip Level 0 ─→ 1 (Enable COPY_MIP_0)
+         *  0. bool firstIteration = true;
+         *  Downsample
+         *  1. Set _Size to full-screen
+         *  2. Copy _Source (sourceRT) to _Mip0 (blurRT) ───→ Copy TEXTURE2D_X to RW_TEXTURE2D_X
+         *         Note: if(COPY_MIP_0) then _Mip0 is used as downsample input
+         *  3. Set downsample output (_Destination) as tempDownsampleRT mipLevel: 0
+         *  4. Dispatch compute using _Size/2 (dstMipWidth, dstMipHeight)
+         *     - This writes _Mip0 (a copy of sourceRT) to an area half its size.
+         *  
+         *  Blur
+         *  5. Set _Size to the same size as the downsample texture (the area we just wrote to).
+         *  6. Set blur input (_Source) as tempDownsampleRT mipLevel: 0
+         *  7. Set blur output (_Destination) as blurRT mipLevel: 1
+         *  8. Dispatch compute to the same area used for downsampling
+         *  
+         *  9. Increase mip level by 1.
+         *  10. Divide width and height by 2.
+         *  11. Set firstIteration = false;
+         *  
+        Mip Level 1 ─→ 2 (Disable COPY_MIP_0)
+         *  1. Set downsample input (_Source) as blurRT (previous blur output) mipLevel: 1
+         *  2. Set downsample output (_Destination) as tempDownsampleRT mipLevel: 1
+         *  3. Continue for each mip level
+                 
+        Upsampling
+        
         */
 
         private void RenderColorGaussianPyramid(CommandBuffer cmd,
@@ -137,7 +147,7 @@ namespace RenderPass.OutlineBuffers
                 var downsampleKernel = _computeShader.FindKernel("KColorDownsample");
                 cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(srcMipWidth, srcMipHeight, 0, 0));
 
-                // Note: blurRT is being used as a temp copy of source here, after this it is only used for blurring.
+                // Note: blurRT is being used as a temp copy of source here, after this it is only as blur output/downsample input.
                 if (firstIteration) // Copy _Source (sourceRT) to _Mip0 (blurRT) ───→ Copy TEXTURE2D_X tp RW_TEXTURE2D_X
                 {
                     cmd.EnableShaderKeyword("COPY_MIP_0");
@@ -183,7 +193,7 @@ namespace RenderPass.OutlineBuffers
                 // Bitwise operations
                 srcMipWidth = srcMipWidth >> 1;    // same as srcMipWidth /= 2. 
                 srcMipHeight = srcMipHeight >> 1;  // same as srcMipHeight /= 2.
-
+                
                 firstIteration = false;
             }
             srcMipLevel = _mipLevels; // Backup to ensure srcMipLevel is set to highest mip.
@@ -195,10 +205,11 @@ namespace RenderPass.OutlineBuffers
         
             var upsampleKernel = _computeShader.FindKernel("KColorUpsample");
             
-            // Paranoid check/stop-gap in-case mip width & height are greater than size.xy/2 but less than size.xy.
+            // Using !> as a sanity check in-case mip width & height are greater than (size.xy/2) but less than size.xy.
+            // TODO: Switch back to (srcMipWidth < size.x || srcMipHeight < size.y)
             while (srcMipWidth !> size.x / 2 || srcMipHeight !> size.y / 2)
             {
-                srcMipLevel = Mathf.Max(1, srcMipLevel); // Set minimum mip level as 1 because of line 199.
+                srcMipLevel = Mathf.Max(1, srcMipLevel); // Set minimum mip level as 1 because of mipLevel used for _HighMip (srcMipLevel - 1).
 
                 int dstMipWidth = Mathf.Min(size.x, srcMipWidth << 1);   // srcMipWidth*2, ceiling of screen width
                 int dstMipHeight = Mathf.Min(size.y, srcMipHeight << 1); // srcMipWidth*2, ceiling of screen height
