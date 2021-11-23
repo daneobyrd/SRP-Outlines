@@ -1,4 +1,4 @@
-﻿// This is a rewritten version of a Scriptable Render Pass written by Harry Heath.
+﻿// This was originally inspired by of a Scriptable Render Pass written by Harry Heath.
 // Twitter: https://twitter.com/harryh___h/status/1328024692431540224
 // Pastebin: https://pastebin.com/LstBHRZF
 
@@ -77,7 +77,7 @@ namespace RenderPass.OutlineBuffers
         private int depthIdInt => depthSubTarget.renderTargetInt;
         private RenderTargetIdentifier depthTargetId => depthSubTarget.TargetIdentifier;
         private bool createDepthTexture => depthSubTarget.createTexture;
-        private RenderTextureFormat depthFormat => colorSubTarget.renderTextureFormat; // Redundant but exists for consistency.
+        private RenderTextureFormat depthFormat => colorSubTarget.renderTextureFormat; // Redundant but exists for consistency and clarity.
 
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -126,7 +126,7 @@ namespace RenderPass.OutlineBuffers
             var width = _cameraTextureDescriptor.width;
             var height = _cameraTextureDescriptor.height;
             
-            List<RenderTargetIdentifier> attachmentsToConfigure = new();
+            // List<RenderTargetIdentifier> attachmentsToConfigure = new();
 
             cmd.GetTemporaryRT(nameID: colorIdInt,
                                width: width,
@@ -134,7 +134,7 @@ namespace RenderPass.OutlineBuffers
                                depthBuffer: _textureDepthBufferBits,
                                filter: FilterMode.Point,
                                format: colorFormat);
-            if (createColorTexture) attachmentsToConfigure.Add(colorIdInt);
+            // if (createColorTexture) attachmentsToConfigure.Add(colorTargetId); // Recently changed from int to RTIdentifier
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
             cmd.GetTemporaryRT(nameID: depthIdInt, 
@@ -143,10 +143,10 @@ namespace RenderPass.OutlineBuffers
                                depthBuffer: _textureDepthBufferBits,
                                filter: FilterMode.Point,
                                format: depthFormat);
-            if (createDepthTexture) attachmentsToConfigure.Add(depthIdInt);
+            // if (createDepthTexture) attachmentsToConfigure.Add(depthTargetId); // Recently changed from int to RTIdentifier
             
             // Configure color and depth targets
-            ConfigureTarget(attachmentsToConfigure.ToArray());
+            ConfigureTarget(colorTargetId, depthTargetId); // Changed to explicit instead of array for debug.
             
             // Clear
             if (createColorTexture || createDepthTexture)
@@ -156,25 +156,21 @@ namespace RenderPass.OutlineBuffers
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
-
-            // _cameraTextureDescriptor.enableRandomWrite = true;
-
-            SortingCriteria sortingCriteria = renderQueueType == RenderQueueType.Opaque
-                ? renderingData.cameraData.defaultOpaqueSortFlags
-                : SortingCriteria.CommonTransparent;
+            
+            SortingCriteria sortingCriteria = renderQueueType == RenderQueueType.Opaque ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
             DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIdList, ref renderingData, sortingCriteria);
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
             
             // Set Global Textures (for... debug?). This may be deprecated.
-            // if (createColorTexture)
-            // {
-            //     cmd.SetGlobalTexture(colorIdInt, colorTargetId, RenderTextureSubElement.Color);
-            // }
-            // if (createDepthTexture)
-            // {
-            //     cmd.SetGlobalTexture(depthIdInt, depthTargetId, RenderTextureSubElement.Depth);
-            // }
+            if (createColorTexture)
+            {
+                cmd.SetGlobalTexture(colorIdInt, colorTargetId, RenderTextureSubElement.Color);
+            }
+            if (createDepthTexture)
+            {
+                cmd.SetGlobalTexture(depthIdInt, depthTargetId, RenderTextureSubElement.Depth);
+            }
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);

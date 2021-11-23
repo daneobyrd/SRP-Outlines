@@ -43,13 +43,12 @@ RW_TEXTURE2D_X(float4, _Source);
 RW_TEXTURE2D_X(float4, _Destination);
 
 TEXTURE2D_X(_LowMip);
-RW_TEXTURE2D(float4, _HighMip);
+RW_TEXTURE2D_X(float4, _HighMip);
 
 SamplerState sampler_LinearClamp;
 
 CBUFFER_START(cb)
 float4 _Size; // x: src width, y: src height, zw: unused
-float4 _UpsampleSize;
 CBUFFER_END
 
 // 16x16 pixels with an 8x8 center that we will be blurring writing out. Each uint is two color
@@ -137,7 +136,7 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex)
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
+    // UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
 
     // Upper-left pixel coordinate of quad that this thread will read
     int2 threadUL = (groupThreadId << 1) + (groupId << 3) - 4;
@@ -169,7 +168,7 @@ void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThr
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_DOWNSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
+    // UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
 
     uint2 offset = dispatchThreadId.xy * 2u;
     uint2 size = uint2(_Size.xy) - 1u;
@@ -198,8 +197,8 @@ void MAIN_UPSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
     float2 fid = float2(dispatchThreadId.xy);
     uint3 id = dispatchThreadId;
-    if (fid.x <= _UpsampleSize.x && fid.y <= _UpsampleSize.y) return;
-    float2 uv = float2(fid.x / _UpsampleSize.x, fid.y / _UpsampleSize.y);
-    _HighMip[id.xy] = SAMPLE_TEXTURE2D_X_LOD(_LowMip, sampler_LinearClamp, uv, 0);
+    if (fid.x <= _Size.x && fid.y <= _Size.y) return;
+    float2 uv = float2(fid.x / _Size.x, fid.y / _Size.y);
+    _HighMip[COORD_TEXTURE2D_X(id.xy)] = SAMPLE_TEXTURE2D_X_LOD(_LowMip, sampler_LinearClamp, uv, 0);
 }
 

@@ -5,7 +5,6 @@
 //      https://twitter.com/harryh___h/status/1328006632102526976
 using System;
 using System.Collections.Generic;
-using PhotoMode;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -75,7 +74,8 @@ namespace RenderPass.OutlineBuffers
     {
         [Header("Blur")]
         public ComputeShader computeBlur;
-        [Range(1, 10)] public float gaussianSigma = 1;
+        [Range(3, 8)] public int pyramidLevels = 8;
+        [Space(10)]
         public ComputeShader computeLines;
         public int kernelIndex = new();
         // [Header("Blit to Screen")]
@@ -154,11 +154,10 @@ namespace RenderPass.OutlineBuffers
             Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
             
             var hasDepth = linework.depthSubTarget.createTexture;
-            
             _lineworkPass.Init(hasDepth);
             renderer.EnqueuePass(_lineworkPass);
             
-            _blurPass.Setup(linework.colorSubTarget.textureName, edge.computeBlur);
+            _blurPass.Init(linework.colorSubTarget.textureName, edge.computeBlur, edge.pyramidLevels);
             renderer.EnqueuePass(_blurPass);
             
             // _computeLinesPass.Init(settings, outlineEncoderMaterial, "_BlurResults", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
