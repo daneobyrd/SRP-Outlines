@@ -69,7 +69,7 @@ namespace RenderPass.OutlineBuffers
             cmd.GetTemporaryRT(_tempDownsampleIntId, camTexDesc);
             // Blur low mip TEXTURE ARRAY
             cmd.GetTemporaryRT(_blurIntId, camTexDesc);
-            // Blur high mip/upsample texture
+            // Blur high mip/upsample TEXTURE ARRAY
             cmd.GetTemporaryRT(_finalIntId, camTexDesc);
         }
 
