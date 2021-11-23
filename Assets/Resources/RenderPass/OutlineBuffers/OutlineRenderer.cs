@@ -77,7 +77,6 @@ namespace RenderPass.OutlineBuffers
         [Range(3, 8)] public int pyramidLevels = 8;
         [Space(10)]
         public ComputeShader computeLines;
-        public int kernelIndex = new();
         // [Header("Blit to Screen")]
         public Material blitMaterial = null;
         public Shader outlineEncoder;
@@ -105,7 +104,7 @@ namespace RenderPass.OutlineBuffers
         
         private ShaderPassToRT                 _lineworkPass;
         private GaussianBlurPass               _blurPass;
-        private FullscreenEdgeDetectionCompute _computeLinesPass;
+        private FullscreenEdgeDetection _computeLinesPass;
         // private BlitRenderPass                 _debugBlit;
 
         private Material outlineEncoderMaterial
@@ -127,7 +126,7 @@ namespace RenderPass.OutlineBuffers
         {
             _lineworkPass = new ShaderPassToRT(settings, "Linework Pass", edge.computeBlur, settings.renderPassEvent, 24);
             _blurPass = new GaussianBlurPass("Blur Pass");
-            _computeLinesPass = new FullscreenEdgeDetectionCompute("Outline Encoder", edge.kernelIndex);
+            _computeLinesPass = new FullscreenEdgeDetection("Outline Encoder");
             
             // _debugBlit = new BlitRenderPass(RenderPassEvent.AfterRendering, Blitter.GetBlitMaterial(TextureDimension.Tex2D), "DebugBlit")
             // {
@@ -160,8 +159,8 @@ namespace RenderPass.OutlineBuffers
             _blurPass.Init(linework.colorSubTarget.textureName, edge.computeBlur, edge.pyramidLevels);
             renderer.EnqueuePass(_blurPass);
             
-            // _computeLinesPass.Init(settings, outlineEncoderMaterial, "_BlurResults", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
-            // renderer.EnqueuePass(_computeLinesPass);
+            _computeLinesPass.Init(settings, outlineEncoderMaterial, "_BlurUpsampleTex", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
+            renderer.EnqueuePass(_computeLinesPass);
             
             // renderer.EnqueuePass(_debugBlit);
         }

@@ -11,15 +11,18 @@ Shader "Example/OutlineSource"
 
     SubShader
     {
-        Tags
-        {
-            "RenderType" = "Opaque"
-            "RenderPipeline" = "UniversalPipeline"
-            "LightMode" = "UniversalForward"
-        }
         Pass
         {
             Name "Outline Base"
+            Tags
+            {
+                "RenderPipeline" = "UniversalPipeline"
+                "RenderType" = "Opaque"
+                "UniversalMaterialType" = "Lit"
+                "Queue" = "Geometry"
+                "LightMode" = "UniversalForward"
+            }
+
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -43,7 +46,7 @@ Shader "Example/OutlineSource"
             };
 
             // This macro declares _BaseMap as a Texture2D object.
-            TEXTURE2D(_BaseMap);
+            TEXTURE2D_X(_BaseMap);
             // This macro declares the sampler for the _BaseMap texture.
             SAMPLER(sampler_BaseMap);
 
@@ -68,24 +71,24 @@ Shader "Example/OutlineSource"
             {
                 // The SAMPLE_TEXTURE2D marco samples the texture with the given
                 // sampler.
-                half4 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
+                half4 color = SAMPLE_TEXTURE2D_X(_BaseMap, sampler_BaseMap, IN.uv);
                 return color;
             }
             ENDHLSL
         }
-    }
 
-    SubShader
-    {
-        Tags
-        {
-            "RenderType" = "Opaque"
-            "RenderPipeline" = "UniversalPipeline"
-            "LightMode" = "Outline"
-        }
         Pass
         {
             Name "Outline Source"
+            Tags
+            {
+                "RenderPipeline" = "UniversalPipeline"
+                "RenderType" = "Opaque"
+                "UniversalMaterialType" = "Lit"
+                "Queue" = "Geometry"
+                "LightMode" = "Outline"
+            }
+
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -109,7 +112,7 @@ Shader "Example/OutlineSource"
             };
 
             // This macro declares _BaseMap as a Texture2D object.
-            TEXTURE2D(_Discontinuity);
+            TEXTURE2D_X(_Discontinuity);
             // This macro declares the sampler for the _BaseMap texture.
             SAMPLER(sampler_Discontinuity);
 
@@ -131,7 +134,7 @@ Shader "Example/OutlineSource"
             {
                 // The SAMPLE_TEXTURE2D marco samples the texture with the given
                 // sampler.
-                half4 color = SAMPLE_TEXTURE2D(_Discontinuity, sampler_Discontinuity, IN.uv);
+                half4 color = SAMPLE_TEXTURE2D_X(_Discontinuity, sampler_Discontinuity, IN.uv);
                 return color;
             }
             ENDHLSL

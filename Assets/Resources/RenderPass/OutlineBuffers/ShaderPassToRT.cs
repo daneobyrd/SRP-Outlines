@@ -121,22 +121,24 @@ namespace RenderPass.OutlineBuffers
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             RenderTextureDescriptor camTexDesc = cameraTextureDescriptor;
+            var width = camTexDesc.width;
+            var height = camTexDesc.height;
             camTexDesc.colorFormat = colorFormat;
             camTexDesc.depthBufferBits = _textureDepthBufferBits;
             camTexDesc.msaaSamples = 1;
             camTexDesc.bindMS = true;
             
-            // List<RenderTargetIdentifier> attachmentsToConfigure = new();
+            List<RenderTargetIdentifier> attachmentsToConfigure = new();
 
-            cmd.GetTemporaryRT(colorIdInt, camTexDesc);
-            // if (createColorTexture) attachmentsToConfigure.Add(colorTargetId); // Recently changed from int to RTIdentifier
+            cmd.GetTemporaryRT(colorIdInt, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat);
+            if (createColorTexture) attachmentsToConfigure.Add(colorIdInt); // Recently changed from int to RTIdentifier
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
             cmd.GetTemporaryRT(depthIdInt, camTexDesc);
-            // if (createDepthTexture) attachmentsToConfigure.Add(depthTargetId); // Recently changed from int to RTIdentifier
+            if (createDepthTexture) attachmentsToConfigure.Add(depthIdInt); // Recently changed from int to RTIdentifier
             
             // Configure color and depth targets
-            ConfigureTarget(colorTargetId, depthTargetId); // Changed to explicit instead of attachmentsToConfigure.ToArray() for debug.
+            ConfigureTarget(attachmentsToConfigure.ToArray());
             
             // Clear
             if (createColorTexture || createDepthTexture)

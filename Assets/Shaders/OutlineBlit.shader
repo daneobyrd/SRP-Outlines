@@ -2,7 +2,7 @@
 {
     Properties
     {
-        _MainTex ("MainTex", 2D) = "clear" {}
+        //        _MainTex ("MainTex", 2D) = "clear" {}
         _SourceTex ("SourceTex", 2D) = "clear" {}
         _OuterThreshold ("Outer Threshold", float) = 1.0
         _InnerThreshold ("Inner Threshold", float) = 1.0
@@ -35,13 +35,10 @@
             #pragma multi_compile _ _USE_DRAW_PROCEDURAL
             #pragma multi_compile_fragment _ DEBUG_DISPLAY
 
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+            // #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
-            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
-            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 
             /*struct outlined_obj
             {
@@ -52,8 +49,14 @@
             StructuredBuffer<outlined_obj> outline_objBuffer;*/
 
             CBUFFER_START(UnityPerMaterial)
-            float OuterThreshold;
-            float InnerThreshold;
+            // TEXTURE2D_X(_MainTex);
+            // SAMPLER(sampler_MainTex);
+
+            float _OuterThreshold;
+            float _InnerThreshold;
+
+            TEXTURE2D_X(_SourceTex);
+            SAMPLER(sampler_SourceTex);
             CBUFFER_END
 
             TEXTURE2D_X(_OutlineOpaque);
@@ -62,18 +65,15 @@
             TEXTURE2D(_OutlineTexture);
 
             SAMPLER(sampler_LinearClamp);
-            
-            TEXTURE2D(_MainTex);
-            SAMPLER(sampler_MainTex);
 
-            TEXTURE2D(_SourceTex);
-            SAMPLER(sampler_SourceTex);
 
             float4 Fragment(Varyings input) : SV_Target
             {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 float2 uv = input.uv;
+                
                 float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_LinearClamp, uv);
-                float outlineMask = saturate(step(outlineTex.x, OuterThreshold) + step(outlineTex.y, InnerThreshold) + outlineTex.z);
+                float outlineMask = saturate(step(outlineTex.x, _OuterThreshold) + step(outlineTex.y, _InnerThreshold) + outlineTex.z);
                 float4 cameraColorCopy = SAMPLE_TEXTURE2D(_SourceTex, sampler_SourceTex, uv);
                 float3 col = lerp(cameraColorCopy.xyz, -outlineMask, outlineMask);
                 return float4(col, 1);

@@ -152,17 +152,17 @@ float SafeSplitKernel5(float source_input[6], out float sqrt_input, out float re
 └────┴────┴────┴────┴────┴────┴────┘
 */
 float laplace_7x7_0[10] = { 8, 7, 6, 4, 3, 0, -1, -2, -5, -10 };
-float SafeSplitKernel7(float source_input[10], out float sqrt_input, out float result)
-{
-    if (source_input == 0)
-    {
-        return *source_input;
-    }
-    sqrt_input = sqrt(abs(source_input[10]));
-
-    result = pow(sqrt_input, 2)*sign(source_input[10]);
-    return result;
-}
+// float SafeSplitKernel7(float source_input[10], out float sqrt_input, out float result)
+// {
+//     if ((int)source_input == 0)
+//     {
+//         return *source_input;
+//     }
+//     sqrt_input = sqrt(abs(source_input[10]));
+//
+//     result = pow(sqrt_input, 2)*sign(source_input[10]);
+//     return result;
+// }
 /*float laplacian_7x7_0[49] =
 {
     -10, -5, -2, -1, -2, -5, -10,
