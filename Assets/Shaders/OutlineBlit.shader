@@ -3,7 +3,7 @@
     Properties
     {
         //        _MainTex ("MainTex", 2D) = "clear" {}
-        _SourceTex ("SourceTex", 2D) = "clear" {}
+//        _SourceTex ("SourceTex", 2D) = "clear" {}
         _OuterThreshold ("Outer Threshold", float) = 1.0
         _InnerThreshold ("Inner Threshold", float) = 1.0
         //        _Rotations ("Rotations", int) = 6
@@ -39,6 +39,7 @@
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+            // #include "Library/PackageCache/com.unity.render-pipelines.core@12.1.1/Runtime/Utilities/Blit.hlsl"
 
             /*struct outlined_obj
             {
@@ -49,24 +50,23 @@
             StructuredBuffer<outlined_obj> outline_objBuffer;*/
 
             CBUFFER_START(UnityPerMaterial)
-            // TEXTURE2D_X(_MainTex);
+            // TEXTURE2D(_MainTex);
             // SAMPLER(sampler_MainTex);
 
             float _OuterThreshold;
             float _InnerThreshold;
 
-            TEXTURE2D_X(_SourceTex);
+            TEXTURE2D(_SourceTex);
             SAMPLER(sampler_SourceTex);
             CBUFFER_END
 
-            TEXTURE2D_X(_OutlineOpaque);
+            TEXTURE2D(_OutlineOpaque);
             TEXTURE2D(_OutlineDepth);
             TEXTURE2D(_BlurUpsampleTex);
             TEXTURE2D(_OutlineTexture);
-
-            SAMPLER(sampler_LinearClamp);
-
-
+            
+            // Combine textures in blit shader
+            /*
             float4 Fragment(Varyings input) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -78,6 +78,17 @@
                 float3 col = lerp(cameraColorCopy.xyz, -outlineMask, outlineMask);
                 return float4(col, 1);
             }
+            */
+
+            // Combine textures in compute shader
+            float4 Fragment(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+                const float2 uv = input.uv;
+                float4 col = SAMPLE_TEXTURE2D(_SourceTex, sampler_SourceTex, uv);
+                return col;
+            }
+
             ENDHLSL
         }
 

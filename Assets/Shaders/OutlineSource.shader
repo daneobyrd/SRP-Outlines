@@ -46,7 +46,7 @@ Shader "Example/OutlineSource"
             };
 
             // This macro declares _BaseMap as a Texture2D object.
-            TEXTURE2D_X(_BaseMap);
+            TEXTURE2D(_BaseMap);
             // This macro declares the sampler for the _BaseMap texture.
             SAMPLER(sampler_BaseMap);
 
@@ -71,7 +71,7 @@ Shader "Example/OutlineSource"
             {
                 // The SAMPLE_TEXTURE2D marco samples the texture with the given
                 // sampler.
-                half4 color = SAMPLE_TEXTURE2D_X(_BaseMap, sampler_BaseMap, IN.uv);
+                half4 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
                 return color;
             }
             ENDHLSL
@@ -112,7 +112,7 @@ Shader "Example/OutlineSource"
             };
 
             // This macro declares _BaseMap as a Texture2D object.
-            TEXTURE2D_X(_Discontinuity);
+            TEXTURE2D(_Discontinuity);
             // This macro declares the sampler for the _BaseMap texture.
             SAMPLER(sampler_Discontinuity);
 
@@ -134,7 +134,7 @@ Shader "Example/OutlineSource"
             {
                 // The SAMPLE_TEXTURE2D marco samples the texture with the given
                 // sampler.
-                half4 color = SAMPLE_TEXTURE2D_X(_Discontinuity, sampler_Discontinuity, IN.uv);
+                half4 color = SAMPLE_TEXTURE2D(_Discontinuity, sampler_Discontinuity, IN.uv);
                 return color;
             }
             ENDHLSL
