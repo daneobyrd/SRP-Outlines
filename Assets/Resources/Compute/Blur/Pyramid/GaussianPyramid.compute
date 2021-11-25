@@ -42,7 +42,7 @@ void GAUSSIAN_PYRAMID(uint3 id : SV_DispatchThreadID)
         {
             float gaus_factor = gaussian(x, y);
             sum += gaus_factor;
-            pixel_value += gaus_factor * _Source.SampleLevel(sampler_LinearClamp, texture_uv + float2(step.x * x, step.y * y), 0).xyz;
+            pixel_value += gaus_factor * _Source.SampleLevel(s_linear_clamp_sampler, texture_uv + float2(step.x * x, step.y * y), 0).xyz;
         }
     }
 

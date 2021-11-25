@@ -36,6 +36,7 @@ Upsampling
 */
 
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -58,9 +59,7 @@ namespace RenderPass.OutlineBuffers
         private RenderTargetIdentifier tempDownsampleTargetID => new(_tempDownsampleIntId);
         private RenderTargetIdentifier blurTargetID => new(_blurIntId);
         private RenderTargetIdentifier finalTargetID => new(_finalIntId);
-
-        // private RenderTextureDescriptor _camTexDesc;
-
+        
         #endregion
 
         public GaussianBlurPass(string profilerTag)
@@ -83,6 +82,7 @@ namespace RenderPass.OutlineBuffers
             camTexDesc.msaaSamples = 1;
             camTexDesc.mipCount = _mipLevels;
             camTexDesc.colorFormat = RenderTextureFormat.ARGBFloat;
+            camTexDesc.depthStencilFormat = GraphicsFormat.R32_SFloat;
             camTexDesc.depthBufferBits = 0;
             camTexDesc.useMipMap = true; // Do not use autoGenerateMips: does not reliably generate mips.
             camTexDesc.enableRandomWrite = true;
@@ -94,13 +94,13 @@ namespace RenderPass.OutlineBuffers
             camTexDesc.dimension = TextureDimension.Tex2DArray;
 
             // Source TEXTURE ARRAY
-            cmd.GetTemporaryRT(_sourceIntId, camTexDesc);
+            cmd.GetTemporaryRT(_sourceIntId, camTexDesc, FilterMode.Point);
             // Downsample TEXTURE ARRAY
-            cmd.GetTemporaryRT(_tempDownsampleIntId, camTexDesc);
+            cmd.GetTemporaryRT(_tempDownsampleIntId, camTexDesc, FilterMode.Point);
             // Blur low mip TEXTURE ARRAY
-            cmd.GetTemporaryRT(_blurIntId, camTexDesc);
+            cmd.GetTemporaryRT(_blurIntId, camTexDesc, FilterMode.Point);
             // Blur high mip/upsample TEXTURE ARRAY
-            cmd.GetTemporaryRT(_finalIntId, camTexDesc);
+            cmd.GetTemporaryRT(_finalIntId, camTexDesc, FilterMode.Point);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -110,10 +110,10 @@ namespace RenderPass.OutlineBuffers
             RenderTextureDescriptor opaqueDesc = renderingData.cameraData.cameraTargetDescriptor;
             var width = opaqueDesc.width;
             var height = opaqueDesc.height;
-            opaqueDesc.mipCount = 8;
-            opaqueDesc.useMipMap = true;
-            opaqueDesc.enableRandomWrite = true;
-            opaqueDesc.colorFormat = RenderTextureFormat.ARGBFloat;
+            // opaqueDesc.mipCount = 8;
+            // opaqueDesc.useMipMap = true;
+            // opaqueDesc.enableRandomWrite = true;
+            // opaqueDesc.colorFormat = RenderTextureFormat.ARGBFloat;
 
             RenderColorGaussianPyramid(cmd, new Vector2Int(width, height), sourceColorTargetID, tempDownsampleTargetID, blurTargetID, finalTargetID);
 
@@ -219,12 +219,15 @@ namespace RenderPass.OutlineBuffers
                 cmd.DispatchCompute(_computeShader, upsampleKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
 
                 // At this point srcMipLevel will never be 0, thus srcMipLevel--; will never return a negative value.
-                srcMipLevel--;
-                // Bitwise operations
-                srcMipWidth = srcMipWidth << 1;   // same as srcMipWidth *= 2.
-                srcMipHeight = srcMipHeight << 1; // same as srcMipHeight *= 2.
+                if (srcMipLevel >= 1)
+                {
+                    srcMipLevel--;
+                    // Bitwise operations
+                    srcMipWidth = srcMipWidth << 1;   // same as srcMipWidth *= 2.
+                    srcMipHeight = srcMipHeight << 1; // same as srcMipHeight *= 2.
+                }
             }
-            srcMipLevel = 0; // Unnecessary backup to ensure srcMipLevel is set to lowest mip.
+            // srcMipLevel = 0; // Unnecessary backup to ensure srcMipLevel is set to lowest mip.
             
             #endregion
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

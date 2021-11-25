@@ -30,7 +30,6 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
 
 #if COPY_MIP_0
@@ -45,7 +44,7 @@ RW_TEXTURE2D_X(float4, _Destination);
 TEXTURE2D_X(_LowMip);
 RW_TEXTURE2D_X(float4, _HighMip);
 
-SamplerState sampler_LinearClamp;
+SAMPLER(sampler_LinearClamp);
 
 CBUFFER_START(cb)
 float4 _Size; // x: src width, y: src height, zw: unused

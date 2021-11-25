@@ -4,6 +4,7 @@
 #pragma kernel KComposite                           GROUP_SIZE=8   MAIN_COMPOSITE=KComposite
 // #define REGION_PER_THREAD 8
 
+// #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
 #include "LaplacianFilters.hlsl"
@@ -16,7 +17,7 @@ TEXTURE2D_X(Source);
 RW_TEXTURE2D_X(float4, Result);
 TEXTURE2D_X(CameraTex);
 
-SamplerState sampler_LinearClamp;
+SAMPLER(sampler_LinearClamp);
 
 uint sample_size = 9;
 float laplacian[9];
@@ -200,10 +201,10 @@ void DetectEdges(uint2 pixelCoord, uint topLeftMostIndex, uint index)
 }
 */
 
-[numthreads(GROUP_SIZE, GROUP_SIZE, 1)] // Image should ba multiple of 32
-void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID, // ID of thread group; range depends on Dispatch call.
-                    uint2 groupThreadId : SV_GroupThreadID, // ID of thread in a thread group; range depends on numthreads.
-                    uint3 dispatchThreadId : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]                             // Image should ba multiple of 32
+void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID,                     // ID of thread group; range depends on Dispatch call.
+                    uint2 groupThreadId : SV_GroupThreadID,         // ID of thread in a thread group; range depends on numthreads.
+                    uint3 dispatchThreadId : SV_DispatchThreadID)   // = SV_GroupID * numthreads + SV_GroupThreadID.
 {
     /*
     // Upper-left pixel coordinate of quad that this thread will read

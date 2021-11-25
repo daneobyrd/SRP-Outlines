@@ -17,7 +17,7 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 3026817424008148383}
   m_RendererFeatureMap: 9ff5f70d696a012a
-  m_UseNativeRenderPass: 1
+  m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
   shaders:
@@ -65,7 +65,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1368294b394042aea756980b82b8e024, type: 3}
   m_Name: OutlineRenderer
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   settings:
     profilerTag: OutlineRenderer
     renderPassEvent: 300
@@ -75,6 +75,7 @@ MonoBehaviour:
       layerMask:
         serializedVersion: 2
         m_Bits: 2147483647
+      lightLayerMask: -1
     lineworkSettings:
       colorSubTarget:
         lightmodeTags:
@@ -92,9 +93,8 @@ MonoBehaviour:
         renderTextureFormat: 1
     edgeSettings:
       computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
-      pyramidLevels: 3
+      pyramidLevels: 8
       computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
-      kernelIndex: 1
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
       outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
     outlineProperties:

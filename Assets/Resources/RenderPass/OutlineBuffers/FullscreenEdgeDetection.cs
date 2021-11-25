@@ -14,8 +14,6 @@ namespace RenderPass.OutlineBuffers
 {
     public class FullscreenEdgeDetection : ScriptableRenderPass
     {
-        private OutlineSettings _settings;
-
         private string _profilerTag;
         private Material _material;
         // private DebugTargetView debugTargetView => _settings.debugTargetView;
@@ -26,38 +24,36 @@ namespace RenderPass.OutlineBuffers
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
         private int _sourceIntId;   // _BlurResults or _OutlineOpaque (Debug)
-        private RenderTargetIdentifier sourceId => new (_sourceIntId);
+        private RenderTargetIdentifier sourceTargetId => new (_sourceIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
         private int outlineIntId => Shader.PropertyToID("_OutlineTexture");
         private RenderTargetIdentifier outlineTargetId => new (outlineIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private int _outlineDepthIntId = Shader.PropertyToID("_OutlineDepth");
-        private RenderTargetIdentifier outlineDepthTargetId => new (_outlineDepthIntId);
+        private int outlineDepthIntId => Shader.PropertyToID("_OutlineDepth");
+        private RenderTargetIdentifier outlineDepthTargetId => new (outlineDepthIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        private int _combinedIntId;// = Shader.PropertyToID("_CombinedTexture");
-        private RenderTargetIdentifier combinedTargetId => new (_combinedIntId);
+        private int combinedIntId => Shader.PropertyToID("_CombinedTexture");
+        private RenderTargetIdentifier combinedTargetId => new (combinedIntId);
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
         // private static int destinationIntId => -1;
-        private static RenderTargetIdentifier _destinationTargetId;// => new (destinationIntId);
+        private static RenderTargetIdentifier _cameraTexCopy;
         
         public FullscreenEdgeDetection(string name)
         {
             renderPassEvent = RenderPassEvent.BeforeRenderingTransparents;
             _profilerTag = name;
-            // _index = kernelIndex;
         }
 
-        public void Init(OutlineSettings settings, Material initMaterial, string sourceTextureName, RenderTargetIdentifier cameraTempColor, ComputeShader computeShader,  bool hasDepth)
+        public void Setup(Material initMaterial, string sourceTextureName, RenderTargetIdentifier cameraColor, ComputeShader computeShader,  bool hasDepth)
         {
-            _settings = settings;
             _material = initMaterial;
             _sourceIntId = Shader.PropertyToID(sourceTextureName);
-            _destinationTargetId = cameraTempColor;
+            _cameraTexCopy = cameraColor;
             _hasDepth = hasDepth;
             _computeShader = computeShader;
         }
@@ -74,25 +70,25 @@ namespace RenderPass.OutlineBuffers
             
             cmd.GetTemporaryRT(_sourceIntId, camTexDesc);
             
-            cmd.GetTemporaryRT(_combinedIntId, camTexDesc);
+            cmd.GetTemporaryRT(combinedIntId, camTexDesc);
             
-            if (_hasDepth) cmd.GetTemporaryRT(_outlineDepthIntId, width, height, 24, FilterMode.Point, RenderTextureFormat.Depth);
+            if (_hasDepth) cmd.GetTemporaryRT(outlineDepthIntId, width, height, 24, FilterMode.Point, RenderTextureFormat.Depth);
             
             cmd.GetTemporaryRT(outlineIntId, camTexDesc);
             
             // See CopyColorPass.cs (65)
             // cmd.GetTemporaryRT(destinationIntId, width, height, depthBuffer, FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, msaa);
 
-            // if (_hasDepth)
-            // {
-            //     ConfigureTarget(combinedTargetId, depthAttachment: outlineDepthTargetId);
-            // }
-            // else
-            // {
-            // ConfigureTarget(combinedTargetId);
-            // }
+            if (_hasDepth)
+            {
+                ConfigureTarget(combinedTargetId, depthAttachment: outlineDepthTargetId);
+            }
+            else
+            {
+                ConfigureTarget(combinedTargetId);
+            }
 
-            // ConfigureClear(ClearFlag.All, Color.black);
+            ConfigureClear(ClearFlag.All, Color.black);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -118,8 +114,8 @@ namespace RenderPass.OutlineBuffers
             
             var laplacian = _computeShader.FindKernel("KLaplacian");
             cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
-            cmd.SetComputeTextureParam(_computeShader, laplacian, "Source", sourceId);
-            cmd.SetComputeTextureParam(_computeShader, laplacian, "Result", outlineTargetId);
+            cmd.SetComputeTextureParam(_computeShader, laplacian, "Source", sourceTargetId, 0);
+            cmd.SetComputeTextureParam(_computeShader, laplacian, "Result", outlineTargetId, 0);
             cmd.DispatchCompute(_computeShader, laplacian, Mathf.CeilToInt(width / 32f), Mathf.CeilToInt(height / 32f), 1);
             
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -128,32 +124,42 @@ namespace RenderPass.OutlineBuffers
             cmd.SetGlobalTexture(outlineIntId, outlineTargetId);
             
             #endregion
+            
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            // Composite _OutlineTexture and Camera color target in compute shader
+            #region Composite _OutlineTexture and Camera color target in compute shader
             // ---------------------------------------------------------------------------------------------------------------------------------------
+            
             var composite = _computeShader.FindKernel("KComposite");
             cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
             cmd.SetComputeTextureParam(_computeShader, composite, "Source", outlineTargetId);
-            cmd.SetComputeTextureParam(_computeShader, composite, "CameraTex", _destinationTargetId);
+            cmd.SetComputeTextureParam(_computeShader, composite, "CameraTex", _cameraTexCopy);
             cmd.SetComputeTextureParam(_computeShader, composite, "Result", combinedTargetId);
             cmd.DispatchCompute(_computeShader, composite, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
             
+            #endregion
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Blit _OutlineTexture to the screen
             // ---------------------------------------------------------------------------------------------------------------------------------------
             // RenderTargetIdentifier opaqueColorRT = _destinationTargetId;
             
-            Blit(cmd, combinedTargetId, -1);
+            // Blit(cmd, combinedTargetId, -1);
 
             #endregion
             
             // ↓ Currently commented out for simplicity during testing; test with color only rather than dealing with depth at the same time.
             // Copy outline depth to camera depth target for use in other features, like a transparent pass.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            if (_hasDepth) Blit(cmd, outlineDepthTargetId, renderingData.cameraData.renderer.cameraDepthTarget);
+            // if (_hasDepth) Blit(cmd, outlineDepthTargetId, renderingData.cameraData.renderer.cameraDepthTarget);
+            
+            DrawingSettings drawingSettings = default;
+            FilteringSettings filteringSettings = FilteringSettings.defaultValue;
+
+            // var renderQueueRange = (filter.renderQueueType == RenderQueueType.Opaque) ? RenderQueueRange.opaque : RenderQueueRange.transparent;
+            // filteringSettings = new FilteringSettings(renderQueueRange, filter.layerMask, filter.lightLayerMask);
+            
+            context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
             
             context.ExecuteCommandBuffer(cmd);
-            // cmd.Clear();
             CommandBufferPool.Release(cmd);
         }
 
@@ -161,8 +167,8 @@ namespace RenderPass.OutlineBuffers
         {
             if (_sourceIntId != -1) cmd.ReleaseTemporaryRT(_sourceIntId);
             if (outlineIntId != -1) cmd.ReleaseTemporaryRT(outlineIntId);
-            if (_outlineDepthIntId != -1) cmd.ReleaseTemporaryRT(_outlineDepthIntId);
-            if (_combinedIntId != -1) cmd.ReleaseTemporaryRT(_combinedIntId);
+            if (outlineDepthIntId != -1) cmd.ReleaseTemporaryRT(outlineDepthIntId);
+            if (combinedIntId != -1) cmd.ReleaseTemporaryRT(combinedIntId);
         }
     }
 }

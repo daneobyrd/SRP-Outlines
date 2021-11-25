@@ -52,9 +52,9 @@ half4 Frag(Varyings input) : SV_Target
     half2 uv_p2 = min(_SrcUvLimits.xy, input.texcoord.xy + offset2);
 
     return
-        + SAMPLE_TEXTURE2D_X_LOD(_Source, sampler_LinearClamp, uv_m2, _SourceMip) * (gaussWeights[3] + gaussWeights[4])
-        + SAMPLE_TEXTURE2D_X_LOD(_Source, sampler_LinearClamp, uv_m1, _SourceMip) * (gaussWeights[1] + gaussWeights[2])
-        + SAMPLE_TEXTURE2D_X_LOD(_Source, sampler_LinearClamp, uv_p0, _SourceMip) *  gaussWeights[0]
-        + SAMPLE_TEXTURE2D_X_LOD(_Source, sampler_LinearClamp, uv_p1, _SourceMip) * (gaussWeights[1] + gaussWeights[2])
-        + SAMPLE_TEXTURE2D_X_LOD(_Source, sampler_LinearClamp, uv_p2, _SourceMip) * (gaussWeights[3] + gaussWeights[4]);
+        + SAMPLE_TEXTURE2D_X_LOD(_Source, s_linear_clamp_sampler, uv_m2, _SourceMip) * (gaussWeights[3] + gaussWeights[4])
+        + SAMPLE_TEXTURE2D_X_LOD(_Source, s_linear_clamp_sampler, uv_m1, _SourceMip) * (gaussWeights[1] + gaussWeights[2])
+        + SAMPLE_TEXTURE2D_X_LOD(_Source, s_linear_clamp_sampler, uv_p0, _SourceMip) *  gaussWeights[0]
+        + SAMPLE_TEXTURE2D_X_LOD(_Source, s_linear_clamp_sampler, uv_p1, _SourceMip) * (gaussWeights[1] + gaussWeights[2])
+        + SAMPLE_TEXTURE2D_X_LOD(_Source, s_linear_clamp_sampler, uv_p2, _SourceMip) * (gaussWeights[3] + gaussWeights[4]);
 }

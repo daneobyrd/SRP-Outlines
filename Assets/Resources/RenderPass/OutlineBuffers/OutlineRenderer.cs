@@ -19,11 +19,11 @@ namespace RenderPass.OutlineBuffers
 
     public enum DebugTargetView
     {
-        None,
-        ColorBuffer,
-        Depth,
-        BlurResults,
-        OutlinesOnly
+        None = 0,
+        ColorBuffer = 1,
+        Depth = 2,
+        BlurResults = 3,
+        OutlinesOnly = 4
     }
 
     [System.Serializable]
@@ -50,14 +50,16 @@ namespace RenderPass.OutlineBuffers
     public class FilterSettings
     {
         public RenderQueueType renderQueueType;
-
         public LayerMask layerMask;
+        [Range(-1, 7)] public int lightLayerMask;
+
         // public readonly List<string> passNames;
 
         public FilterSettings()
         {
             renderQueueType = RenderQueueType.Opaque;
             layerMask = 0;
+            lightLayerMask = -1;
         }
     }
 
@@ -122,29 +124,21 @@ namespace RenderPass.OutlineBuffers
         private static readonly int OuterLut = Shader.PropertyToID("_OuterLUT");
         private static readonly int InnerLut = Shader.PropertyToID("_InnerLUT");
 
+        private void Awake()
+        {
+            GetMaterial();
+        }
+
         public override void Create()
         {
-            _lineworkPass = new ShaderPassToRT(settings, "Linework Pass", edge.computeBlur, settings.renderPassEvent, 24);
+            _lineworkPass = new ShaderPassToRT(settings, "Linework Pass", settings.renderPassEvent, 24);
             _blurPass = new GaussianBlurPass("Blur Pass");
             _computeLinesPass = new FullscreenEdgeDetection("Outline Encoder");
             
-            // _debugBlit = new BlitRenderPass(RenderPassEvent.AfterRendering, Blitter.GetBlitMaterial(TextureDimension.Tex2D), "DebugBlit")
-            // {
-            //     source = "_BlurUpsampleTex"
-            // };
-            
-            GetMaterial();
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (!GetMaterial())
-            {
-                Debug.LogErrorFormat(
-                    "{0}.AddRenderPasses(): Missing material. Make sure to add a blit material, or make sure {1} exists.",
-                    GetType().Name, outlineEncoderShader);
-                return;
-            }
             Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
             Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
             // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
@@ -153,28 +147,50 @@ namespace RenderPass.OutlineBuffers
             Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
             
             var hasDepth = linework.depthSubTarget.createTexture;
-            _lineworkPass.Init(hasDepth);
+            _lineworkPass.ShaderTagSetup(hasDepth);
             renderer.EnqueuePass(_lineworkPass);
             
-            _blurPass.Init(linework.colorSubTarget.textureName, edge.computeBlur, edge.pyramidLevels);
+            _blurPass.Init("_OutlineOpaque", edge.computeBlur, edge.pyramidLevels);
             renderer.EnqueuePass(_blurPass);
             
-            _computeLinesPass.Init(settings, outlineEncoderMaterial, "_BlurUpsampleTex", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
+            _computeLinesPass.Setup(outlineEncoderMaterial, "_BlurUpsampleTex", renderer.cameraColorTarget, settings.edgeSettings.computeLines, hasDepth);
             renderer.EnqueuePass(_computeLinesPass);
             
-            // renderer.EnqueuePass(_debugBlit);
         }
 
-        private bool GetMaterial()
+        private void GetMaterial()
         {
             if (outlineEncoderMaterial && settings.edgeSettings.blitMaterial)
             {
-                return true;
+                return;
             }
 
-            if (outlineEncoderShader == null || !settings.edgeSettings.blitMaterial) return false;
-            outlineEncoderMaterial = new Material(outlineEncoderShader);
-            return true;
+            if (settings.edgeSettings.blitMaterial == null) return;
+
+            Debug.LogErrorFormat(
+                "{0}.AddRenderPasses(): Missing material. Make sure to add a blit material, or make sure {1} exists.",
+                GetType().Name, outlineEncoderShader);
+            
+            outlineEncoderMaterial = Load(outlineEncoderShader);
+        }
+
+        // Copied from universal/PostProcessPass.cs
+        private Material Load(Shader shader)
+        {
+            if (shader == null)
+            {
+                var declaringType = GetType().DeclaringType;
+                if (declaringType != null)
+                    Debug.LogErrorFormat(
+                        $"Missing shader. {declaringType.Name} render pass will not execute. Check for missing reference in the renderer feature settings.");
+                return null;
+            }
+            else if (!shader.isSupported)
+            {
+                return null;
+            }
+
+            return CoreUtils.CreateEngineMaterial(shader);
         }
     }
 }

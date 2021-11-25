@@ -83,8 +83,8 @@ namespace RenderPass.OutlineBuffers
         
         #endregion
 
-        // Must call Init before enqueuing pass.
-        public void Init(bool hasDepth)
+        // Must call ShaderTagSetup before enqueuing pass.
+        public void ShaderTagSetup(bool hasDepth)
         {
             var totalShaderNames = new List<string>();
 
@@ -107,17 +107,26 @@ namespace RenderPass.OutlineBuffers
             }
         }
 
-        public ShaderPassToRT(OutlineSettings settings, string profilerTag, ComputeShader computeShader, RenderPassEvent renderPassEvent,
-            int depthBufferBits)
+        public ShaderPassToRT(OutlineSettings settings, string profilerTag, RenderPassEvent renderPassEvent, int depthBufferBits)
         {
             _settings = settings;
             _profilerTag = profilerTag;
+            
+            // Temporary way to allow for setting all layer masks using default value (-1).
+            var lightLayerMask = (uint)filter.lightLayerMask;
+            if (filter.lightLayerMask == -1)
+            {
+                lightLayerMask = uint.MaxValue;
+            }
+            // TODO: Create interface/editor class for renderer feature and render passes
+            
             this.renderPassEvent = renderPassEvent;
             var renderQueueRange = (filter.renderQueueType == RenderQueueType.Opaque) ? RenderQueueRange.opaque : RenderQueueRange.transparent;
-            _filteringSettings = new FilteringSettings(renderQueueRange, filter.layerMask);
+            _filteringSettings = new FilteringSettings(renderQueueRange, filter.layerMask, lightLayerMask);
+            
             _textureDepthBufferBits = depthBufferBits;
         }
-
+        
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             RenderTextureDescriptor camTexDesc = cameraTextureDescriptor;
@@ -126,16 +135,16 @@ namespace RenderPass.OutlineBuffers
             camTexDesc.colorFormat = colorFormat;
             camTexDesc.depthBufferBits = _textureDepthBufferBits;
             camTexDesc.msaaSamples = 1;
-            camTexDesc.bindMS = true;
+            // camTexDesc.bindMS = true;
             
             List<RenderTargetIdentifier> attachmentsToConfigure = new();
 
             cmd.GetTemporaryRT(colorIdInt, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat);
-            if (createColorTexture) attachmentsToConfigure.Add(colorIdInt); // Recently changed from int to RTIdentifier
+            if (createColorTexture) attachmentsToConfigure.Add(colorTargetId); // Recently changed from int to RTIdentifier
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
             cmd.GetTemporaryRT(depthIdInt, camTexDesc);
-            if (createDepthTexture) attachmentsToConfigure.Add(depthIdInt); // Recently changed from int to RTIdentifier
+            if (createDepthTexture) attachmentsToConfigure.Add(depthTargetId); // Recently changed from int to RTIdentifier
             
             // Configure color and depth targets
             ConfigureTarget(attachmentsToConfigure.ToArray());
