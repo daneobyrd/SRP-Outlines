@@ -11,63 +11,36 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
+// ReSharper disable once CheckNamespace
 namespace RenderPass.OutlineBuffers
 {
-    public enum TargetType
-    {
-        Color,
-        Depth,
-        Shadowmap
-    }
-    
-    [System.Serializable]
-    public struct PassSubTarget
-    {
-        public List<string> lightmodeTags;
-        public string textureName;
-        [HideInInspector] public int renderTargetInt;
-        public RenderTargetIdentifier TargetIdentifier;
-        public bool createTexture;
-        public RenderTextureFormat renderTextureFormat;
-
-        public PassSubTarget(List<string> lightmodeTags, string texName, TargetType type, bool createTexture, RenderTextureFormat rtFormat)
-        {
-            this.lightmodeTags = lightmodeTags;
-            textureName = texName;
-            renderTargetInt = Shader.PropertyToID(textureName);
-            TargetIdentifier = new RenderTargetIdentifier(renderTargetInt);
-            this.createTexture = createTexture;
-            renderTextureFormat = type switch
-            {
-                TargetType.Color => rtFormat,
-                TargetType.Depth => RenderTextureFormat.Depth,
-                TargetType.Shadowmap => RenderTextureFormat.Shadowmap,
-                _ => rtFormat
-            };
-        }
-    }
-
     public class ShaderPassToRT : ScriptableRenderPass
     {
         #region Variables
 
-        private RenderQueueType renderQueueType => filter.renderQueueType;
-        private FilteringSettings _filteringSettings;
-
         private OutlineSettings _settings;
         private FilterSettings filter => _settings.filterSettings;
+
+        private RenderQueueType renderQueueType => filter.renderQueueType;
+
+        private FilteringSettings _filteringSettings;
+
         private LineworkSettings linework => _settings.lineworkSettings;
 
         private string _profilerTag;
 
-        private List<ShaderTagId> _shaderTagIdList = new();
+        private List<ShaderTagId> _shaderTagIdList = new()
+        {
+            Capacity = 0
+        };
         private int _textureDepthBufferBits;
 
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
         private PassSubTarget colorSubTarget => linework.colorSubTarget;
+
         // -----------------------------------------------------------------------------------------------------------------------------------------------------
         private int colorIdInt => colorSubTarget.renderTargetInt;
-        private RenderTargetIdentifier colorTargetId => colorSubTarget.TargetIdentifier;
+        private RenderTargetIdentifier colorTargetId => colorSubTarget.targetIdentifier;
         private bool createColorTexture => colorSubTarget.createTexture;
         private RenderTextureFormat colorFormat => colorSubTarget.renderTextureFormat;
 
@@ -75,9 +48,9 @@ namespace RenderPass.OutlineBuffers
         private PassSubTarget depthSubTarget => linework.depthSubTarget;
         // -------------------------------------------------------------------------------------------------------------------------------------------
         private int depthIdInt => depthSubTarget.renderTargetInt;
-        private RenderTargetIdentifier depthTargetId => depthSubTarget.TargetIdentifier;
+        private RenderTargetIdentifier depthTargetId => depthSubTarget.targetIdentifier;
         private bool createDepthTexture => depthSubTarget.createTexture;
-        // private RenderTextureFormat depthFormat => colorSubTarget.renderTextureFormat; // Redundant but exists for clarity.
+        // private RenderTextureFormat depthFormat => colorSubTarget.renderTextureFormat; // Auto-set by PassSubTarget constructor (TargetType)
 
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
         
@@ -88,20 +61,20 @@ namespace RenderPass.OutlineBuffers
         {
             var totalShaderNames = new List<string>();
 
-            totalShaderNames.AddRange(colorSubTarget.lightmodeTags);
+            totalShaderNames.AddRange(colorSubTarget.lightModeTags);
             if (hasDepth)
             {
-                totalShaderNames.AddRange(depthSubTarget.lightmodeTags);
+                totalShaderNames.AddRange(depthSubTarget.lightModeTags);
             }
 
             if (_shaderTagIdList.Count >= totalShaderNames.Count) return;
-            foreach (var colorTag in colorSubTarget.lightmodeTags)
+            foreach (var colorTag in colorSubTarget.lightModeTags)
             {
                 _shaderTagIdList.Add(new ShaderTagId(colorTag));
             }
 
             if (!hasDepth) return;
-            foreach (var depthTag in depthSubTarget.lightmodeTags)
+            foreach (var depthTag in depthSubTarget.lightModeTags)
             {
                 _shaderTagIdList.Add(new ShaderTagId(depthTag));
             }
@@ -132,31 +105,41 @@ namespace RenderPass.OutlineBuffers
             RenderTextureDescriptor camTexDesc = cameraTextureDescriptor;
             var width = camTexDesc.width;
             var height = camTexDesc.height;
-            camTexDesc.colorFormat = colorFormat;
-            camTexDesc.depthBufferBits = _textureDepthBufferBits;
-            camTexDesc.msaaSamples = 1;
+            // camTexDesc.colorFormat = colorFormat;
+            // camTexDesc.depthBufferBits = _textureDepthBufferBits;
+            // camTexDesc.msaaSamples = 1;
             // camTexDesc.bindMS = true;
             
-            List<RenderTargetIdentifier> attachmentsToConfigure = new();
+            List<RenderTargetIdentifier> colorAttachmentsToConfigure = new();
 
-            cmd.GetTemporaryRT(colorIdInt, width, height, 0, FilterMode.Point, RenderTextureFormat.ARGBFloat);
-            if (createColorTexture) attachmentsToConfigure.Add(colorTargetId); // Recently changed from int to RTIdentifier
+            cmd.GetTemporaryRTArray(colorIdInt, width, height, 1,0, FilterMode.Point, RenderTextureFormat.ARGBFloat);
+            if (createColorTexture) colorAttachmentsToConfigure.Add(colorTargetId); // Recently changed from int to RTIdentifier
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
-            cmd.GetTemporaryRT(depthIdInt, camTexDesc);
-            if (createDepthTexture) attachmentsToConfigure.Add(depthTargetId); // Recently changed from int to RTIdentifier
-            
-            // Configure color and depth targets
-            ConfigureTarget(attachmentsToConfigure.ToArray());
+            cmd.GetTemporaryRT(depthIdInt, width, height, _textureDepthBufferBits, FilterMode.Point, RenderTextureFormat.Depth);
+
+            switch (createColorTexture)
+            {
+                case true when createDepthTexture:
+                    // Configure color and depth targets
+                    ConfigureTarget(colorAttachmentsToConfigure.ToArray(), depthTargetId);
+                    break;
+                case true when !createDepthTexture:
+                    ConfigureTarget(colorAttachmentsToConfigure.ToArray());
+                    break;
+            }
             
             // Clear
             if (createColorTexture || createDepthTexture)
+            {
                 ConfigureClear(ClearFlag.All, Color.black);
+            }
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
+            renderingData.cameraData.cameraTargetDescriptor.enableRandomWrite = true;
             
             SortingCriteria sortingCriteria = renderQueueType == RenderQueueType.Opaque ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
             DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIdList, ref renderingData, sortingCriteria);
