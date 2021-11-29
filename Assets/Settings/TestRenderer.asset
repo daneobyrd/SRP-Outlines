@@ -17,7 +17,7 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 3026817424008148383}
   m_RendererFeatureMap: 9ff5f70d696a012a
-  m_UseNativeRenderPass: 0
+  m_UseNativeRenderPass: 1
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
   shaders:
@@ -65,7 +65,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1368294b394042aea756980b82b8e024, type: 3}
   m_Name: OutlineRenderer
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   settings:
     profilerTag: OutlineRenderer
     renderPassEvent: 300
@@ -78,16 +78,15 @@ MonoBehaviour:
       lightLayerMask: -1
     lineworkSettings:
       colorSubTarget:
-        lightmodeTags:
+        lightModeTags:
         - Outline
-        textureName: _OutlineOpaque
+        - Outline
         renderTargetInt: 655
         createTexture: 1
         renderTextureFormat: 11
       depthSubTarget:
-        lightmodeTags:
+        lightModeTags:
         - Outline
-        textureName: _OutlineDepth
         renderTargetInt: 693
         createTexture: 0
         renderTextureFormat: 1

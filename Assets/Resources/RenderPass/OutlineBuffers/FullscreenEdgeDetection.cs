@@ -20,7 +20,6 @@ namespace RenderPass.OutlineBuffers
 
         private bool _hasDepth;
         private ComputeShader _computeShader;
-        // private int[] _kernelType = { 330, 331, 332, 333, 550, 551, 770 };
         
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
         private int _sourceIntId;   // _BlurResults or _OutlineOpaque (Debug)
@@ -68,16 +67,16 @@ namespace RenderPass.OutlineBuffers
             camTexDesc.enableRandomWrite = true;
             camTexDesc.dimension = TextureDimension.Tex2DArray;
             
-            cmd.GetTemporaryRT(_sourceIntId, camTexDesc);
+            cmd.GetTemporaryRT(_sourceIntId, camTexDesc, FilterMode.Point);
             
-            cmd.GetTemporaryRT(combinedIntId, camTexDesc);
+            cmd.GetTemporaryRT(combinedIntId, camTexDesc, FilterMode.Point);
             
             if (_hasDepth) cmd.GetTemporaryRT(outlineDepthIntId, width, height, 24, FilterMode.Point, RenderTextureFormat.Depth);
             
-            cmd.GetTemporaryRT(outlineIntId, camTexDesc);
+            cmd.GetTemporaryRT(outlineIntId, camTexDesc, FilterMode.Point);
             
             // See CopyColorPass.cs (65)
-            // cmd.GetTemporaryRT(destinationIntId, width, height, depthBuffer, FilterMode.Point, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default, msaa);
+            // cmd.GetTemporaryRT((int) BuiltinRenderTextureType.CameraTarget, cameraTextureDescriptor);
 
             if (_hasDepth)
             {
@@ -99,7 +98,7 @@ namespace RenderPass.OutlineBuffers
             var width = textureDescriptor.width;
             var height = textureDescriptor.height;
             textureDescriptor.depthBufferBits = 0;
-            textureDescriptor.enableRandomWrite = true;
+            // textureDescriptor.enableRandomWrite = true;
             var camSize = new Vector4(width, height, 0, 0);
             
             #region Compute Edges
@@ -129,12 +128,14 @@ namespace RenderPass.OutlineBuffers
             #region Composite _OutlineTexture and Camera color target in compute shader
             // ---------------------------------------------------------------------------------------------------------------------------------------
             
+            /*
             var composite = _computeShader.FindKernel("KComposite");
             cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
             cmd.SetComputeTextureParam(_computeShader, composite, "Source", outlineTargetId);
             cmd.SetComputeTextureParam(_computeShader, composite, "CameraTex", _cameraTexCopy);
             cmd.SetComputeTextureParam(_computeShader, composite, "Result", combinedTargetId);
             cmd.DispatchCompute(_computeShader, composite, Mathf.CeilToInt(width / 8f), Mathf.CeilToInt(height / 8f), 1);
+            */
             
             #endregion
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -142,7 +143,7 @@ namespace RenderPass.OutlineBuffers
             // ---------------------------------------------------------------------------------------------------------------------------------------
             // RenderTargetIdentifier opaqueColorRT = _destinationTargetId;
             
-            // Blit(cmd, combinedTargetId, -1);
+            // Blit(cmd, combinedTargetId, -1, _material);
 
             #endregion
             

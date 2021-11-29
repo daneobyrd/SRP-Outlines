@@ -3,27 +3,21 @@
     Properties
     {
         //        _MainTex ("MainTex", 2D) = "clear" {}
-//        _SourceTex ("SourceTex", 2D) = "clear" {}
-        _OuterThreshold ("Outer Threshold", float) = 1.0
-        _InnerThreshold ("Inner Threshold", float) = 1.0
+        //        _SourceTex ("SourceTex", 2D) = "clear" {}
+//        _OuterThreshold ("Outer Threshold", float) = 1.0
+//        _InnerThreshold ("Inner Threshold", float) = 1.0
         //        _Rotations ("Rotations", int) = 6
         //        _DepthPush ("Depth Push", float) = 0.0
-        _OuterLUT ("Outer LUT", 2D) = "white" {}
-        _InnerLUT ("Inner Lut", 2D) = "white" {}
+//        _OuterLUT ("Outer LUT", 2D) = "white" {}
+//        _InnerLUT ("Inner Lut", 2D) = "white" {}
     }
     SubShader
     {
-        Tags
-        {
-            "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Shader Model" = "5.0"
-        }
+        Tags { "RenderPipeline" = "UniversalPipeline" }
         Pass
         {
             Name "OutlineBlit"
-            Blend One One
-            ZTest Always
-            ZWrite Off
-            Cull Off
+            ZWrite Off ZTest Always Blend Off Cull Off
 
             HLSLPROGRAM
             // #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
@@ -39,7 +33,7 @@
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-            // #include "Library/PackageCache/com.unity.render-pipelines.core@12.1.1/Runtime/Utilities/Blit.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 
             /*struct outlined_obj
             {
@@ -60,10 +54,21 @@
             SAMPLER(sampler_SourceTex);
             CBUFFER_END
 
-            TEXTURE2D(_OutlineOpaque);
-            TEXTURE2D(_OutlineDepth);
-            TEXTURE2D(_BlurUpsampleTex);
-            TEXTURE2D(_OutlineTexture);
+            TEXTURE2D_X(_OutlineOpaque);
+            TEXTURE2D_X(_OutlineDepth);
+            TEXTURE2D_X(_BlurUpsampleTex);
+            TEXTURE2D_X(_OutlineTexture);
+
+            float4 Frag(Varyings input, SamplerState s)
+            {
+            #if defined(USE_TEXTURE2D_X_AS_ARRAY) && defined(BLIT_SINGLE_SLICE)
+                return SAMPLE_TEXTURE2D_ARRAY_LOD(_BlitTexture, s, input.texcoord.xy, _BlitTexArraySlice, _BlitMipLevel);
+            #endif
+
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+                // return SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, s, input.texcoord.xy, _BlitMipLevel);
+            }
+
             
             // Combine textures in blit shader
             /*
@@ -79,7 +84,7 @@
                 return float4(col, 1);
             }
             */
-
+            
             // Combine textures in compute shader
             float4 Fragment(Varyings input) : SV_Target
             {
@@ -88,7 +93,6 @@
                 float4 col = SAMPLE_TEXTURE2D(_SourceTex, sampler_SourceTex, uv);
                 return col;
             }
-
             ENDHLSL
         }
 
