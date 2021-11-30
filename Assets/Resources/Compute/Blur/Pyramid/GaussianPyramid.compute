@@ -1,0 +1,50 @@
+﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+
+#pragma kernel GAUSSIAN_PYRAMID
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+//────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+float _gaussian_sigma;
+// uint _source_width;
+// uint _source_height;
+Texture2D<float4> _Source;
+RWTexture2D<float4> _BlurResults;
+SamplerState sampler_LinearClamp;
+
+//────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+CBUFFER_START(cb)
+float4 _Size; // x: src width, y: src height, zw: unused
+CBUFFER_END
+#define TAU  6.283185307
+
+//────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+float gaussian(float x, float y)
+{
+    const float sigma2 = _gaussian_sigma * _gaussian_sigma;
+    return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / TAU * sigma2);
+}
+
+[numthreads(8,8,1)]
+void GAUSSIAN_PYRAMID(uint3 id : SV_DispatchThreadID)
+{
+    float3 pixel_value = float3(0., 0., 0.);
+
+    float2 step = float2(1.0 / _Size.xy);
+    const float2 texture_uv = float2(id.xy * step.xy);
+
+    float sum = 0.0f;
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; y++)
+        {
+            float gaus_factor = gaussian(x, y);
+            sum += gaus_factor;
+            pixel_value += gaus_factor * _Source.SampleLevel(sampler_LinearClamp, texture_uv + float2(step.x * x, step.y * y), 0).xyz;
+        }
+    }
+
+    _BlurResults[id.xy] = float4(pixel_value.xyz / sum, 1);
+}

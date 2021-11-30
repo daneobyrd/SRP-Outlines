@@ -96,8 +96,8 @@ CBUFFER_START(UnityPerMaterial)
     float   _UseOcclusion;
     half    _OcclusionStrength;
     half4   _OcclusionMapChannelMask;
-    half    _OcclusionRemapStart;
-    half    _OcclusionRemapEnd;
+    // half    _OcclusionRemapStart;
+    // half    _OcclusionRemapEnd;
 
     // lighting
     half3   _IndirectLightMinColor;
@@ -241,7 +241,7 @@ half GetFinalOcculsion(Varyings input)
         half4 texValue = tex2D(_OcclusionMap, input.uv);
         half occlusionValue = dot(texValue, _OcclusionMapChannelMask);
         occlusionValue = lerp(1, occlusionValue, _OcclusionStrength);
-        occlusionValue = invLerpClamp(_OcclusionRemapStart, _OcclusionRemapEnd, occlusionValue);
+        // occlusionValue = invLerpClamp(_OcclusionRemapStart, _OcclusionRemapEnd, occlusionValue);
         result = occlusionValue;
     }
 

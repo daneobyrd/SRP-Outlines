@@ -1,4 +1,5 @@
-﻿// For more information, visit -> https://github.com/ColinLeung-NiloCat/UnityURPToonLitShaderExample
+﻿
+// For more information, visit -> https://github.com/ColinLeung-NiloCat/UnityURPToonLitShaderExample
 
 /*
 This shader is a simple example showing you how to write your first URP custom lit shader with "minimum" shader code.
@@ -51,6 +52,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
         [NoScaleOffset]_EmissionMap("_EmissionMap", 2D) = "white" {}
         _EmissionMapChannelMask("_EmissionMapChannelMask", Vector) = (1,1,1,0)
 
+/*
         [Header(Occlusion)]
         [Toggle]_UseOcclusion("_UseOcclusion (on/off Occlusion completely)", Float) = 0
         _OcclusionStrength("_OcclusionStrength", Range(0.0, 1.0)) = 1.0
@@ -58,6 +60,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
         _OcclusionMapChannelMask("_OcclusionMapChannelMask", Vector) = (1,0,0,0)
         _OcclusionRemapStart("_OcclusionRemapStart", Range(0,1)) = 0
         _OcclusionRemapEnd("_OcclusionRemapEnd", Range(0,1)) = 1
+*/
 
         [Header(Lighting)]
         _IndirectLightMinColor("_IndirectLightMinColor", Color) = (0.1,0.1,0.1,1) // can prevent completely black if lightprobe not baked
@@ -175,7 +178,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
         // -vertex position are pushed out a bit base on normal direction
         // -also color is tinted
         // -Cull Front instead of Cull Back because Cull Front is a must for all extra pass outline method
-/*
+
         Pass 
         {
             Name "Outline"
@@ -219,12 +222,12 @@ Shader "SimpleURPToonLitExample(With Outline)"
             #define ToonShaderIsOutline
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "Assets/Shaders/NiloToonURP/SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
 
             ENDHLSL
         }
  
-*/
+
         // ShadowCaster pass. Used for rendering URP's shadowmaps
         Pass
         {
@@ -283,12 +286,12 @@ Shader "SimpleURPToonLitExample(With Outline)"
 
             ENDHLSL
         }
-
+        /*
         // Starting from version 10.0.x, URP can generate a normal texture called _CameraNormalsTexture. 
         // To render to this texture in your custom shader, add a Pass with the name DepthNormals. 
         // For example, see the implementation in Lit.shader.
         // TODO: DepthNormals pass (see URP's Lit.shader)
-        /*
+        
         Pass
         {
             Name "DepthNormals"
@@ -301,3 +304,4 @@ Shader "SimpleURPToonLitExample(With Outline)"
 
     FallBack "Hidden/Universal Render Pipeline/FallbackError"
 }
+

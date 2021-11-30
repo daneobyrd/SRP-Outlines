@@ -1,0 +1,98 @@
+// Direct3D Rendering: Second Edition (2014) by Justin Stenning
+// Chapter 7: Performing Image Processing Techniques
+// Page 246 - Detecting Edges with the Sobel Edge Detection Filter
+// Source: https://media.oiipdf.com/pdf/5de7abd0-45fa-4fda-866a-a4b3ec59776b.pdf
+// Alt source: http://what-when-how.com/Tutorial/topic-255ukse6/Direct3D-Rendering-259.html
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+#include "LerpUtils.hlsl"
+
+#pragma SobelEdgeOverlayCS
+#pragma SobelEdgeCS
+
+#define THREADSX 32
+#define THREADSY 32
+
+Texture2D<float4> input : register(t0);
+RWTexture2D<float4> output : register(u0);
+
+float SobelEdge(float2 coord, float threshold, float thickness)
+{
+    /*
+    Sobel 3x3 tap filter: approximate magnitude
+    Cheaper than the full Sobel kernel evaluation
+    http://homepages.inf.ed.ac.uk/rbf/HIPR2/sobel.htm
+    ─ ─ ─ ─ ─ ─ ┬ ─ ─ ─ ─ ─ ─ ─ ─
+    p1  p2  p3  │ x
+    p4 (p5) p6  │ convolution kernel
+    p7  p8  p9  │
+    ─ ─ ─ ─ ─ ─ ┴ ─ ─ ─ ─ ─ ─ ─ ─
+    Gx  = (p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9)
+    ─ ─ ─ ─ ─ ─ ┬ ─ ─ ─ ─ ─ ─ ─ ─
+    p3  p6  p9  │ y (x rotated counter cw)
+    p2 (p5) p8  │ convolution kernel
+    p1  p4  p7  │
+    ─ ─ ─ ─ ─ ─ ┴ ─ ─ ─ ─ ─ ─ ─ ─
+    Gy  = (p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7)
+    ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+    Formula:
+    |G| = |Gx| + |Gy| => pow(G,2) = Gx*Gx + Gy*Gy
+    |G| = |(p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9)| + 
+          |(p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7)|
+    p5 == current pixel, 
+    sample neighbors to create 3x3 kernel
+    */
+    
+    float p1 = Luminance(input[uint2(coord + float2(-thickness, -thickness))]);
+    float p2 = Luminance(input[uint2(coord + float2(0, -thickness))]);
+    float p3 = Luminance(input[uint2(coord + float2(thickness, -thickness))]);
+    
+    float p4 = Luminance(input[uint2(coord + float2(-thickness, 0))]);
+    
+    float p6 = Luminance(input[uint2(coord + float2(thickness, 0))]);
+    
+    float p7 = Luminance(input[uint2(coord + float2(-thickness, thickness))]);
+    float p8 = Luminance(input[uint2(coord + float2(0, thickness))]);
+    float p9 = Luminance(input[uint2(coord + float2(thickness, thickness))]);
+    //float sobelX = (p1 + 2 * p2 + p3) - (p7 + 2 * p8 + p9);
+    //float sobelY = (p3 + 2 * p6 + p9) - (p1 + 2 * p4 + p7);
+    float sobelX = mad(2, p2, p1 + p3) - mad(2, p8, p7 + p9);
+    float sobelY = mad(2, p6, p3 + p9) - mad(2, p4, p1 + p7);
+    float edgeSqr = (sobelX * sobelX + sobelY * sobelY);
+    float result = 1.0 - (edgeSqr > threshold * threshold);
+    // if (edgeSqr > threshold * threshold) { is edge }
+    return result; // black (0) = edge, otherwise white (1)
+} // End SobelEdge
+
+[numthreads(THREADSX, THREADSY, 1)]
+void SobelEdgeOverlayCS(uint groupIndex: SV_GroupIndex,
+                        uint3 groupId : SV_GroupID,
+                        uint3 groupThreadId: SV_GroupThreadID,
+                        uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    float4 sample = input[dispatchThreadId.xy];
+    float threshold = 0.4f;
+    float thickness = 1;
+
+    float3 target = sample.rgb * SobelEdge(dispatchThreadId.xy, threshold, thickness);
+    output[dispatchThreadId.xy] = lerpKeepAlpha(sample, target, LerpT);
+}
+
+// Remember that the maximum total thread count is 1024.
+[numthreads(THREADSX, THREADSY, 1)]
+void SobelEdgeCS(uint groupIndex: SV_GroupIndex,
+                 uint3 groupId : SV_GroupID,
+                 uint3 groupThreadId: SV_GroupThreadID,
+                 uint3 dispatchThreadId :SV_DispatchThreadID)
+{
+    float threshold = 0.4f;
+    float thickness = 1;
+    output[dispatchThreadId.xy] = float4((float3)SobelEdge(dispatchThreadId.xy, threshold, thickness), 1);
+}
+
+// For copy/paste
+// ┌────┬────┐
+// │    │    │
+// ├────┼────┤
+// │    │    │
+// └────┴────┘
