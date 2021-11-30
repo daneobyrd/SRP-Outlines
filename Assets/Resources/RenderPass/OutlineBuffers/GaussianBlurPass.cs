@@ -114,7 +114,7 @@ namespace RenderPass.OutlineBuffers
             // opaqueDesc.useMipMap = true;
             // opaqueDesc.enableRandomWrite = true;
             // opaqueDesc.colorFormat = RenderTextureFormat.ARGBFloat;
-
+            
             RenderColorGaussianPyramid(cmd, new Vector2Int(width, height), sourceColorTargetID, tempDownsampleTargetID, blurTargetID, finalTargetID);
 
             context.ExecuteCommandBuffer(cmd);
@@ -236,7 +236,7 @@ namespace RenderPass.OutlineBuffers
             cmd.SetGlobalTexture(_finalIntId, finalRT);
         }
 
-        public override void FrameCleanup(CommandBuffer cmd)
+        public override void OnCameraCleanup(CommandBuffer cmd)
         {
             cmd.ReleaseTemporaryRT(_sourceIntId);
             cmd.ReleaseTemporaryRT(_tempDownsampleIntId);

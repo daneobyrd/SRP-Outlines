@@ -83,7 +83,7 @@ namespace RenderPass.OutlineBuffers
         {
             _settings = settings;
             _profilerTag = profilerTag;
-            
+
             // Temporary way to allow for setting all layer masks using default value (-1).
             var lightLayerMask = (uint)filter.lightLayerMask;
             if (filter.lightLayerMask == -1)
@@ -118,15 +118,19 @@ namespace RenderPass.OutlineBuffers
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
             cmd.GetTemporaryRT(depthIdInt, width, height, _textureDepthBufferBits, FilterMode.Point, RenderTextureFormat.Depth);
 
-            switch (createColorTexture)
+            // switch (createColorTexture)
+            // {
+            //     case true when createDepthTexture:
+            //         // Configure color and depth targets
+            //         ConfigureTarget(colorAttachmentsToConfigure.ToArray(), depthTargetId);
+            //         break;
+            //     case true when !createDepthTexture:
+            //         ConfigureTarget(colorAttachmentsToConfigure.ToArray());
+            //         break;
+            // }
+            if (createColorTexture)
             {
-                case true when createDepthTexture:
-                    // Configure color and depth targets
-                    ConfigureTarget(colorAttachmentsToConfigure.ToArray(), depthTargetId);
-                    break;
-                case true when !createDepthTexture:
-                    ConfigureTarget(colorAttachmentsToConfigure.ToArray());
-                    break;
+                ConfigureTarget(colorTargetId);
             }
             
             // Clear
@@ -150,7 +154,7 @@ namespace RenderPass.OutlineBuffers
             CommandBufferPool.Release(cmd);
         }
 
-        public override void FrameCleanup(CommandBuffer cmd)
+        public override void OnCameraCleanup(CommandBuffer cmd)
         {
             if (createColorTexture) cmd.ReleaseTemporaryRT(colorIdInt);
             if (createDepthTexture) cmd.ReleaseTemporaryRT(depthIdInt);

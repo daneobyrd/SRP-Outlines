@@ -38,7 +38,7 @@ MonoBehaviour:
     m_Bits: 4294967295
   m_TransparentLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 2147483647
   m_DefaultStencilState:
     overrideStencilState: 0
     stencilReference: 0
@@ -78,15 +78,18 @@ MonoBehaviour:
       lightLayerMask: -1
     lineworkSettings:
       colorSubTarget:
+        subTargetType: 0
         lightModeTags:
         - Outline
-        - Outline
+        textureName: _OutlineOpaque
         renderTargetInt: 655
         createTexture: 1
         renderTextureFormat: 11
       depthSubTarget:
+        subTargetType: 1
         lightModeTags:
         - Outline
+        textureName: _OutlineDepth
         renderTargetInt: 693
         createTexture: 0
         renderTextureFormat: 1
@@ -96,10 +99,3 @@ MonoBehaviour:
       computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
       outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
-    outlineProperties:
-      outerThreshold: 1
-      innerThreshold: 1
-      rotations: 8
-      depthPush: 0.000001
-      outerLUT: {fileID: 2800000, guid: 6d470e62de90c4342a9ffa868238a6c9, type: 3}
-      innerLUT: {fileID: 2800000, guid: 199332b6792c5ae4a893300213de51f5, type: 3}

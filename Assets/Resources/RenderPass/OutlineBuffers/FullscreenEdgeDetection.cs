@@ -42,7 +42,7 @@ namespace RenderPass.OutlineBuffers
 
         public FullscreenEdgeDetection(RenderPassEvent evt, string name)
         {
-            base.profilingSampler = new ProfilingSampler(nameof(FullscreenEdgeDetection));
+            base.profilingSampler = new ProfilingSampler(name);
             renderPassEvent = evt;
         }
 
@@ -107,7 +107,7 @@ namespace RenderPass.OutlineBuffers
                 var width = textureDescriptor.width;
                 var height = textureDescriptor.height;
                 textureDescriptor.depthBufferBits = 0;
-                // textureDescriptor.enableRandomWrite = true;
+                textureDescriptor.enableRandomWrite = true;
                 var camSize = new Vector4(width, height, 0, 0);
 
                 #region Compute Edges
@@ -132,7 +132,7 @@ namespace RenderPass.OutlineBuffers
                 // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
                 // Set global texture _OutlineTexture with Computed edge data.
                 // ---------------------------------------------------------------------------------------------------------------------------------------
-                cmd.SetGlobalTexture(outlineIntId, outlineTargetId);
+                cmd.SetGlobalTexture(outlineIntId, outlineTargetId, RenderTextureSubElement.Color);
 
                 #endregion
 
@@ -185,7 +185,7 @@ namespace RenderPass.OutlineBuffers
             CommandBufferPool.Release(cmd);
         }
 
-        public override void FrameCleanup(CommandBuffer cmd)
+        public override void OnCameraCleanup(CommandBuffer cmd)
         {
             if (_sourceIntId != -1) cmd.ReleaseTemporaryRT(_sourceIntId);
             if (outlineIntId != -1) cmd.ReleaseTemporaryRT(outlineIntId);

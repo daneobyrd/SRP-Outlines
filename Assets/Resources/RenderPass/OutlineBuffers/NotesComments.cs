@@ -44,22 +44,3 @@ cmd.Blit( combinedTargetId, BuiltinRenderTextureType.CurrentActive, _material, 0
         // cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
         // cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
 // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
-/*[System.Serializable]
-public class OutlineShaderProperties
-{
-    [Tooltip("Object Threshold.")] public float outerThreshold = 1.0f;
-    [Tooltip("Inner Threshold.")] public float innerThreshold = 1.0f;
-    [Tooltip("Rotations.")] public int rotations = 8;
-    [Tooltip("Depth Push.")] public float depthPush = 1e-6f;
-    [Tooltip("Object LUT.")] public Texture2D outerLUT;
-    [Tooltip("Inner LUT.")] public Texture2D innerLUT;
-}*/
-
-
-// private static readonly int OuterThreshold = Shader.PropertyToID("_OuterThreshold");
-// private static readonly int InnerThreshold = Shader.PropertyToID("_InnerThreshold");
-// private static readonly int Rotations = Shader.PropertyToID("_Rotations");
-// private static readonly int DepthPush = Shader.PropertyToID("_DepthPush");
-// private static readonly int OuterLut = Shader.PropertyToID("_OuterLUT");
-// private static readonly int InnerLut = Shader.PropertyToID("_InnerLUT");

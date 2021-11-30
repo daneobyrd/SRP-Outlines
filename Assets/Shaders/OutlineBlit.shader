@@ -4,16 +4,19 @@
     {
         //        _MainTex ("MainTex", 2D) = "clear" {}
         //        _SourceTex ("SourceTex", 2D) = "clear" {}
-//        _OuterThreshold ("Outer Threshold", float) = 1.0
-//        _InnerThreshold ("Inner Threshold", float) = 1.0
+        //        _OuterThreshold ("Outer Threshold", float) = 1.0
+        //        _InnerThreshold ("Inner Threshold", float) = 1.0
         //        _Rotations ("Rotations", int) = 6
         //        _DepthPush ("Depth Push", float) = 0.0
-//        _OuterLUT ("Outer LUT", 2D) = "white" {}
-//        _InnerLUT ("Inner Lut", 2D) = "white" {}
+        //        _OuterLUT ("Outer LUT", 2D) = "white" {}
+        //        _InnerLUT ("Inner Lut", 2D) = "white" {}
     }
     SubShader
     {
-        Tags { "RenderPipeline" = "UniversalPipeline" }
+        Tags
+        {
+            "RenderPipeline" = "UniversalPipeline"
+        }
         Pass
         {
             Name "OutlineBlit"
@@ -34,137 +37,131 @@
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
-
-            /*struct outlined_obj
-            {
-                float3 positionWS;
-                uint unity_InstanceID;
-            };
             
-            StructuredBuffer<outlined_obj> outline_objBuffer;*/
+            TEXTURE2D_X(_CameraOpaqueTexture);
+            SAMPLER(sampler_CameraOpaqueTexture);
 
-            CBUFFER_START(UnityPerMaterial)
-            // TEXTURE2D(_MainTex);
-            // SAMPLER(sampler_MainTex);
+            SamplerState sampler_LinearClamp;
 
             float _OuterThreshold;
             float _InnerThreshold;
 
-            TEXTURE2D(_SourceTex);
+            TEXTURE2D_X(_SourceTex);
             SAMPLER(sampler_SourceTex);
-            CBUFFER_END
 
             TEXTURE2D_X(_OutlineOpaque);
             TEXTURE2D_X(_OutlineDepth);
+            
             TEXTURE2D_X(_BlurUpsampleTex);
             TEXTURE2D_X(_OutlineTexture);
 
             float4 Frag(Varyings input, SamplerState s)
             {
             #if defined(USE_TEXTURE2D_X_AS_ARRAY) && defined(BLIT_SINGLE_SLICE)
-                return SAMPLE_TEXTURE2D_ARRAY_LOD(_BlitTexture, s, input.texcoord.xy, _BlitTexArraySlice, _BlitMipLevel);
+                return SAMPLE_TEXTURE2D_ARRAY_LOD(_SourceTex, s, input.uv, 0, 0);
             #endif
 
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                // return SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, s, input.texcoord.xy, _BlitMipLevel);
+                return SAMPLE_TEXTURE2D_X_LOD(_SourceTex, s, input.uv, 0);
             }
 
             
             // Combine textures in blit shader
-            /*
+            
             float4 Fragment(Varyings input) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 float2 uv = input.uv;
-                
+
                 float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_LinearClamp, uv);
                 float outlineMask = saturate(step(outlineTex.x, _OuterThreshold) + step(outlineTex.y, _InnerThreshold) + outlineTex.z);
-                float4 cameraColorCopy = SAMPLE_TEXTURE2D(_SourceTex, sampler_SourceTex, uv);
-                float3 col = lerp(cameraColorCopy.xyz, -outlineMask, outlineMask);
-                return float4(col, 1);
+                float4 camColor = SAMPLE_TEXTURE2D_X(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, input.uv);
+                float4 color = lerp(camColor, -outlineMask, outlineMask);
+                return color;
             }
-            */
+            
             
             // Combine textures in compute shader
+            /*
             float4 Fragment(Varyings input) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 const float2 uv = input.uv;
-                float4 col = SAMPLE_TEXTURE2D(_SourceTex, sampler_SourceTex, uv);
-                return col;
+                float4 color = SAMPLE_TEXTURE2D_X(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, uv);
+                return color;
+            }
+            */
+            ENDHLSL
+        }
+    }
+}
+
+/*
+        // Relocated GaussianPyramid to RenderPass/Blur/GaussianPyramid.compute
+        Tags
+        {
+            "LightMode" = "OutlinePost"
+        }
+        Pass
+        {
+            Name "OutlinePost"
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma target 5.0
+
+
+            #include "OutlineShared.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+            Texture2D<float4> _OutlineOpaqueTexture;
+            sampler2D sampler_OutlineOpaqueTexture;
+            Texture2D<float> _OutlineDepthTexture;
+            sampler2D sampler_OutlineDepthTexture;
+
+            Texture2D<float4> _MainTex;
+            sampler2D sampler_MainTex;
+            // float4 _MainTex_ST;
+            float2 _MainTex_TexelSize;
+            float _gaussian_sigma;
+            int _laplaceKernelType;
+            CBUFFER_END
+
+            float gaussian(float x, float y)
+            {
+                float sigma2 = _gaussian_sigma * _gaussian_sigma;
+                return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / sqrt(TWO_PI * _gaussian_sigma));
+            }
+
+            Varyings vert(Attributes IN)
+            {
+                Varyings OUT;
+                OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
+                OUT.uv = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
+                return OUT;
+            }
+
+            float4 frag(Varyings input) : SV_TARGET
+            {
+                float4 blurColor = (0., 0., 0., 1.);
+
+                float sum = 0.0f;
+                for (int x = -1; x <= 1; ++x)
+                {
+                    for (int y = -1; y <= 1; y++)
+                    {
+                        const float gaus_factor = gaussian(x, y);
+                        sum += gaus_factor;
+                        blurColor += gaus_factor * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex,
+                                                                    input.uv + float2(_MainTex_TexelSize.x * x, _MainTex_TexelSize.y * y));
+                    }
+                }
+
+                blurColor = float4(blurColor.xyz / sum, 1);
+
+
+                return blurColor;
             }
             ENDHLSL
         }
-
-        /*
-                // Relocated GaussianPyramid to RenderPass/Blur/GaussianPyramid.compute
-                Tags
-                {
-                    "LightMode" = "OutlinePost"
-                }
-                Pass
-                {
-                    Name "OutlinePost"
-                    HLSLPROGRAM
-                    #pragma vertex vert
-                    #pragma fragment frag
-                    #pragma target 5.0
-        
-        
-                    #include "OutlineShared.hlsl"
-        
-                    CBUFFER_START(UnityPerMaterial)
-                    Texture2D<float4> _OutlineOpaqueTexture;
-                    sampler2D sampler_OutlineOpaqueTexture;
-                    Texture2D<float> _OutlineDepthTexture;
-                    sampler2D sampler_OutlineDepthTexture;
-        
-                    Texture2D<float4> _MainTex;
-                    sampler2D sampler_MainTex;
-                    // float4 _MainTex_ST;
-                    float2 _MainTex_TexelSize;
-                    float _gaussian_sigma;
-                    int _laplaceKernelType;
-                    CBUFFER_END
-        
-                    float gaussian(float x, float y)
-                    {
-                        float sigma2 = _gaussian_sigma * _gaussian_sigma;
-                        return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / sqrt(TWO_PI * _gaussian_sigma));
-                    }
-        
-                    Varyings vert(Attributes IN)
-                    {
-                        Varyings OUT;
-                        OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                        OUT.uv = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
-                        return OUT;
-                    }
-        
-                    float4 frag(Varyings input) : SV_TARGET
-                    {
-                        float4 blurColor = (0., 0., 0., 1.);
-        
-                        float sum = 0.0f;
-                        for (int x = -1; x <= 1; ++x)
-                        {
-                            for (int y = -1; y <= 1; y++)
-                            {
-                                const float gaus_factor = gaussian(x, y);
-                                sum += gaus_factor;
-                                blurColor += gaus_factor * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex,
-                                                                            input.uv + float2(_MainTex_TexelSize.x * x, _MainTex_TexelSize.y * y));
-                            }
-                        }
-        
-                        blurColor = float4(blurColor.xyz / sum, 1);
-        
-        
-                        return blurColor;
-                    }
-                    ENDHLSL
-                }
-        */
-
-    }
-}
+*/
