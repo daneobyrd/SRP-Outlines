@@ -19,8 +19,8 @@ namespace RenderPass.OutlineBuffers
         public SubTargetType subTargetType;
         public List<string> lightModeTags;
         public string textureName;
-        [HideInInspector] public int renderTargetInt;
-        public RenderTargetIdentifier targetIdentifier;
+        [NonSerialized][HideInInspector] public int renderTargetInt;
+        [NonSerialized] public RenderTargetIdentifier targetIdentifier;
         public bool createTexture;
         public RenderTextureFormat renderTextureFormat;
 
@@ -47,7 +47,7 @@ namespace RenderPass.OutlineBuffers
             this.lightModeTags = lightModeTags;
             textureName = texName;
             renderTargetInt = Shader.PropertyToID(textureName);
-            targetIdentifier = new RenderTargetIdentifier(renderTargetInt);
+            targetIdentifier = new RenderTargetIdentifier(renderTargetInt, 0, CubemapFace.Unknown, -1);
             this.createTexture = createTexture;
             renderTextureFormat = subTargetType switch
             {

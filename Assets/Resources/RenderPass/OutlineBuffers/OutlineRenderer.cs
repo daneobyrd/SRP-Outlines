@@ -175,6 +175,10 @@ namespace RenderPass.OutlineBuffers
                 _computeLines.Setup(outlineEncoderMaterial, "_BlurUpsampleTex", renderer.cameraColorTarget,
                     settings.edgeSettings.computeLines, hasDepth);
                 renderer.EnqueuePass(_computeLines);
+                
+                // Debug.Log(linework.colorSubTarget.targetIdentifier);
+                // Debug.Log(linework.depthSubTarget.targetIdentifier);
+
             // }
         }
 

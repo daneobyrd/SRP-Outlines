@@ -195,7 +195,7 @@ namespace RenderPass.OutlineBuffers
                 
                 firstIteration = false;
             }
-            srcMipLevel = _mipLevels; // Backup to ensure srcMipLevel is set to highest mip.
+            srcMipLevel = _mipLevels - 1; // Backup to ensure srcMipLevel is set to highest mip. max mip7
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -203,10 +203,8 @@ namespace RenderPass.OutlineBuffers
         // ---------------------------------------------------------------------------------------------------------------------------------------
         
             var upsampleKernel = _computeShader.FindKernel("KColorUpsample");
-            
-            // Using !> as a sanity check in-case mip width & height are greater than (size.xy/2) but less than size.xy.
-            // TODO: Switch back to (srcMipWidth < size.x || srcMipHeight < size.y)
-            while (srcMipWidth !> size.x / 2 || srcMipHeight !> size.y / 2)
+            // TODO: Set _LowMip to something different after the first upsample dispatch
+            while (srcMipWidth < size.x || srcMipHeight < size.y)
             {
                 srcMipLevel = Mathf.Max(1, srcMipLevel); // Set minimum mip level as 1 because of mipLevel used for _HighMip (srcMipLevel - 1).
 
@@ -227,7 +225,7 @@ namespace RenderPass.OutlineBuffers
                     srcMipHeight = srcMipHeight << 1; // same as srcMipHeight *= 2.
                 }
             }
-            // srcMipLevel = 0; // Unnecessary backup to ensure srcMipLevel is set to lowest mip.
+            srcMipLevel = 0; // Unnecessary backup to ensure srcMipLevel is set to lowest mip.
             
             #endregion
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

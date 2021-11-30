@@ -82,7 +82,6 @@ MonoBehaviour:
         lightModeTags:
         - Outline
         textureName: _OutlineOpaque
-        renderTargetInt: 655
         createTexture: 1
         renderTextureFormat: 11
       depthSubTarget:
@@ -90,7 +89,6 @@ MonoBehaviour:
         lightModeTags:
         - Outline
         textureName: _OutlineDepth
-        renderTargetInt: 693
         createTexture: 0
         renderTextureFormat: 1
     edgeSettings:
@@ -99,3 +97,10 @@ MonoBehaviour:
       computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
       outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
+    outlineProperties:
+      outerThreshold: 1
+      innerThreshold: 1
+      rotations: 8
+      depthPush: 0.000001
+      outerLUT: {fileID: 0}
+      innerLUT: {fileID: 0}

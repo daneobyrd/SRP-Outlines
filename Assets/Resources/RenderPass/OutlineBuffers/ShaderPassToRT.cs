@@ -32,7 +32,7 @@ namespace RenderPass.OutlineBuffers
 
         // Rider initializes this by setting Capacity = 0.
         private List<ShaderTagId> _shaderTagIdList = new() { Capacity = 0 };
-        private int _textureDepthBufferBits = 0;
+        private int _textureDepthBufferBits;
 
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
         private PassSubTarget colorSubTarget => linework.colorSubTarget;
@@ -88,7 +88,7 @@ namespace RenderPass.OutlineBuffers
             var lightLayerMask = (uint)filter.lightLayerMask;
             if (filter.lightLayerMask == -1)
             {
-                lightLayerMask = uint.MaxValue;
+                lightLayerMask = uint.MaxValue; // uint.MaxValue = all light layers
             }
             // TODO: Create interface/editor class for renderer feature and render passes
             
