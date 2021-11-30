@@ -93,83 +93,69 @@ namespace RenderPass.OutlineBuffers
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------------
-    /*[System.Serializable]
-    public class OutlineShaderProperties
-    {
-        [Tooltip("Object Threshold.")] public float outerThreshold = 1.0f;
-        [Tooltip("Inner Threshold.")] public float innerThreshold = 1.0f;
-        [Tooltip("Rotations.")] public int rotations = 8;
-        [Tooltip("Depth Push.")] public float depthPush = 1e-6f;
-        [Tooltip("Object LUT.")] public Texture2D outerLUT;
-        [Tooltip("Inner LUT.")] public Texture2D innerLUT;
-    }*/
 
     public class OutlineRenderer : ScriptableRendererFeature
     {
         public OutlineSettings settings = new();
         public FilterSettings filter => settings.filterSettings;
         private LineworkSettings linework => settings.lineworkSettings;
-
         private EdgeDetectionSettings edge => settings.edgeSettings;
         // private OutlineShaderProperties shaderProps => settings.outlineProperties;
 
-        private ShaderPassToRT _lineworkPass;
+        private ShaderPassToRT _lineworkPass = null;
         private GaussianBlurPass _blurPass;
-        private FullscreenEdgeDetection _computeLinesPass;
+        private FullscreenEdgeDetection _computeLines;
 
+        private Shader outlineEncoderShader => settings.edgeSettings.outlineEncoder;
         private Material outlineEncoderMaterial
         {
             get => settings.edgeSettings.blitMaterial;
             set => settings.edgeSettings.blitMaterial = value;
         }
-
-        private Shader outlineEncoderShader => settings.edgeSettings.outlineEncoder;
-
-        // private static readonly int OuterThreshold = Shader.PropertyToID("_OuterThreshold");
-        // private static readonly int InnerThreshold = Shader.PropertyToID("_InnerThreshold");
-        // private static readonly int Rotations = Shader.PropertyToID("_Rotations");
-        // private static readonly int DepthPush = Shader.PropertyToID("_DepthPush");
-        // private static readonly int OuterLut = Shader.PropertyToID("_OuterLUT");
-        // private static readonly int InnerLut = Shader.PropertyToID("_InnerLUT");
-
+        
         public override void Create()
         {
             _lineworkPass = new ShaderPassToRT(settings, "Linework Pass", settings.renderPassEvent, 24);
             _blurPass = new GaussianBlurPass("Blur Pass");
-            _computeLinesPass = new FullscreenEdgeDetection("Outline Encoder");
+            _computeLines = new FullscreenEdgeDetection(RenderPassEvent.BeforeRenderingTransparents, "Outline Encoder");
 
             GetMaterial();
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (!GetMaterial())
-            {
-                Debug.LogErrorFormat(
-                    "{0}.AddRenderPasses(): Missing material. Make sure to add a blit material, or make sure {1} exists.",
-                    GetType().Name, outlineEncoderShader);
-                return;
-            }
-            // Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
-            // Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
-            // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
-            // Shader.SetGlobalFloat(DepthPush, shaderProps.depthPush);
-            // Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
-            // Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
+            // if (renderingData.cameraData.cameraType == CameraType.Game)
+            // {
+                if (!GetMaterial())
+                {
+                    Debug.LogErrorFormat(
+                        "{0}.AddRenderPasses(): Missing material. Make sure to add a blit material, or make sure {1} exists.",
+                        GetType().Name, outlineEncoderShader);
+                    return;
+                }
+                // Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
+                // Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
+                // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
+                // Shader.SetGlobalFloat(DepthPush, shaderProps.depthPush);
+                // Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
+                // Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
 
-            var hasDepth = linework.depthSubTarget.createTexture;
-            _lineworkPass.ShaderTagSetup(hasDepth);
-            renderer.EnqueuePass(_lineworkPass);
+                var hasDepth = linework.depthSubTarget.createTexture;
+                _lineworkPass.ShaderTagSetup(hasDepth);
+                _lineworkPass.ConfigureInput(ScriptableRenderPassInput.Depth);
+                _lineworkPass.ConfigureInput(ScriptableRenderPassInput.Color);
+                renderer.EnqueuePass(_lineworkPass);
 
-            _blurPass.Init(linework.colorSubTarget.textureName, edge.computeBlur, edge.pyramidLevels);
-            renderer.EnqueuePass(_blurPass);
+                _blurPass.Init(linework.colorSubTarget.textureName, edge.computeBlur, edge.pyramidLevels);
+                renderer.EnqueuePass(_blurPass);
 
-            _computeLinesPass.Setup(outlineEncoderMaterial, "_BlurUpsampleTex", renderer.cameraColorTarget,
-                settings.edgeSettings.computeLines, hasDepth);
-            renderer.EnqueuePass(_computeLinesPass);
+                _computeLines.Setup(outlineEncoderMaterial, "_BlurUpsampleTex", renderer.cameraColorTarget,
+                    settings.edgeSettings.computeLines, hasDepth);
+                renderer.EnqueuePass(_computeLines);
+            // }
         }
 
-        private bool GetMaterial()
+        bool GetMaterial()
         {
             if (outlineEncoderMaterial && settings.edgeSettings.blitMaterial)
             {

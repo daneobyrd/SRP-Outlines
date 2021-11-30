@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -29,11 +30,9 @@ namespace RenderPass.OutlineBuffers
 
         private string _profilerTag;
 
-        private List<ShaderTagId> _shaderTagIdList = new()
-        {
-            Capacity = 0
-        };
-        private int _textureDepthBufferBits;
+        // Rider initializes this by setting Capacity = 0.
+        private List<ShaderTagId> _shaderTagIdList = new() { Capacity = 0 };
+        private int _textureDepthBufferBits = 0;
 
         // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
         private PassSubTarget colorSubTarget => linework.colorSubTarget;
@@ -105,14 +104,15 @@ namespace RenderPass.OutlineBuffers
             RenderTextureDescriptor camTexDesc = cameraTextureDescriptor;
             var width = camTexDesc.width;
             var height = camTexDesc.height;
-            // camTexDesc.colorFormat = colorFormat;
-            // camTexDesc.depthBufferBits = _textureDepthBufferBits;
+            camTexDesc.colorFormat = colorFormat;
+            // camTexDesc.graphicsFormat = (GraphicsFormat) colorFormat;
+            camTexDesc.depthBufferBits = _textureDepthBufferBits;
             // camTexDesc.msaaSamples = 1;
-            // camTexDesc.bindMS = true;
+            camTexDesc.dimension = TextureDimension.Tex2DArray;
             
             List<RenderTargetIdentifier> colorAttachmentsToConfigure = new();
 
-            cmd.GetTemporaryRTArray(colorIdInt, width, height, 1,0, FilterMode.Point, RenderTextureFormat.ARGBFloat);
+            cmd.GetTemporaryRT(colorIdInt, camTexDesc, FilterMode.Point);
             if (createColorTexture) colorAttachmentsToConfigure.Add(colorTargetId); // Recently changed from int to RTIdentifier
 
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
