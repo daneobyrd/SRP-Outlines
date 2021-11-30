@@ -1,12 +1,10 @@
 # SRP-Outlines
 
-This is a **Unity 2021.2.2f1** project using the **Universal Render Pipeline** and utilizing features of the Scriptable Render Pipeline to create a fullscreen outline effect.
+This is a **Unity 2021.2.4f1** project using the **Universal Render Pipeline** and utilizing features of the Scriptable Render Pipeline to create a fullscreen outline effect.
 
 The important files can be found in `Assets/Resources/`. You can find different compute shaders I am using and my SRP feature/passes there. Currently I have additional reference and draft files within the compute folder.
 
 Most recent work is in the `dev` branch.
-
-An older *incomplete* attempt is currently in the `OldDraft` branch for preservation/reference only. Do not try to use it, it doesn't work.
 
 [v3.0](https://github.com/UnityTechnologies/PhotoMode/releases/tag/v3.0) of Unity's [PhotoMode](https://github.com/UnityTechnologies/PhotoMode) package can be found in `Assets/Plugins/PhotoMode`.
 
