@@ -115,7 +115,7 @@ namespace RenderPass.OutlineBuffers
         private EdgeDetectionSettings edge => settings.edgeSettings;
         private OutlineShaderProperties shaderProps => settings.outlineProperties;
 
-        private ShaderPassToRT _lineworkPass = null;
+        private ShaderPassToRT _lineworkPass;
         private GaussianBlurPass _blurPass;
         private FullscreenEdgeDetection _computeLines;
 
