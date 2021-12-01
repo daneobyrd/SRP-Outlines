@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   debugShaders:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
-  m_RendererFeatures: []
-  m_RendererFeatureMap: 
+  m_RendererFeatures:
+  - {fileID: 3026817424008148383}
+  m_RendererFeatureMap: 9ff5f70d696a012a
   m_UseNativeRenderPass: 1
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -37,7 +38,7 @@ MonoBehaviour:
     m_Bits: 4294967295
   m_TransparentLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 2147483647
   m_DefaultStencilState:
     overrideStencilState: 0
     stencilReference: 0
@@ -52,3 +53,54 @@ MonoBehaviour:
   m_ClusteredRendering: 0
   m_TileSize: 32
   m_IntermediateTextureMode: 0
+--- !u!114 &3026817424008148383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1368294b394042aea756980b82b8e024, type: 3}
+  m_Name: OutlineRenderer
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings:
+    profilerTag: OutlineRenderer
+    renderPassEvent: 300
+    debugTargetView: 0
+    filterSettings:
+      renderQueueType: 0
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 2147483647
+      lightLayerMask: -1
+    lineworkSettings:
+      colorSubTarget:
+        subTargetType: 0
+        lightModeTags:
+        - Outline
+        textureName: _OutlineOpaque
+        createTexture: 1
+        renderTextureFormat: 11
+      depthSubTarget:
+        subTargetType: 1
+        lightModeTags:
+        - Outline
+        textureName: _OutlineDepth
+        createTexture: 0
+        renderTextureFormat: 1
+    edgeSettings:
+      computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
+      pyramidLevels: 3
+      computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
+      blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
+      outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
+    outlineProperties:
+      outerThreshold: 1
+      innerThreshold: 1
+      rotations: 8
+      depthPush: 0.000001
+      outerLUT: {fileID: 0}
+      innerLUT: {fileID: 0}
