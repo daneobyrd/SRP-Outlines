@@ -108,6 +108,7 @@ namespace RenderPass.OutlineBuffers
             // camTexDesc.graphicsFormat = (GraphicsFormat) colorFormat;
             camTexDesc.depthBufferBits = _textureDepthBufferBits;
             // camTexDesc.msaaSamples = 1;
+            camTexDesc.useMipMap = false;
             camTexDesc.dimension = TextureDimension.Tex2DArray;
             
             List<RenderTargetIdentifier> colorAttachmentsToConfigure = new();
@@ -118,19 +119,15 @@ namespace RenderPass.OutlineBuffers
             // Create temporary render texture to store outline opaque objects' depth in new global texture "_OutlineDepth".
             cmd.GetTemporaryRT(depthIdInt, width, height, _textureDepthBufferBits, FilterMode.Point, RenderTextureFormat.Depth);
 
-            // switch (createColorTexture)
-            // {
-            //     case true when createDepthTexture:
-            //         // Configure color and depth targets
-            //         ConfigureTarget(colorAttachmentsToConfigure.ToArray(), depthTargetId);
-            //         break;
-            //     case true when !createDepthTexture:
-            //         ConfigureTarget(colorAttachmentsToConfigure.ToArray());
-            //         break;
-            // }
-            if (createColorTexture)
+            switch (createColorTexture)
             {
-                ConfigureTarget(colorTargetId);
+                case true when createDepthTexture:
+                    // Configure color and depth targets
+                    ConfigureTarget(colorAttachmentsToConfigure.ToArray(), depthTargetId);
+                    break;
+                case true when !createDepthTexture:
+                    ConfigureTarget(colorAttachmentsToConfigure.ToArray());
+                    break;
             }
             
             // Clear
