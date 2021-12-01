@@ -30,6 +30,7 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
 
 #if COPY_MIP_0
@@ -41,8 +42,10 @@ RW_TEXTURE2D_X(float4, _Source);
 
 RW_TEXTURE2D_X(float4, _Destination);
 
-TEXTURE2D_X(_LowMip);
-RW_TEXTURE2D_X(float4, _HighMip);
+// _HighMip ─→ _LowMip : Upsample
+// Ex: MipLevel 8 ─→ MipLevel 7
+TEXTURE2D_X(_HighMip);
+RW_TEXTURE2D_X(float4, _LowMip);
 
 SAMPLER(sampler_LinearClamp);
 
@@ -167,7 +170,7 @@ void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThr
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_DOWNSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    // UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
 
     uint2 offset = dispatchThreadId.xy * 2u;
     uint2 size = uint2(_Size.xy) - 1u;
@@ -198,6 +201,6 @@ void MAIN_UPSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
     uint3 id = dispatchThreadId;
     if (fid.x <= _Size.x && fid.y <= _Size.y) return;
     float2 uv = float2(fid.x / _Size.x, fid.y / _Size.y);
-    _HighMip[COORD_TEXTURE2D_X(id.xy)] = SAMPLE_TEXTURE2D_X_LOD(_LowMip, sampler_LinearClamp, uv, 0);
+    _LowMip[COORD_TEXTURE2D_X(id.xy)] = SAMPLE_TEXTURE2D_X_LOD(_HighMip, sampler_LinearClamp, uv, 0);
 }
 
