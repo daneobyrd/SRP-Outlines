@@ -172,7 +172,7 @@ namespace RenderPass.OutlineBuffers
                 _blurPass.Init(linework.colorSubTarget.textureName, edge.computeBlur, edge.pyramidLevels);
                 renderer.EnqueuePass(_blurPass);
 
-                _computeLines.Setup(outlineEncoderMaterial, "_BlurUpsampleTex", renderer.cameraColorTarget,
+                _computeLines.Setup(outlineEncoderMaterial, "_BlurredUpsampleTex", renderer.cameraColorTarget,
                     settings.edgeSettings.computeLines, hasDepth);
                 renderer.EnqueuePass(_computeLines);
                 

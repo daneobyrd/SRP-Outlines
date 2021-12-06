@@ -1,21 +1,20 @@
 ﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
 
 #pragma kernel KLaplacian                           GROUP_SIZE=32   MAIN_LAPLACIAN=KLaplacian
-#pragma kernel KComposite                           GROUP_SIZE=8   MAIN_COMPOSITE=KComposite
+// #pragma kernel KComposite                           GROUP_SIZE=8   MAIN_COMPOSITE=KComposite
 // #define REGION_PER_THREAD 8
 
-// #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-#include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+// #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "LaplacianFilters.hlsl"
 
 CBUFFER_START(cb)
 float4 _Size; // x: src width, y: src height, zw: unused
 CBUFFER_END
 
-TEXTURE2D_X(Source);
-RW_TEXTURE2D_X(float4, Result);
-TEXTURE2D_X(CameraTex);
+TEXTURE2D(Source);
+RW_TEXTURE2D(float4, Result);
+// TEXTURE2D(CameraTex);
 
 SAMPLER(sampler_LinearClamp);
 
@@ -197,7 +196,7 @@ void DetectEdges(uint2 pixelCoord, uint topLeftMostIndex, uint index)
     }
 
     // Write to the final target
-    Result[COORD_TEXTURE2D_X(pixelCoord)] = outlines;
+    Result[pixelCoord] = outlines;
 }
 */
 
@@ -212,10 +211,10 @@ void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID,                     // ID of thr
     uint2 uthreadUL = uint2(max(0, threadUL));
 
     uint2 size = uint2(_Size.xy) - 1u;
-    float4 p00 = Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(0u, 0u), size))];
-    float4 p10 = Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(1u, 0u), size))];
-    float4 p11 = Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(1u, 1u), size))];
-    float4 p01 = Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(0u, 1u), size))];
+    float4 p00 = Source[min(uthreadUL + uint2(0u, 0u), size)];
+    float4 p10 = Source[min(uthreadUL + uint2(1u, 0u), size)];
+    float4 p11 = Source[min(uthreadUL + uint2(1u, 1u), size)];
+    float4 p01 = Source[min(uthreadUL + uint2(0u, 1u), size)];
 
     // Store the 4 downsampled pixels in LDS
     uint destIdx = groupThreadId.x + (groupThreadId.y << 4u);
@@ -240,13 +239,13 @@ void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID,                     // ID of thr
     UNITY_UNROLL
     for (uint i = 0; i <= sample_size; ++i)
     {
-        outline_edge += (SAMPLE_TEXTURE2D_X_LOD(Source, sampler_LinearClamp, uv + sample_coords[i], 0) * laplacian[i]);
+        outline_edge += SAMPLE_TEXTURE2D_LOD(Source, sampler_LinearClamp, uv + sample_coords[i], 0) * laplacian[i];
     }
 
-    Result[COORD_TEXTURE2D_X(dispatchThreadId.xy)] = float4(normalize(outline_edge));
+    Result[dispatchThreadId.xy] = float4(normalize(outline_edge));
 }
 
-[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+/*[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
 void MAIN_COMPOSITE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
     if ((float)dispatchThreadId.x >= _Size.x || (float)dispatchThreadId.y >= _Size.y)
@@ -255,5 +254,5 @@ void MAIN_COMPOSITE(uint3 dispatchThreadId : SV_DispatchThreadID)
     float2 texelSize = float2(1.0 / _Size.xy);
     float2 uv = float2(dispatchThreadId.xy * texelSize);
 
-    Result[COORD_TEXTURE2D_X(dispatchThreadId.xy)] = float4(SAMPLE_TEXTURE2D_X_LOD(Source, sampler_LinearClamp, uv, 0).rgb, 0) + SAMPLE_TEXTURE2D_X_LOD(CameraTex, sampler_LinearClamp, uv, 0);
-}
+    Result[dispatchThreadId.xy] = float4(SAMPLE_TEXTURE2D_LOD(Source, sampler_LinearClamp, uv, 0).rgb, 0) + SAMPLE_TEXTURE2D_LOD(CameraTex, sampler_LinearClamp, uv, 0);
+}*/
