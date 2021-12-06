@@ -12,6 +12,7 @@ Shader "Custom/RenderFeature/KawaseBlur"
     {
         Tags
         {
+            "RenderPipeline" = "Universal"
             "RenderType"="Opaque"
         }
         LOD 100
