@@ -18,9 +18,9 @@ Shader "Example/OutlineSource"
             {
                 "RenderPipeline" = "UniversalPipeline"
                 "RenderType" = "Opaque"
-                "UniversalMaterialType" = "Lit"
+//                "UniversalMaterialType" = "Lit"
                 "Queue" = "Geometry"
-                "LightMode" = "UniversalForward"
+                "LightMode" = "SRPDefaultUnlit"
             }
 
             HLSLPROGRAM
