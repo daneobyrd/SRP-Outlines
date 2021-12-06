@@ -25,36 +25,39 @@
 #pragma kernel KColorDownsample                     KERNEL_SIZE=8  MAIN_DOWNSAMPLE=KColorDownsample
 #pragma kernel KColorUpsample                       KERNEL_SIZE=8  MAIN_UPSAMPLE=KColorUpsample
 
+#pragma multi_compile _ DISABLE_TEXTURE2D_X_ARRAY
 #pragma multi_compile _ COPY_MIP_0
 
-// #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
+
+#include "Assets/Resources/RenderPass/XRInclude/TextureXR.hlsl"
 #include "Assets/Resources/RenderPass/XRInclude/ClampAndScaleUV.hlsl"
 
 
 #if COPY_MIP_0
-        TEXTURE2D(_Source);
-     RW_TEXTURE2D(float4, _Mip0);
+        TEXTURE2D_X(_Source);
+     RW_TEXTURE2D_X(float4, _Mip0);
 #else
-RW_TEXTURE2D(float4, _Source);
+RW_TEXTURE2D_X(float4, _Source);
 #endif
 
-RW_TEXTURE2D(float4, _Destination);
+RW_TEXTURE2D_X(float4, _Destination);
 
 // _LowResMip ─→ _HighResMip : Upsample
 // Ex: MipLevel 8 ─→ MipLevel 7
-TEXTURE2D(_LowResMip);
-TEXTURE2D(_HighResMip);
+TEXTURE2D_X(_LowResMip);
+TEXTURE2D_X(_HighResMip);
 
 SAMPLER(sampler_LinearClamp);
 
 CBUFFER_START(cb)
 float4 _Size;                   // x: src width, y: src height, zw: unused
 
-float4 _BlurBicubicParams;      // xy: low src size, zw: low src texel size
+float4 _BlurBicubicParams;     // xy: low src size, zw: low src texel size
 float4 _TexelSize;              // xy; high src size, zw: high src texel size
-uint Scatter;                    // Carry-over from BloomUpsample example
+int Scatter;
 CBUFFER_END
 
 // 16x16 pixels with an 8x8 center that we will be blurring writing out. Each uint is two color
@@ -68,7 +71,7 @@ groupshared uint gs_cacheA[128];
 
 float4 BlurPixels(float4 a, float4 b, float4 c, float4 d, float4 e, float4 f, float4 g, float4 h, float4 i)
 {
-    return 0.27343750 * e
+    return 0.27343750 * (e)
         + 0.21875000 * (d + f)
         + 0.10937500 * (c + g)
         + 0.03125000 * (b + h)
@@ -136,23 +139,23 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex)
     float4 blurred = BlurPixels(s0, s1, s2, s3, s4, s5, s6, s7, s8);
 
     // Write to the final target
-    _Destination[pixelCoord] = blurred;
+    _Destination[COORD_TEXTURE2D_X(pixelCoord)] = blurred;
 }
 
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    // UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
 
     // Upper-left pixel coordinate of quad that this thread will read
     int2 threadUL = (groupThreadId << 1) + (groupId << 3) - 4;
     uint2 uthreadUL = uint2(max(0, threadUL));
 
     uint2 size = uint2(_Size.xy) - 1u;
-    float4 p00 = _Source[min(uthreadUL + uint2(0u, 0u), size)];
-    float4 p10 = _Source[min(uthreadUL + uint2(1u, 0u), size)];
-    float4 p11 = _Source[min(uthreadUL + uint2(1u, 1u), size)];
-    float4 p01 = _Source[min(uthreadUL + uint2(0u, 1u), size)];
+    float4 p00 = _Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(0u, 0u), size))];
+    float4 p10 = _Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(1u, 0u), size))];
+    float4 p11 = _Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(1u, 1u), size))];
+    float4 p01 = _Source[COORD_TEXTURE2D_X(min(uthreadUL + uint2(0u, 1u), size))];
 
     // Store the 4 downsampled pixels in LDS
     uint destIdx = groupThreadId.x + (groupThreadId.y << 4u);
@@ -174,6 +177,7 @@ void MAIN_GAUSSIAN(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThr
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_DOWNSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
 
     uint2 offset = dispatchThreadId.xy * 2u;
     uint2 size = uint2(_Size.xy) - 1u;
@@ -182,22 +186,21 @@ void MAIN_DOWNSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
     uint2 c10 = min(offset + uint2(1u, 0u), size);
     uint2 c11 = min(offset + uint2(1u, 1u), size);
     uint2 c01 = min(offset + uint2(0u, 1u), size);
-    float4 p00 = _Source[c00];
-    float4 p10 = _Source[c10];
-    float4 p11 = _Source[c11];
-    float4 p01 = _Source[c01];
+    float4 p00 = _Source[COORD_TEXTURE2D_X(c00)];
+    float4 p10 = _Source[COORD_TEXTURE2D_X(c10)];
+    float4 p11 = _Source[COORD_TEXTURE2D_X(c11)];
+    float4 p01 = _Source[COORD_TEXTURE2D_X(c01)];
 
     #if COPY_MIP_0
-    _Mip0[(c00)] = p00;
-    _Mip0[(c10)] = p10;
-    _Mip0[(c11)] = p11;
-    _Mip0[(c01)] = p01;
+    _Mip0[COORD_TEXTURE2D_X(c00)] = p00;
+    _Mip0[COORD_TEXTURE2D_X(c10)] = p10;
+    _Mip0[COORD_TEXTURE2D_X(c11)] = p11;
+    _Mip0[COORD_TEXTURE2D_X(c01)] = p01;
     #endif
 
-    _Destination[dispatchThreadId.xy] = (p00 + p01 + p11 + p10) * 0.25;
+    _Destination[COORD_TEXTURE2D_X(dispatchThreadId.xy)] = (p00 + p01 + p11 + p10) * 0.25;
 }
 
-// Based on HDRP BloomUpsample.compute
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_UPSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
@@ -206,26 +209,27 @@ void MAIN_UPSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
     uint3 id = dispatchThreadId;
     if (fid.x <= _Size.x && fid.y <= _Size.y) return;
     float2 uv = float2(fid.x / _Size.x, fid.y / _Size.y);
-    _HighResMip[(id.xy)] = SAMPLE_TEXTURE2D_LOD(_LowResMip, sampler_LinearClamp, uv, 0);
+    _HighResMip[COORD_TEXTURE2D_X(id.xy)] = SAMPLE_TEXTURE2D_X_LOD(_LowResMip, sampler_LinearClamp, uv, 0);
     */
-    
+
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(dispatchThreadId.z);
     const int2 scale = _BlurBicubicParams.xy/_Size.xy;
     
     PositionInputs posInputs = GetPositionInput(float2(dispatchThreadId.xy), _TexelSize.zw, uint2(8, 8));
     float2 uv = ClampAndScaleUV(posInputs.positionNDC, _BlurBicubicParams.zw, 1.0f, scale );
-    float3 highRes = LOAD_TEXTURE2D(_HighResMip, clamp(posInputs.positionSS, 0, _TexelSize.xy - 1)).xyz;
+    float3 highRes = LOAD_TEXTURE2D_X(_HighResMip, clamp(posInputs.positionSS, 0, _TexelSize.xy - 1)).xyz;
 
-    // #if SHADER_QUALITY_LOW
-    // float3 lowRes = SAMPLE_TEXTURE2D_LOD(_LowResMip, sampler_LinearClamp, uv, 0.0).xyz;
-    // #else // SHADER_QUALITY_HIGH
+    #if SHADER_QUALITY_LOW
+    float3 lowRes = SAMPLE_TEXTURE2D_X_LOD(_LowResMip, sampler_LinearClamp, uv, 0.0).xyz;
+    #else // HIGH_QUALITY
     float2 maxCoord = (1.0f - _TexelSize.zw) * scale;
-    float3 lowRes = SampleTexture2DBicubic(TEXTURE2D_ARGS(_LowResMip, sampler_LinearClamp), uv, _BlurBicubicParams, maxCoord, 0).xyz;
-    // #endif
+    float3 lowRes = SampleTexture2DBicubic(TEXTURE2D_X_ARGS(_LowResMip, sampler_LinearClamp), uv, _BlurBicubicParams, maxCoord, 0).xyz;
+    #endif
 
     float3 output = lerp(highRes, lowRes, Scatter);
 
     // Guard bands
     output *= all(dispatchThreadId.xy <= uint2(_TexelSize.xy));
 
-    _Destination[dispatchThreadId.xy] = float4(output, 1);
+    _Destination[COORD_TEXTURE2D_X(dispatchThreadId.xy)] = float4(output, 1);
 }

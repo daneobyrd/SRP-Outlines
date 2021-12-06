@@ -1,6 +1,8 @@
 ﻿#ifndef UNITY_TEXTUREXR_INCLUDED
 #define UNITY_TEXTUREXR_INCLUDED
 
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
 // single-pass instancing is the default VR method for HDRP
 // multi-pass is working but not recommended due to lower performance
 // single-pass multi-view is not yet supported
@@ -45,21 +47,24 @@
 // Otherwise, the index is statically set to 0
 #if defined(USE_TEXTURE2D_X_AS_ARRAY)
 
+    // As of 2021.2.2, commented out macros can be found in "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+    /*
     // Only single-pass stereo instancing used array indexing
     #if defined(UNITY_STEREO_INSTANCING_ENABLED)
         #define SLICE_ARRAY_INDEX   unity_StereoEyeIndex
     #else
         #define SLICE_ARRAY_INDEX  0
     #endif
+    */
 
     #define COORD_TEXTURE2D_X(pixelCoord)                                    uint3(pixelCoord, SLICE_ARRAY_INDEX)
     #define INDEX_TEXTURE2D_ARRAY_X(slot)                                    ((slot) * _XRViewCount + SLICE_ARRAY_INDEX)
-    // As of 2021.2.2, some of these macros can be found in "Library/PackageCache/com.unity.render-pipelines.universal@12.1.1/ShaderLibrary/Core.hlsl"
-    #define TEXTURE2D_X                                                      TEXTURE2D_ARRAY
-    #define TEXTURE2D_X_PARAM                                                TEXTURE2D_ARRAY_PARAM
-    #define TEXTURE2D_X_ARGS                                                 TEXTURE2D_ARRAY_ARGS
-    #define TEXTURE2D_X_HALF                                                 TEXTURE2D_ARRAY_HALF
-    #define TEXTURE2D_X_FLOAT                                                TEXTURE2D_ARRAY_FLOAT
+
+    // #define TEXTURE2D_X                                                      TEXTURE2D_ARRAY
+    // #define TEXTURE2D_X_PARAM                                                TEXTURE2D_ARRAY_PARAM
+    // #define TEXTURE2D_X_ARGS                                                 TEXTURE2D_ARRAY_ARGS
+    // #define TEXTURE2D_X_HALF                                                 TEXTURE2D_ARRAY_HALF
+    // #define TEXTURE2D_X_FLOAT                                                TEXTURE2D_ARRAY_FLOAT
     #define TEXTURE2D_X_UINT(textureName)                                    Texture2DArray<uint> textureName
     #define TEXTURE2D_X_UINT2(textureName)                                   Texture2DArray<uint2> textureName
     #define TEXTURE2D_X_UINT4(textureName)                                   Texture2DArray<uint4> textureName
@@ -67,27 +72,27 @@
     #define TEXTURE2D_X_MSAA(type, textureName)                              Texture2DMSArray<type, 1> textureName
 
     #define RW_TEXTURE2D_X(type, textureName)                                RW_TEXTURE2D_ARRAY(type, textureName)
-    #define LOAD_TEXTURE2D_X(textureName, unCoord2)                          LOAD_TEXTURE2D_ARRAY(textureName, unCoord2, SLICE_ARRAY_INDEX)
+    // #define LOAD_TEXTURE2D_X(textureName, unCoord2)                          LOAD_TEXTURE2D_ARRAY(textureName, unCoord2, SLICE_ARRAY_INDEX)
     #define LOAD_TEXTURE2D_X_MSAA(textureName, unCoord2, sampleIndex)        LOAD_TEXTURE2D_ARRAY_MSAA(textureName, unCoord2, SLICE_ARRAY_INDEX, sampleIndex)
-    #define LOAD_TEXTURE2D_X_LOD(textureName, unCoord2, lod)                 LOAD_TEXTURE2D_ARRAY_LOD(textureName, unCoord2, SLICE_ARRAY_INDEX, lod)
-    #define SAMPLE_TEXTURE2D_X(textureName, samplerName, coord2)             SAMPLE_TEXTURE2D_ARRAY(textureName, samplerName, coord2, SLICE_ARRAY_INDEX)
-    #define SAMPLE_TEXTURE2D_X_LOD(textureName, samplerName, coord2, lod)    SAMPLE_TEXTURE2D_ARRAY_LOD(textureName, samplerName, coord2, SLICE_ARRAY_INDEX, lod)
-    #define GATHER_TEXTURE2D_X(textureName, samplerName, coord2)             GATHER_TEXTURE2D_ARRAY(textureName, samplerName, coord2, SLICE_ARRAY_INDEX)
-    #define GATHER_RED_TEXTURE2D_X(textureName, samplerName, coord2)         GATHER_RED_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
-    #define GATHER_GREEN_TEXTURE2D_X(textureName, samplerName, coord2)       GATHER_GREEN_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
-    #define GATHER_BLUE_TEXTURE2D_X(textureName, samplerName, coord2)        GATHER_BLUE_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
+    // #define LOAD_TEXTURE2D_X_LOD(textureName, unCoord2, lod)                 LOAD_TEXTURE2D_ARRAY_LOD(textureName, unCoord2, SLICE_ARRAY_INDEX, lod)
+    // #define SAMPLE_TEXTURE2D_X(textureName, samplerName, coord2)             SAMPLE_TEXTURE2D_ARRAY(textureName, samplerName, coord2, SLICE_ARRAY_INDEX)
+    // #define SAMPLE_TEXTURE2D_X_LOD(textureName, samplerName, coord2, lod)    SAMPLE_TEXTURE2D_ARRAY_LOD(textureName, samplerName, coord2, SLICE_ARRAY_INDEX, lod)
+    // #define GATHER_TEXTURE2D_X(textureName, samplerName, coord2)             GATHER_TEXTURE2D_ARRAY(textureName, samplerName, coord2, SLICE_ARRAY_INDEX)
+    // #define GATHER_RED_TEXTURE2D_X(textureName, samplerName, coord2)         GATHER_RED_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
+    // #define GATHER_GREEN_TEXTURE2D_X(textureName, samplerName, coord2)       GATHER_GREEN_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
+    // #define GATHER_BLUE_TEXTURE2D_X(textureName, samplerName, coord2)        GATHER_BLUE_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
     #define GATHER_ALPHA_TEXTURE2D_X(textureName, samplerName, coord2)       GATHER_ALPHA_TEXTURE2D(textureName, samplerName, float3(coord2, SLICE_ARRAY_INDEX))
-#else // As of 2021.2.0, some of these macros can be found in "Packages/com.unity.shadergraph/Editor/Generation/Targets/BuiltIn/ShaderLibrary/Core.hlsl"
+#else 
     #define SLICE_ARRAY_INDEX                                                0
 
     #define COORD_TEXTURE2D_X(pixelCoord)                                    pixelCoord
     #define INDEX_TEXTURE2D_ARRAY_X(slot)                                    (slot)
 
-    #define TEXTURE2D_X                                                      TEXTURE2D
-    #define TEXTURE2D_X_PARAM                                                TEXTURE2D_PARAM
-    #define TEXTURE2D_X_ARGS                                                 TEXTURE2D_ARGS
-    #define TEXTURE2D_X_HALF                                                 TEXTURE2D_HALF
-    #define TEXTURE2D_X_FLOAT                                                TEXTURE2D_FLOAT
+    // #define TEXTURE2D_X                                                      TEXTURE2D
+    // #define TEXTURE2D_X_PARAM                                                TEXTURE2D_PARAM
+    // #define TEXTURE2D_X_ARGS                                                 TEXTURE2D_ARGS
+    // #define TEXTURE2D_X_HALF                                                 TEXTURE2D_HALF
+    // #define TEXTURE2D_X_FLOAT                                                TEXTURE2D_FLOAT
     #define TEXTURE2D_X_UINT(textureName)                                    Texture2D<uint> textureName
     #define TEXTURE2D_X_UINT2(textureName)                                   Texture2D<uint2> textureName
     #define TEXTURE2D_X_UINT4(textureName)                                   Texture2D<uint4> textureName
@@ -95,24 +100,24 @@
     #define TEXTURE2D_X_MSAA(type, textureName)                              Texture2DMS<type, 1> textureName
 
     #define RW_TEXTURE2D_X                                                   RW_TEXTURE2D
-    #define LOAD_TEXTURE2D_X                                                 LOAD_TEXTURE2D
+    // #define LOAD_TEXTURE2D_X                                                 LOAD_TEXTURE2D
     #define LOAD_TEXTURE2D_X_MSAA                                            LOAD_TEXTURE2D_MSAA
-    #define LOAD_TEXTURE2D_X_LOD                                             LOAD_TEXTURE2D_LOD
-    #define SAMPLE_TEXTURE2D_X                                               SAMPLE_TEXTURE2D
-    #define SAMPLE_TEXTURE2D_X_LOD                                           SAMPLE_TEXTURE2D_LOD
-    #define GATHER_TEXTURE2D_X                                               GATHER_TEXTURE2D
-    #define GATHER_RED_TEXTURE2D_X                                           GATHER_RED_TEXTURE2D
-    #define GATHER_GREEN_TEXTURE2D_X                                         GATHER_GREEN_TEXTURE2D
-    #define GATHER_BLUE_TEXTURE2D_X                                          GATHER_BLUE_TEXTURE2D
+    // #define LOAD_TEXTURE2D_X_LOD                                             LOAD_TEXTURE2D_LOD
+    // #define SAMPLE_TEXTURE2D_X                                               SAMPLE_TEXTURE2D
+    // #define SAMPLE_TEXTURE2D_X_LOD                                           SAMPLE_TEXTURE2D_LOD
+    // #define GATHER_TEXTURE2D_X                                               GATHER_TEXTURE2D
+    // #define GATHER_RED_TEXTURE2D_X                                           GATHER_RED_TEXTURE2D
+    // #define GATHER_GREEN_TEXTURE2D_X                                         GATHER_GREEN_TEXTURE2D
+    // #define GATHER_BLUE_TEXTURE2D_X                                          GATHER_BLUE_TEXTURE2D
     #define GATHER_ALPHA_TEXTURE2D_X                                         GATHER_ALPHA_TEXTURE2D
 #endif
 
 // see Unity\Shaders\Includes\UnityShaderVariables.cginc for impl used by the C++ renderer
-#if defined(USING_STEREO_MATRICES) && defined(UNITY_STEREO_INSTANCING_ENABLED)
-    static uint unity_StereoEyeIndex;
-#else
-    #define unity_StereoEyeIndex 0
-#endif
+// #if defined(USING_STEREO_MATRICES) && defined(UNITY_STEREO_INSTANCING_ENABLED)
+//     static uint unity_StereoEyeIndex;
+// #else
+//     #define unity_StereoEyeIndex 0
+// #endif
 
 // Helper macro to assign view index during compute/ray pass (usually from SV_DispatchThreadID or DispatchRaysIndex())
 #if defined(SHADER_STAGE_COMPUTE) || defined(SHADER_STAGE_RAY_TRACING)

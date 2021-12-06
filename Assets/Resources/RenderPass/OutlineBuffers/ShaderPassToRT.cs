@@ -105,11 +105,8 @@ namespace RenderPass.OutlineBuffers
             var width = camTexDesc.width;
             var height = camTexDesc.height;
             camTexDesc.colorFormat = colorFormat;
-            // camTexDesc.graphicsFormat = (GraphicsFormat) colorFormat;
             camTexDesc.depthBufferBits = _textureDepthBufferBits;
-            // camTexDesc.msaaSamples = 1;
             camTexDesc.useMipMap = false;
-            camTexDesc.dimension = TextureDimension.Tex2DArray;
             
             List<RenderTargetIdentifier> colorAttachmentsToConfigure = new();
 

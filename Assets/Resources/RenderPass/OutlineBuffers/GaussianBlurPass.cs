@@ -1,19 +1,20 @@
-﻿// ╔══╦══╗  ┌──┬──┐
-// ╠══╣  ║  ├──┤  │
-// ║  ╠══╣  │  ├──┤
+﻿// Quick-access Copy/Paste grids
+// ╔══╦══╗  ┌──┬──┐
+// ╠══╬══╣  │  │  │
+// ║  ║  ║  ├──┼──┤
 // ╚══╩══╝  └──┴──┘
 
 /* Step-by-step for void RenderColorGaussianPyramid()
 Mip Level 0 ─→ 1 (Enable COPY_MIP_0)
- *  0. bool firstDownsample = true;                                                             ┌──────────────────────────────┐
- *  Downsample                                                                                  │                         ↙    │    
- *  1. Set _Size to full-screen                                                                 │                      ↙       │
- *  2. Copy _Source (sourceRT) to _Mip0 (blurRT) ───→ Copy TEXTURE2D_X to RW_TEXTURE2D_X        │                   ↙          │
- *         Note: if(COPY_MIP_0) then _Mip0 is used as downsample input                          ╔══════════════╗               │
- *  3. Set downsample output (_Destination) as tempDownsampleRT mipLevel: 0                     ║              ║               │
- *  4. Dispatch compute using _Size/2 (dstMipWidth, dstMipHeight)                               ║              ║               │
- *     - This writes _Mip0 (a copy of sourceRT) to an area half its size.                       ║              ║               │ 
- *                                                                                              ╚══════════════╝ ──────────────┘
+ *  0. bool firstDownsample = true;                                                        ┌──────────────────────────────┐
+ *  Downsample                                                                             │                         ↙    │    
+ *  1. Set _Size to full-screen                                                            │                      ↙       │
+ *  2. Copy _Source (sourceRT) to _Mip0 (blurRT) ───→ Copy TEXTURE2D_X to RW_TEXTURE2D_X   │                   ↙          │
+ *         Note: if(COPY_MIP_0) then _Mip0 is used as downsample input                     ╔══════════════╗               │
+ *  3. Set downsample output (_Destination) as tempDownsampleRT mipLevel: 0                ║              ║               │
+ *  4. Dispatch compute using _Size/2 (dstMipWidth, dstMipHeight)                          ║              ║               │
+ *     - This writes _Mip0 (a copy of sourceRT) to an area half its size.                  ║              ║               │ 
+ *                                                                                         ╚══════════════╝ ──────────────┘
  *  Blur
  *  5. Set _Size to the same size as the downsample texture (the area we just wrote to).
  *  6. Set blur input (_Source) as tempDownsampleRT mipLevel: 0
@@ -22,21 +23,23 @@ Mip Level 0 ─→ 1 (Enable COPY_MIP_0)
  *  
  *  9. Increase mip level by 1.
  *  10. Divide width and height by 2.
- *  11. Set firstIteration = false;
+ *  11. Set firstDownsample = false;
  *  
 Mip Level 1 ─→ 2 (Disable COPY_MIP_0)
  *  1. Set downsample input (_Source) as blurRT (previous blur output) mipLevel: 1
  *  2. Set downsample output (_Destination) as tempDownsampleRT mipLevel: 1
  *  3. Continue for each mip level
          
-Upsampling
-┌──────════════════════════════┐════════ ╔══════════════════════╗
-│                         ↙    │ ║                  ↗   ║
-│                      ↙       │ ║              ↗       ║
-│                   ↙          │ ┌──────────┐           ║
-┌──────────────┐               │ │          │           ║
-│              │               │ │          │           ║
-│              │               │ └──────────┘ ══════════╝
+Upsample
+╔═══════════════════════════════╗
+║                           ↗   ║
+║                       ↗       ║
+║                   ↗           ║
+┌──────────────┐                ║
+│              │                ║
+│              │                ║ 
+│              │                ║
+└──────────────┘ ═══════════════╝
 */
 
 using UnityEngine;
@@ -52,18 +55,18 @@ namespace RenderPass.OutlineBuffers
 
         private string _profilerTag;
         private ComputeShader _computeShader;
-        private int _mipLevels;
+        private int _totalMips;
 
-        private int _sourceIntId;
-        private int _tempDownsampleIntId = Shader.PropertyToID("_DownsampleTex");
-        private int _blurIntId = Shader.PropertyToID("_BlurResults");
-        private int _finalIntId = Shader.PropertyToID("_BlurUpsampleTex");
-
-        private RenderTargetIdentifier sourceColorTargetID => new(_sourceIntId); // _OutlineOpaque
-        private RenderTargetIdentifier tempDownsampleTargetID => new(_tempDownsampleIntId);
-        private RenderTargetIdentifier blurTargetID => new(_blurIntId);
-        private RenderTargetIdentifier finalTargetID => new(_finalIntId);
+        private int _sourceId;
+        private readonly int _downsampleId = Shader.PropertyToID("_DownsampleTex");
+        private readonly int _blurId = Shader.PropertyToID("_BlurResults");
+        private readonly int _upsampleId = Shader.PropertyToID("_BlurredUpsampleTex");
         
+        private RenderTargetIdentifier sourceColorTarget => new(_sourceId); // _OutlineOpaque
+        private RenderTargetIdentifier downsampleTarget => new(_downsampleId);
+        private RenderTargetIdentifier blurTarget => new(_blurId);
+        private RenderTargetIdentifier finalTarget => new(_upsampleId);
+
         #endregion
 
         public GaussianBlurPass(string profilerTag)
@@ -73,33 +76,35 @@ namespace RenderPass.OutlineBuffers
 
         public void Init(string sourceName, ComputeShader computeShader, int pyramidLevels)
         {
-            _sourceIntId = Shader.PropertyToID(sourceName);
+            _sourceId = Shader.PropertyToID(sourceName);
             _computeShader = computeShader;
-            _mipLevels = pyramidLevels;
+            _totalMips = pyramidLevels;
         }
 
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
             RenderTextureDescriptor camTexDesc = cameraTextureDescriptor;
-            var width = camTexDesc.width;
-            var height = camTexDesc.height;
             camTexDesc.msaaSamples = 1;
-            camTexDesc.mipCount = _mipLevels;
+            camTexDesc.mipCount = _totalMips;
             camTexDesc.colorFormat = RenderTextureFormat.ARGBFloat;
             camTexDesc.depthStencilFormat = GraphicsFormat.R32_SFloat;
             camTexDesc.depthBufferBits = 0;
             camTexDesc.useMipMap = true; // Do not use autoGenerateMips: does not reliably generate mips.
             camTexDesc.enableRandomWrite = true;
-            camTexDesc.dimension = TextureDimension.Tex2DArray;
+            // camTexDesc.useDynamicScale = true;
+
+            // _Source does not need mip maps
+            RenderTextureDescriptor sourceDesc = camTexDesc;
+            sourceDesc.useMipMap = false;
 
             // Source TEXTURE ARRAY
-            cmd.GetTemporaryRT(_sourceIntId, camTexDesc, FilterMode.Point);
+            cmd.GetTemporaryRT(_sourceId, sourceDesc, FilterMode.Point);
             // Downsample TEXTURE ARRAY
-            cmd.GetTemporaryRT(_tempDownsampleIntId, camTexDesc, FilterMode.Point);
+            cmd.GetTemporaryRT(_downsampleId, camTexDesc, FilterMode.Bilinear);
             // Blur low mip TEXTURE ARRAY
-            cmd.GetTemporaryRT(_blurIntId, camTexDesc, FilterMode.Point);
+            cmd.GetTemporaryRT(_blurId, camTexDesc, FilterMode.Bilinear);
             // Blur high mip/upsample TEXTURE ARRAY
-            cmd.GetTemporaryRT(_finalIntId, camTexDesc, FilterMode.Point);
+            cmd.GetTemporaryRT(_upsampleId, camTexDesc, FilterMode.Bilinear);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -107,155 +112,189 @@ namespace RenderPass.OutlineBuffers
             CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
 
             RenderTextureDescriptor opaqueDesc = renderingData.cameraData.cameraTargetDescriptor;
-            var width = opaqueDesc.width;
-            var height = opaqueDesc.height;
+            var screenSize = new Vector2Int(opaqueDesc.width, opaqueDesc.height);
             // opaqueDesc.mipCount = 8;
             // opaqueDesc.useMipMap = true;
             // opaqueDesc.enableRandomWrite = true;
-            // opaqueDesc.colorFormat = RenderTextureFormat.ARGBFloat;
-            
-            RenderColorGaussianPyramid(cmd, new Vector2Int(width, height), sourceColorTargetID, tempDownsampleTargetID, blurTargetID, finalTargetID);
+
+            RenderColorGaussianPyramid(cmd, screenSize,
+                                       sourceColorTarget,
+                                       downsampleTarget,
+                                       blurTarget,
+                                       finalTarget);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
-        
-        private void RenderColorGaussianPyramid(CommandBuffer cmd,
-                                                Vector2Int size,
+
+        private void RenderColorGaussianPyramid(CommandBuffer cmd, Vector2Int size,
                                                 RenderTargetIdentifier sourceRT,
-                                                RenderTargetIdentifier tempDownsampleRT,
+                                                RenderTargetIdentifier downsampleRT,
                                                 RenderTargetIdentifier blurRT,
-                                                RenderTargetIdentifier finalRT)
+                                                RenderTargetIdentifier upsampleRT)
         {
             int srcMipLevel = 0;
             int srcMipWidth = size.x;
             int srcMipHeight = size.y;
 
-            bool firstDownsample = true;
             var downsampleKernel = _computeShader.FindKernel("KColorDownsample");
+            var gaussKernel = _computeShader.FindKernel("KColorGaussian");
+            var upsampleKernel = _computeShader.FindKernel("KColorUpsample");
 
-            // mip 0 → 1 → 2 → 3 → 4
-            
-            while (srcMipWidth >= size.x / _mipLevels || srcMipHeight >= size.y / _mipLevels)
+            int maxMip = _totalMips - 1;
+            bool firstDownsample = true;
+
+            // while (srcMipWidth >= 8 || srcMipHeight >= 8) // Based on HDRP MipGenerator.cs
+            for (var i = 1; i < maxMip; i++)
             {
-                int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1);   // srcMipWidth/2, floor of 1
+                int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1); // srcMipWidth/2, floor of 1
                 int dstMipHeight = Mathf.Max(1, srcMipHeight >> 1); // srcMipHeight/2, floor of 1
 
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
                 #region Downsample
             // -----------------------------------------------------------------------------------------------------------------------------------
-                
+
                 cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(srcMipWidth, srcMipHeight, 0, 0));
 
-                // Note: blurRT is being used as a temp copy of source at mip level: 0. After this blurRT is only set as blur output/downsample input.
-                if (firstDownsample) // Copy _Source (sourceRT) to _Mip0 (blurRT) ──→ Copy TEXTURE2D_X to RW_TEXTURE2D_X
+                if (firstDownsample)
                 {
                     cmd.EnableShaderKeyword("COPY_MIP_0");
-                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", sourceRT, 0); // TEXTURE2D_X _Source
-                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Mip0", blurRT, 0); // RW_TEXTURE2D_X _Mip0
+                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", sourceRT);                       // TEXTURE2D_X _Source
+                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Mip0", blurRT, 0);                 // RW_TEXTURE2D_X _Source
                 }
                 else
                 {
                     cmd.DisableShaderKeyword("COPY_MIP_0");
-                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", blurRT, srcMipLevel); // RW_TEXTURE2D_X _Source
+                    cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", blurRT, srcMipLevel - 1); // RW_TEXTURE2D_X _Source
                 }
 
-                cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", tempDownsampleRT, srcMipLevel); // Change back to mipLevel 0?
+                cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Destination", downsampleRT, srcMipLevel);
 
-                // This is what makes the compute write to a smaller region of the tempDownsampleTargetID.
+                // This is what makes the compute write to a smaller region of the downsampleTargetID.
                 cmd.DispatchCompute(_computeShader, downsampleKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
 
+                if (firstDownsample)
+                {
+                    // Clear Texture from TextureXR.cs
+                    // var m_ClearTexture = new Texture2D(1, 1, GraphicsFormat.R8G8B8A8_SRGB, TextureCreationFlags.None) { name = "Clear Texture" };
+                    // m_ClearTexture.SetPixel(0, 0, Color.clear);
+                    // m_ClearTexture.Apply();
+
+                    firstDownsample = false;
+                    
+                    // cmd.DisableShaderKeyword("COPY_MIP_0");
+                    // How can I clear just blurRT mip 0?
+                    // Clear source copy to simplify frame debugging
+                    // cmd.SetComputeTextureParam(_computeShader, downsampleKernel, "_Source", m_ClearTexture , 0);
+                }
+                
                 #endregion
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
             
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-                #region Blur
+                #region BlurDown
             // -----------------------------------------------------------------------------------------------------------------------------------
 
-                var gaussKernel = _computeShader.FindKernel("KColorGaussian");
                 cmd.DisableShaderKeyword("COPY_MIP_0");
 
-                // The data we want to blur is in the area defined by (dstMipWidth, dstMipHeight) ------- the area we wrote the downsample texture to.
+                // The data we want to blur is in the area defined by (dstMipWidth, dstMipHeight) - the area we wrote the downsample texture to.
                 cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(dstMipWidth, dstMipHeight, 0, 0));
-                // Debug.Log( new Vector2(dstMipWidth, dstMipHeight));
 
                 // Set _Source to the downsampled texture.
-                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", tempDownsampleRT, srcMipLevel);
+                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", downsampleRT, srcMipLevel);
 
-                // mipLevel: srcMipLevel + 1 because we are writing to the next mip level.
-                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurRT, srcMipLevel + 1);
+                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurRT, srcMipLevel);
 
                 cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
-                
+
                 #endregion
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                
                 srcMipLevel++;
                 // Bitwise operations
-                srcMipWidth = srcMipWidth >> 1;    // same as srcMipWidth /= 2. 
-                srcMipHeight = srcMipHeight >> 1;  // same as srcMipHeight /= 2.
-
-                // if (firstDownsample)
-                // {
-                    firstDownsample = false;
-                // }
+                srcMipWidth >>= 1;  // same as srcMipWidth /= 2. 
+                srcMipHeight >>= 1; // same as srcMipHeight /= 2.
             }
-            srcMipLevel = _mipLevels - 1; // Backup to ensure srcMipLevel is set to highest mip. ex: _miplevels(8) -1 sets highest srcMipLevel to 7
-            
 
-        // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            #region Upsample
-        // ---------------------------------------------------------------------------------------------------------------------------------------
+            /*
+            Backup to ensure srcMipLevel is set to highest mip.
+            ex: _totalMips  = 8;
+                maxMip      = _totalMips - 1 = 7
+                srcMipLevel = maxMip         = 7
+            */
+            // srcMipLevel = maxMip; 
             
-            bool firstUpsample = true;
-            var upsampleKernel = _computeShader.FindKernel("KColorUpsample");
-
-            while (srcMipWidth !> size.x / 2 || srcMipHeight !> size.y / 2) // Testing !> size / 2 again
+            while (srcMipLevel >= 0)
+            // for (var i = maxMip; i > 0; i--)
+            // while (srcMipWidth < size.x || srcMipHeight < size.y)
             {
-                int dstMipWidth = Mathf.Min(size.x, srcMipWidth << 1);   // srcMipWidth*2, ceiling of screen width
+                int dstMipWidth = Mathf.Min(size.x, srcMipWidth << 1); // srcMipWidth*2, ceiling of screen width
                 int dstMipHeight = Mathf.Min(size.y, srcMipHeight << 1); // srcMipWidth*2, ceiling of screen height
 
-                cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(dstMipWidth, dstMipHeight, 0, 0));
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                #region Upsample
+            // ---------------------------------------------------------------------------------------------------------------------------------------
+                cmd.DisableShaderKeyword("COPY_MIP_0");
+
+                cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(size.x, size.y, 0, 0));
                 
-                if (firstUpsample)
-                {
-                    cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_HighMip", blurRT, srcMipLevel);
-                    cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_LowMip", finalRT, srcMipLevel - 1);
-                }
-                else
-                {
-                    cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_HighMip", finalRT, srcMipLevel);
-                    cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_LowMip", blurRT, Mathf.Max(0, srcMipLevel - 1));
-                }
+                var lowSourceSize = new Vector2(srcMipWidth, srcMipHeight);
+                var lowSourceTexelSize = lowSourceSize / size;
+                cmd.SetComputeVectorParam(_computeShader, "_BlurBicubicParams", new Vector4(srcMipWidth, srcMipHeight, lowSourceTexelSize.x, lowSourceTexelSize.y));
+                
+                var highSourceSize = new Vector2(dstMipWidth, dstMipHeight);
+                var highSourceTexelSize = highSourceSize / size;
+                cmd.SetComputeVectorParam(_computeShader, "_TexelSize", new Vector4(dstMipWidth, dstMipHeight, highSourceTexelSize.x, highSourceTexelSize.y));
+                
+                cmd.SetComputeIntParam(_computeShader, "_Scatter", 1);
+
+                // during first upsample srcMipLevel should be equal to maxMip
+                cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_LowResMip", blurRT, srcMipLevel);
+                cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_HighResMip", upsampleRT, srcMipLevel);
+                cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_Destination", upsampleRT, srcMipLevel);
+
                 cmd.DispatchCompute(_computeShader, upsampleKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
+
+                #endregion
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                
+            if (srcMipLevel == 0) break;
+                
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                #region BlurUp
+            // -----------------------------------------------------------------------------------------------------------------------------------
+
+                cmd.DisableShaderKeyword("COPY_MIP_0"); // Do we need to disable this keyword for each kernel? I don't think we do...
+
+                // The data we want to blur is in the area defined by (dstMipWidth, dstMipHeight) ------- the area we wrote the upsample texture to.
+                cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(dstMipWidth, dstMipHeight, 0, 0));
+                // Set _Source to the downsampled texture.
+                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", upsampleRT, srcMipLevel);
+
+                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurRT, srcMipLevel - 1);
+
+                cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
+
+                #endregion
+            // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
                 srcMipLevel--;
                 // Bitwise operations
-                srcMipWidth <<= 1;   // same as srcMipWidth *= 2.
+                srcMipWidth <<= 1; // same as srcMipWidth *= 2.
                 srcMipHeight <<= 1; // same as srcMipHeight *= 2.
-
-                if (firstUpsample)
-                {
-                    firstUpsample = false;
-                }
             }
-            /*
-            srcMipLevel = 0; // Unnecessary backup to ensure srcMipLevel is set to lowest mip.
-            */
-            
-            #endregion
-        // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            
-            // Set _BlurUpsampleTexture to the upsampled blur texture mipLevel: 0
-            cmd.SetGlobalTexture(_finalIntId, finalRT);
+
+            // SetGlobalTexture _BlurredUpsampleTexture
+            cmd.SetGlobalTexture(_upsampleId, upsampleRT);
         }
 
-        public override void OnCameraCleanup(CommandBuffer cmd)
+        public override void OnCameraCleanup(CommandBuffer cmd) // Previously FrameCleanup
         {
-            cmd.ReleaseTemporaryRT(_sourceIntId);
-            cmd.ReleaseTemporaryRT(_tempDownsampleIntId);
-            cmd.ReleaseTemporaryRT(_blurIntId);  // low mip blur texture
-            cmd.ReleaseTemporaryRT(_finalIntId); // upsampled blur texture
+            cmd.ReleaseTemporaryRT(_sourceId);
+            cmd.ReleaseTemporaryRT(_downsampleId);
+            cmd.ReleaseTemporaryRT(_blurId); // low mip blur texture
+            cmd.ReleaseTemporaryRT(_upsampleId); // upsampled blur texture
         }
     }
 }
