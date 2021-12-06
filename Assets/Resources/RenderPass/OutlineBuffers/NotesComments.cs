@@ -44,3 +44,23 @@ cmd.Blit( combinedTargetId, BuiltinRenderTextureType.CurrentActive, _material, 0
         // cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
         // cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
 // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// ╔══╦══╗   ┌──┬──┐
+// ║  ║  ║   ├──┼──┤
+// ╠══╬══╣   │  │  │
+// ╚══╩══╝   └──┴──┘
+
+/*
+        BlurRT Mip Levels
+┌────────┬──────────┬────────────┐
+│ BlurRT │ RW _Mip0 │ RW _Source │
+├────────┼──────────┼────────────┤
+│   0    │    0     │            │
+├────────┼──────────┼────────────┤
+│   1    │          │     1      │
+├────────┼──────────┼────────────┤
+│   2    │          │     2      │
+├────────┼──────────┼────────────┤
+│   3    │          │     3      │
+└────────┴──────────┴────────────┘
+*/
