@@ -144,10 +144,10 @@ namespace RenderPass.OutlineBuffers
             int maxMip = _totalMips - 1;
             bool firstDownsample = true;
 
-            // while (srcMipWidth >= 8 || srcMipHeight >= 8) // Based on HDRP MipGenerator.cs
-            for (var i = 1; i < maxMip; i++)
+            // for (var i = 0; i < maxMip; i++)
+            while (srcMipWidth > (size.x >> maxMip) || srcMipHeight > (size.y >> maxMip)) 
             {
-                int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1); // srcMipWidth/2, floor of 1
+                int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1);   // srcMipWidth/2, floor of 1
                 int dstMipHeight = Mathf.Max(1, srcMipHeight >> 1); // srcMipHeight/2, floor of 1
 
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -225,9 +225,9 @@ namespace RenderPass.OutlineBuffers
             */
             // srcMipLevel = maxMip; 
             
-            while (srcMipLevel >= 0)
+            // while (srcMipLevel >= 0)
             // for (var i = maxMip; i > 0; i--)
-            // while (srcMipWidth < size.x || srcMipHeight < size.y)
+            while (srcMipWidth < size.x || srcMipHeight < size.y)
             {
                 int dstMipWidth = Mathf.Min(size.x, srcMipWidth << 1); // srcMipWidth*2, ceiling of screen width
                 int dstMipHeight = Mathf.Min(size.y, srcMipHeight << 1); // srcMipWidth*2, ceiling of screen height
@@ -269,7 +269,7 @@ namespace RenderPass.OutlineBuffers
 
                 // The data we want to blur is in the area defined by (dstMipWidth, dstMipHeight) ------- the area we wrote the upsample texture to.
                 cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(dstMipWidth, dstMipHeight, 0, 0));
-                // Set _Source to the downsampled texture.
+                // Set _Source to the upsampled texture.
                 cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", upsampleRT, srcMipLevel);
 
                 cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurRT, srcMipLevel - 1);
