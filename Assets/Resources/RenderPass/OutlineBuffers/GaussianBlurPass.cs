@@ -152,7 +152,7 @@ namespace RenderPass.OutlineBuffers
                 int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1);   // = srcMipWidth/2, floor of 1 pixel
                 int dstMipHeight = Mathf.Max(1, srcMipHeight >> 1); // = srcMipHeight/2, floor of 1 pixel
                 
-                srcMipLevel = Mathf.Min(srcMipLevel, maxMip);       // Likely unnecessary, maybe debug assert this.
+                srcMipLevel = Mathf.Min(srcMipLevel, maxMip);       // Likely unnecessary, maybe Debug.Assert this.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
                 #region Downsample
             // -----------------------------------------------------------------------------------------------------------------------------------
@@ -219,7 +219,7 @@ namespace RenderPass.OutlineBuffers
                 int dstMipWidth = Mathf.Min(size.x, srcMipWidth << 1); // srcMipWidth*2, ceiling of screen width
                 int dstMipHeight = Mathf.Min(size.y, srcMipHeight << 1); // srcMipWidth*2, ceiling of screen height
 
-                srcMipLevel = Mathf.Max(srcMipLevel, 0);       // Likely unnecessary, maybe debug assert this.
+                srcMipLevel = Mathf.Max(srcMipLevel, 0);       // Likely unnecessary, maybe Debug.Assert this.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
                 #region Upsample
             // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -278,9 +278,9 @@ namespace RenderPass.OutlineBuffers
                 // The data we want to blur is in the area defined by (dstMipWidth, dstMipHeight) ------- the area we wrote the upsample texture to.
                 cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(dstMipWidth, dstMipHeight, 0, 0));
                 // Set _Source to the upsampled texture.
-                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", upsampleRT, srcMipLevel);
+                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Source", upsampleRT, srcMipLevel + 1);
 
-                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurRT, srcMipLevel - 1);
+                cmd.SetComputeTextureParam(_computeShader, gaussKernel, "_Destination", blurRT, srcMipLevel);
 
                 cmd.DispatchCompute(_computeShader, gaussKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
 
