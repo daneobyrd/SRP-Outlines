@@ -80,9 +80,7 @@ public class KawaseBlur : ScriptableRendererFeature
                 cmd.Blit(tmpRT1, tmpRT2, blurMaterial);
 
                 // pingpong
-                var rttmp = tmpRT1;
-                tmpRT1 = tmpRT2;
-                tmpRT2 = rttmp;
+                (tmpRT1, tmpRT2) = (tmpRT2, tmpRT1);
             }
 
             // final pass
@@ -108,22 +106,22 @@ public class KawaseBlur : ScriptableRendererFeature
         }
     }
 
-    CustomRenderPass scriptablePass;
+    CustomRenderPass _scriptablePass;
 
     public override void Create()
     {
-        scriptablePass = new CustomRenderPass("KawaseBlur");
-        scriptablePass.blurMaterial = settings.blurMaterial;
-        scriptablePass.passes = settings.blurPasses;
-        scriptablePass.downsample = settings.downsample;
-        scriptablePass.copyToFramebuffer = settings.copyToFramebuffer;
-        scriptablePass.targetName = settings.targetName;
+        _scriptablePass = new CustomRenderPass("KawaseBlur");
+        _scriptablePass.blurMaterial = settings.blurMaterial;
+        _scriptablePass.passes = settings.blurPasses;
+        _scriptablePass.downsample = settings.downsample;
+        _scriptablePass.copyToFramebuffer = settings.copyToFramebuffer;
+        _scriptablePass.targetName = settings.targetName;
 
-        scriptablePass.renderPassEvent = settings.renderPassEvent;
+        _scriptablePass.renderPassEvent = settings.renderPassEvent;
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
-        renderer.EnqueuePass(scriptablePass);
+        renderer.EnqueuePass(_scriptablePass);
     }
 }
