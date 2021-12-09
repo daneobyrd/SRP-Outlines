@@ -43,7 +43,7 @@ RW_TEXTURE2D(float4, _Destination);
 // _LowResMip ─→ _HighResMip : Upsample
 // Ex: MipLevel 8 ─→ MipLevel 7
 TEXTURE2D(_LowResMip);
-TEXTURE2D(_HighResMip);
+// TEXTURE2D(_HighResMip);
 
 SAMPLER(sampler_LinearClamp);
 
@@ -52,7 +52,7 @@ float4 _Size;                   // x: src width, y: src height, zw: unused
 
 float4 _BlurBicubicParams;      // xy: low src size, zw: low src texel size
 float4 _TexelSize;              // xy; high src size, zw: high src texel size
-uint Scatter;                   // Carry-over from BloomUpsample example
+float Scatter;                   // Carry-over from BloomUpsample example
 CBUFFER_END
 
 // 16x16 pixels with an 8x8 center that we will be blurring writing out. Each uint is two color
@@ -207,11 +207,12 @@ void MAIN_UPSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
     _HighResMip[(id.xy)] = SAMPLE_TEXTURE2D_LOD(_LowResMip, sampler_LinearClamp, uv, 0);
     */
     
-    const int2 scale = _BlurBicubicParams.xy/_Size.xy;
+    int2 scale = _TexelSize.xy/_BlurBicubicParams.xy;
     
     PositionInputs posInputs = GetPositionInput(float2(dispatchThreadId.xy), _TexelSize.zw, uint2(8, 8));
     float2 uv = ClampAndScaleUV(posInputs.positionNDC, _BlurBicubicParams.zw, 1.0f, scale );
-    float3 highRes = LOAD_TEXTURE2D(_HighResMip, clamp(posInputs.positionSS, 0, _TexelSize.xy - 1)).xyz;
+    // float3 highRes = LOAD_TEXTURE2D(_HighResMip, clamp(posInputs.positionSS, 0, _TexelSize.xy - 1)).xyz;
+    float3 highRes = _Destination.Load(clamp(posInputs.positionSS, 0, _TexelSize.xy - 1)).xyz;
 
     #if SHADER_QUALITY_LOW
     float3 lowRes = SAMPLE_TEXTURE2D_LOD(_LowResMip, sampler_LinearClamp, uv, 0.0).xyz;

@@ -56,7 +56,7 @@ namespace RenderPass.OutlineBuffers
         private string _profilerTag;
         private ComputeShader _computeShader;
         private int _totalMips;
-
+        
         private int _sourceId;
         private readonly int _downsampleId = Shader.PropertyToID("_DownsampleTex");
         private readonly int _blurId = Shader.PropertyToID("_BlurResults");
@@ -87,8 +87,8 @@ namespace RenderPass.OutlineBuffers
             camTexDesc.msaaSamples = 1;
             camTexDesc.mipCount = _totalMips;
             camTexDesc.colorFormat = RenderTextureFormat.ARGBFloat;
-            camTexDesc.depthStencilFormat = GraphicsFormat.R32_SFloat;
-            camTexDesc.depthBufferBits = 0;
+            // camTexDesc.depthStencilFormat = GraphicsFormat.R32_SFloat;
+            camTexDesc.depthBufferBits = (int) DepthBits.None;
             camTexDesc.useMipMap = true; // Do not use autoGenerateMips: does not reliably generate mips.
             camTexDesc.enableRandomWrite = true;
             // camTexDesc.useDynamicScale = true;
@@ -145,11 +145,12 @@ namespace RenderPass.OutlineBuffers
             bool firstDownsample = true;
 
             // for (var i = 0; i < maxMip; i++)
-            while (srcMipWidth > (size.x >> maxMip) || srcMipHeight > (size.y >> maxMip)) 
+            while (srcMipWidth > (size.x >> _totalMips) || srcMipHeight > (size.y >> _totalMips)) 
             {
-                int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1);   // srcMipWidth/2, floor of 1
-                int dstMipHeight = Mathf.Max(1, srcMipHeight >> 1); // srcMipHeight/2, floor of 1
-
+                int dstMipWidth = Mathf.Max(1, srcMipWidth >> 1);   // = srcMipWidth/2, floor of 1 pixel
+                int dstMipHeight = Mathf.Max(1, srcMipHeight >> 1); // = srcMipHeight/2, floor of 1 pixel
+                
+                srcMipLevel = Mathf.Min(srcMipLevel, maxMip);       // Likely unnecessary, maybe debug assert this.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
                 #region Downsample
             // -----------------------------------------------------------------------------------------------------------------------------------
@@ -210,7 +211,8 @@ namespace RenderPass.OutlineBuffers
 
                 #endregion
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-                
+            if (srcMipLevel == maxMip) break;
+            
                 srcMipLevel++;
                 // Bitwise operations
                 srcMipWidth >>= 1;  // same as srcMipWidth /= 2. 
@@ -226,12 +228,13 @@ namespace RenderPass.OutlineBuffers
             // srcMipLevel = maxMip; 
             
             // while (srcMipLevel >= 0)
-            // for (var i = maxMip; i > 0; i--)
-            while (srcMipWidth < size.x || srcMipHeight < size.y)
+            for (var i = srcMipLevel; i > 0; i--)
+            // while (srcMipWidth < size.x || srcMipHeight < size.y)
             {
                 int dstMipWidth = Mathf.Min(size.x, srcMipWidth << 1); // srcMipWidth*2, ceiling of screen width
                 int dstMipHeight = Mathf.Min(size.y, srcMipHeight << 1); // srcMipWidth*2, ceiling of screen height
 
+                srcMipLevel = Mathf.Max(srcMipLevel, 0);       // Likely unnecessary, maybe debug assert this.
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
                 #region Upsample
             // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -247,19 +250,19 @@ namespace RenderPass.OutlineBuffers
                 var highSourceTexelSize = highSourceSize / size;
                 cmd.SetComputeVectorParam(_computeShader, "_TexelSize", new Vector4(dstMipWidth, dstMipHeight, highSourceTexelSize.x, highSourceTexelSize.y));
                 
-                cmd.SetComputeIntParam(_computeShader, "_Scatter", 1);
+                cmd.SetComputeFloatParam(_computeShader, "_Scatter", 0.5f);
 
                 // during first upsample srcMipLevel should be equal to maxMip
                 cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_LowResMip", blurRT, srcMipLevel);
-                cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_HighResMip", upsampleRT, srcMipLevel);
+                // cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_HighResMip", upsampleRT, srcMipLevel);
                 cmd.SetComputeTextureParam(_computeShader, upsampleKernel, "_Destination", upsampleRT, srcMipLevel);
 
                 cmd.DispatchCompute(_computeShader, upsampleKernel, Mathf.CeilToInt(dstMipWidth / 8f), Mathf.CeilToInt(dstMipHeight / 8f), 1);
 
                 #endregion
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-                
-            if (srcMipLevel == 0) break;
+            
+            if (srcMipLevel == 0) break; // If mipLevel = 0 then no further blurring/upsampling is needed.
                 
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
                 #region BlurUp
@@ -289,7 +292,7 @@ namespace RenderPass.OutlineBuffers
             cmd.SetGlobalTexture(_upsampleId, upsampleRT);
         }
 
-        public override void OnCameraCleanup(CommandBuffer cmd) // Previously FrameCleanup
+        public override void FrameCleanup(CommandBuffer cmd)
         {
             cmd.ReleaseTemporaryRT(_sourceId);
             cmd.ReleaseTemporaryRT(_downsampleId);
