@@ -262,6 +262,11 @@ namespace RenderPass.OutlineBuffers
                 #endregion
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             
+            srcMipLevel--;
+            // Bitwise operations
+            srcMipWidth <<= 1; // same as srcMipWidth *= 2.
+            srcMipHeight <<= 1; // same as srcMipHeight *= 2.
+            
             if (srcMipLevel == 0) break; // If mipLevel = 0 then no further blurring/upsampling is needed.
                 
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -282,10 +287,6 @@ namespace RenderPass.OutlineBuffers
                 #endregion
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-                srcMipLevel--;
-                // Bitwise operations
-                srcMipWidth <<= 1; // same as srcMipWidth *= 2.
-                srcMipHeight <<= 1; // same as srcMipHeight *= 2.
             }
 
             // SetGlobalTexture _BlurredUpsampleTexture
