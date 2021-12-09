@@ -26,24 +26,28 @@
 #pragma kernel KColorUpsample                       KERNEL_SIZE=8  MAIN_UPSAMPLE=KColorUpsample
 
 #pragma multi_compile _ COPY_MIP_0
+#pragma multi_compile _ FIRST_UPSAMPLE
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
 #include "Assets/Resources/RenderPass/XRInclude/ClampAndScaleUV.hlsl"
 
 #if COPY_MIP_0
-        TEXTURE2D(_Source);
-     RW_TEXTURE2D(float4, _Mip0);
+             TEXTURE2D(_Source);
+    RW_TEXTURE2D(float4, _Mip0);
 #else
-RW_TEXTURE2D(float4, _Source);
+    RW_TEXTURE2D(float4, _Source);
 #endif
 
 RW_TEXTURE2D(float4, _Destination);
 
 // _LowResMip ─→ _HighResMip : Upsample
 // Ex: MipLevel 8 ─→ MipLevel 7
-TEXTURE2D(_LowResMip);
-// TEXTURE2D(_HighResMip);
+#if !FIRST_UPSAMPLE
+              TEXTURE2D(_PreviousMip);
+#endif
+                TEXTURE2D(_LowResMip);
+    RW_TEXTURE2D(float4, _HighResMip);
 
 SAMPLER(sampler_LinearClamp);
 
@@ -52,7 +56,7 @@ float4 _Size;                   // x: src width, y: src height, zw: unused
 
 float4 _BlurBicubicParams;      // xy: low src size, zw: low src texel size
 float4 _TexelSize;              // xy; high src size, zw: high src texel size
-float Scatter;                   // Carry-over from BloomUpsample example
+float Scatter;                  // Carry-over from BloomUpsample example
 CBUFFER_END
 
 // 16x16 pixels with an 8x8 center that we will be blurring writing out. Each uint is two color
@@ -209,10 +213,10 @@ void MAIN_UPSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
     
     int2 scale = _TexelSize.xy/_BlurBicubicParams.xy;
     
-    PositionInputs posInputs = GetPositionInput(float2(dispatchThreadId.xy), _TexelSize.zw, uint2(8, 8));
+    PositionInputs posInputs = GetPositionInput(float2(dispatchThreadId.xy), _TexelSize.zw, uint2(8, 8)); // tileCoord: uint2(KERNEL_SIZE, KERNEL_SIZE);
     float2 uv = ClampAndScaleUV(posInputs.positionNDC, _BlurBicubicParams.zw, 1.0f, scale );
     // float3 highRes = LOAD_TEXTURE2D(_HighResMip, clamp(posInputs.positionSS, 0, _TexelSize.xy - 1)).xyz;
-    float3 highRes = _Destination.Load(clamp(posInputs.positionSS, 0, _TexelSize.xy - 1)).xyz;
+    float3 highRes = _HighResMip.Load(clamp(posInputs.positionSS, 0, _TexelSize.xy - 1)).xyz;
 
     #if SHADER_QUALITY_LOW
     float3 lowRes = SAMPLE_TEXTURE2D_LOD(_LowResMip, sampler_LinearClamp, uv, 0.0).xyz;
@@ -225,6 +229,9 @@ void MAIN_UPSAMPLE(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     // Guard bands
     output *= all(dispatchThreadId.xy <= uint2(_TexelSize.xy));
-
-    _Destination[dispatchThreadId.xy] = float4(output, 1);
+    #if FIRST_UPSAMPLE
+    _HighResMip[dispatchThreadId.xy] = float4(output, 1);
+    #else
+    _HighResMip[dispatchThreadId.xy] = float4(output, 1) + SAMPLE_TEXTURE2D_LOD(_PreviousMip, sampler_LinearClamp, _BlurBicubicParams.xy, 0);
+    #endif
 }
