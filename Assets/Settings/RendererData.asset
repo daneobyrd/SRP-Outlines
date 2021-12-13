@@ -81,7 +81,6 @@ MonoBehaviour:
         subTargetType: 0
         lightModeTags:
         - Outline
-        - UniversalForward
         textureName: _OutlineOpaque
         createTexture: 1
         renderTextureFormat: 11
