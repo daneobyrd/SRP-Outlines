@@ -132,6 +132,7 @@ namespace RenderPass.OutlineBuffers
                 // Blit(cmd, blitTempTarget, _cameraTarget);
                 
                 // cmd.Blit(_cameraTarget, blitTempTarget, _material);
+                cmd.SetGlobalTexture(blitTempId, _cameraTarget);
                 cmd.SetRenderTarget(_cameraTarget);
                 // cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
                 cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);

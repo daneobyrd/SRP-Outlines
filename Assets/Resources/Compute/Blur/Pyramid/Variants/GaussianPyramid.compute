@@ -3,6 +3,8 @@
 #pragma kernel GAUSSIAN_PYRAMID
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
+
 //────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 float _gaussian_sigma;
@@ -10,7 +12,6 @@ float _gaussian_sigma;
 // uint _source_height;
 Texture2D<float4> _Source;
 RWTexture2D<float4> _BlurResults;
-SamplerState sampler_LinearClamp;
 
 //────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ void GAUSSIAN_PYRAMID(uint3 id : SV_DispatchThreadID)
     const float2 texture_uv = float2(id.xy * step.xy);
 
     float sum = 0.0f;
+    UNITY_UNROLL
     for (int x = -1; x <= 1; ++x)
     {
         for (int y = -1; y <= 1; y++)

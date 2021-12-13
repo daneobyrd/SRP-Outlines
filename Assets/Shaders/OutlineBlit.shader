@@ -9,7 +9,7 @@
     SubShader
     {
         Tags {"RenderPipeline" = "UniversalPipeline"}
-//        LOD 100
+        LOD 100
         Pass
         {
             Name "OutlineBlit"
@@ -67,15 +67,10 @@
             
             float4 Fragment(Varyings input) : SV_Target
             {
-                float2 uv = input.uv;
-            // #if defined(USE_TEXTURE2D_X_AS_ARRAY)// && defined(BLIT_SINGLE_SLICE)
-                // float4 outlineTex = SAMPLE_TEXTURE2D_ARRAY_LOD(_OutlineTexture, sampler_OutlineTexture, uv, 0);
-                // float outlineMask = saturate(outlineTex); // _OutlineTex is normalized in the compute shader
-            // #else
-                
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+                
+                float2 uv = input.uv;
                 float4 outlineTex = SAMPLE_TEXTURE2D_X(_OutlineTexture, sampler_OutlineTexture, uv);
-            // #endif
 
                 float4 outlineMask;
                 outlineMask.x = step( _OuterThreshold, outlineTex.x );

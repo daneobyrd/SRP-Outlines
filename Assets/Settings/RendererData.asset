@@ -98,9 +98,9 @@ MonoBehaviour:
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
       outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
     outlineProperties:
-      outerThreshold: 1
-      innerThreshold: 1
+      outerThreshold: 0.25
+      innerThreshold: 0.25
       rotations: 8
       depthPush: 0.000001
-      outerLUT: {fileID: 0}
-      innerLUT: {fileID: 0}
+      outerLUT: {fileID: 2800000, guid: 6d470e62de90c4342a9ffa868238a6c9, type: 3}
+      innerLUT: {fileID: 2800000, guid: 199332b6792c5ae4a893300213de51f5, type: 3}
