@@ -73,8 +73,8 @@ namespace RenderPass.OutlineBuffers
 
         public LineworkSettings()
         {
-            colorSubTarget = new PassSubTarget(new List<string> {"Outline"}, "_OutlineOpaque", SubTargetType.Color,
-                true, RenderTextureFormat.ARGBFloat);
+            colorSubTarget =
+                new PassSubTarget(new List<string> {"Outline"}, "_OutlineOpaque", SubTargetType.Color, true, RenderTextureFormat.ARGBFloat);
             depthSubTarget =
                 new PassSubTarget(new List<string> {"Outline"}, "_OutlineDepth", SubTargetType.Depth, true);
         }
@@ -86,9 +86,11 @@ namespace RenderPass.OutlineBuffers
     public class EdgeDetectionSettings
     {
         [Header("Blur")] public ComputeShader computeBlur;
-        [Range(3, 8)] public int pyramidLevels = 8;
+        [Range(2, 5)] public int pyramidLevels = 5;
 
-        [Space(10)] public ComputeShader computeLines;
+        [Space(10)]
+        
+        public ComputeShader computeLines;
 
         [Header("Blit to Screen")] public Material blitMaterial;
         public Shader outlineEncoder;
@@ -98,8 +100,8 @@ namespace RenderPass.OutlineBuffers
     [System.Serializable]
     public class OutlineShaderProperties
     {
-        [Tooltip("Object Threshold.")] public float outerThreshold = 1.0f;
-        [Tooltip("Inner Threshold.")] public float innerThreshold = 1.0f;
+        [Tooltip("Object Threshold."), Range(0, 0.25f)] public float outerThreshold = 1.0f;
+        [Tooltip("Inner Threshold."), Range(0, 0.25f)] public float innerThreshold = 1.0f;
         [Tooltip("Rotations.")] public int rotations = 8;
         [Tooltip("Depth Push.")] public float depthPush = 1e-6f;
         [Tooltip("Object LUT.")] public Texture2D outerLUT;
@@ -109,7 +111,7 @@ namespace RenderPass.OutlineBuffers
     public class OutlineRenderer : ScriptableRendererFeature
     {
         public OutlineSettings settings = new();
-        public FilterSettings filter => settings.filterSettings;
+        // public FilterSettings filter => settings.filterSettings;
         private LineworkSettings linework => settings.lineworkSettings;
 
         private EdgeDetectionSettings edge => settings.edgeSettings;
@@ -146,8 +148,6 @@ namespace RenderPass.OutlineBuffers
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            // if (renderingData.cameraData.cameraType == CameraType.Game)
-            // {
                 if (!GetMaterial())
                 {
                     Debug.LogErrorFormat(
@@ -158,28 +158,20 @@ namespace RenderPass.OutlineBuffers
                 Shader.SetGlobalFloat(OuterThreshold, shaderProps.outerThreshold);
                 Shader.SetGlobalFloat(InnerThreshold, shaderProps.innerThreshold);
                 // Shader.SetGlobalInt(Rotations, shaderProps.rotations);
-                // Shader.SetGlobalFloat(DepthPush, shaderProps.depthPush);
+                Shader.SetGlobalFloat(DepthPush, shaderProps.depthPush);
                 // Shader.SetGlobalTexture(OuterLut, shaderProps.outerLUT);
                 // Shader.SetGlobalTexture(InnerLut, shaderProps.innerLUT);
 
 
                 var hasDepth = linework.depthSubTarget.createTexture;
                 _lineworkPass.ShaderTagSetup(hasDepth);
-                // _lineworkPass.ConfigureInput(ScriptableRenderPassInput.Depth);
-                // _lineworkPass.ConfigureInput(ScriptableRenderPassInput.Color);
                 renderer.EnqueuePass(_lineworkPass);
 
                 _blurPass.Init(linework.colorSubTarget.textureName, edge.computeBlur, edge.pyramidLevels);
                 renderer.EnqueuePass(_blurPass);
 
-                _computeLines.Setup(outlineEncoderMaterial, "_BlurredUpsampleTex", renderer.cameraColorTarget,
-                    settings.edgeSettings.computeLines, hasDepth);
+                _computeLines.Setup(outlineEncoderMaterial, "_BlurredUpsampleTex", renderer.cameraColorTarget, edge.computeLines, hasDepth);
                 renderer.EnqueuePass(_computeLines);
-                
-                // Debug.Log(linework.colorSubTarget.targetIdentifier);
-                // Debug.Log(linework.depthSubTarget.targetIdentifier);
-
-            // }
         }
 
         private bool GetMaterial()
