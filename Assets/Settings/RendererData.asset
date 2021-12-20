@@ -98,7 +98,7 @@ MonoBehaviour:
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
       outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
     blurSettings:
-      type: 0
+      type: 1
       gaussianCompute: {fileID: 7200000, guid: 2ff91b8fe5014fb4c9a057320db3824e, type: 3}
       kawaseCompute: {fileID: 7200000, guid: 62b28c43f674f5f48a013c26c83acbef, type: 3}
       pyramidLevels: 5

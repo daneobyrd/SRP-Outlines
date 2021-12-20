@@ -22,35 +22,35 @@ CBUFFER_END
 [numthreads(8, 8, 1)]
 void KBlur(uint2 groupId : SV_GroupID,
            uint2 groupThreadId : SV_GroupThreadID,
-           uint3 id : SV_DispatchThreadID)
+           uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    uint2 size = uint2(_Size.xy) - 1u;
-    const float2 texelSize = 1.0f / _Size.xy;
-
+    float2 size = uint2(_Size.xy) - 1u;
+    float2 texelSize = 1.0f / _Size.xy;
+    float2 id = dispatchThreadId.xy;
+    
     // ┌──┬──┬──┬──┐
     // ├─c00─┼─c01─┤
     // ├──┼──╬──┼──┤
     // ├─c10─┼─c11─┤
     // └──┴──┴──┴──┘
-
     static float2 skip[4] =
     {
         float2(-offset, offset), float2(offset, offset),
         float2(-offset, -offset), float2(offset, -offset)
     };
     
-    const float2 c00 = float2(min(id.xy + skip[0], size) * texelSize);
-    const float2 c01 = float2(min(id.xy + skip[1], size) * texelSize);
-    const float2 c10 = float2(min(id.xy + skip[2], size) * texelSize);
-    const float2 c11 = float2(min(id.xy + skip[3], size) * texelSize);
+    const float2 c00 = float2(min(id + skip[0], size) * texelSize);
+    const float2 c01 = float2(min(id + skip[1], size) * texelSize);
+    const float2 c10 = float2(min(id + skip[2], size) * texelSize);
+    const float2 c11 = float2(min(id + skip[3], size) * texelSize);
 
-    // const float4 px = SAMPLE_TEXTURE2D_LOD(_Source, sampler_LinearClamp, id.xy, 0);
+    const float4 px = SAMPLE_TEXTURE2D_LOD(_Source, sampler_LinearClamp, id, 0);
     const float4 p00 = SAMPLE_TEXTURE2D_LOD(_Source, sampler_LinearClamp, c00, 0);
     const float4 p01 = SAMPLE_TEXTURE2D_LOD(_Source, sampler_LinearClamp, c01, 0);
     const float4 p10 = SAMPLE_TEXTURE2D_LOD(_Source, sampler_LinearClamp, c10, 0);
     const float4 p11 = SAMPLE_TEXTURE2D_LOD(_Source, sampler_LinearClamp, c11, 0);
 
-    _Result[id.xy] = float4((p00 + p10 + p11 + p01) / 4.0f);
+    _Result[id] = float4((px + p00 + p10 + p11 + p01) / 5.0f);
 }
 
 //kawase : 0,1,2,2,3 at displacements 1.5,2.5,2.5,3.5
