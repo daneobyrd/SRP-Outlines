@@ -115,20 +115,17 @@ public class BlurPass : ScriptableRenderPass
     {
         var camTexDesc = cameraTextureDescriptor;
         camTexDesc.msaaSamples       = 1;
-        camTexDesc.mipCount          = _totalMips;
-        camTexDesc.useMipMap         = true; // Do not use autoGenerateMips: does not reliably generate mips.
         camTexDesc.colorFormat       = RenderTextureFormat.ARGBFloat;
         camTexDesc.depthBufferBits   = (int) DepthBits.None;
         camTexDesc.enableRandomWrite = true;
-        // camTexDesc.bindMS            = true;
         
+
         // _Source does not need mip maps
         RenderTextureDescriptor sourceDesc = camTexDesc;
         // sourceDesc.msaaSamples     = 2;
         sourceDesc.mipCount          = 0;
         sourceDesc.useMipMap         = false;
         // sourceDesc.enableRandomWrite = false;
-
 
         // Source texture
         cmd.GetTemporaryRT(_sourceId, sourceDesc, FilterMode.Bilinear);
@@ -137,6 +134,9 @@ public class BlurPass : ScriptableRenderPass
         {
             case BlurType.Gaussian:
             {
+                camTexDesc.mipCount  = _totalMips;
+                camTexDesc.useMipMap = true; // Do not use autoGenerateMips: does not reliably generate mips.
+
                 // Downsample texture
                 cmd.GetTemporaryRT(_downsampleId, camTexDesc, FilterMode.Point);
 
@@ -158,7 +158,7 @@ public class BlurPass : ScriptableRenderPass
                 rtDesc.enableRandomWrite = true;
                 rtDesc.bindMS            = true;
 
-                cmd.GetTemporaryRT(_blurId, rtDesc, FilterMode.Bilinear);
+                cmd.GetTemporaryRT(_blurId, camTexDesc, FilterMode.Bilinear);
 
                 cmd.GetTemporaryRT(_finalId, camTexDesc, FilterMode.Bilinear);
                 break;
@@ -445,8 +445,8 @@ public class BlurPass : ScriptableRenderPass
         cmd.DispatchCompute(_computeShader, kBlurKernel, numthreadsX, numthreadsY, 1);
         
         // Final Pass
-        numthreadsX =   Mathf.CeilToInt(size.x / 4f);
-        numthreadsY =   Mathf.CeilToInt(size.y / 4f);
+        numthreadsX =   Mathf.CeilToInt(size.x / 8f);
+        numthreadsY =   Mathf.CeilToInt(size.y / 8f);
         
         cmd.SetComputeFloatParam(_computeShader, "offset", 3.5f);
         cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(size.x, size.y, 0, 0));

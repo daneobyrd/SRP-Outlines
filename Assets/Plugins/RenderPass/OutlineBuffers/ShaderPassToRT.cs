@@ -60,8 +60,7 @@ public class ShaderPassToRT : ScriptableRenderPass
 
     #endregion
 
-    public ShaderPassToRT(OutlineSettings settings, string profilerTag, RenderPassEvent renderPassEvent,
-                          int depthBufferBits)
+    public ShaderPassToRT(OutlineSettings settings, string profilerTag, RenderPassEvent renderPassEvent, int depthBufferBits)
     {
         _settings    = settings;
         _profilerTag = profilerTag;
@@ -124,11 +123,10 @@ public class ShaderPassToRT : ScriptableRenderPass
 
         if (createDepthTexture)
         {
-            cmd.GetTemporaryRT(depthIdInt, width, height, _texDepthBufferBits, FilterMode.Point,
-                               RenderTextureFormat.Depth);
+            cmd.GetTemporaryRT(depthIdInt, width, height, _texDepthBufferBits, FilterMode.Point, RenderTextureFormat.Depth);
         }
 
-        switch ((createColorTexture, createDepthTexture))
+        switch (createColorTexture, createDepthTexture)
         {
             case (true, true):
                 ConfigureTarget(colorAttConfigList.ToArray(), depthTargetId);
@@ -150,11 +148,12 @@ public class ShaderPassToRT : ScriptableRenderPass
     {
         CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
 
-        var camera = renderingData.cameraData.camera;
         var cameraData = renderingData.cameraData;
+        var camera = renderingData.cameraData.camera;
         var cullingResults = renderingData.cullResults;
 
-
+        cameraData.antialiasing = AntialiasingMode.None;
+        
         SortingCriteria sortingCriteria = renderQueueType == RenderQueueType.Opaque
             ? renderingData.cameraData.defaultOpaqueSortFlags
             : SortingCriteria.CommonTransparent;
