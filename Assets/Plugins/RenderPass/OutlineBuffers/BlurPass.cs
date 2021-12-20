@@ -122,10 +122,8 @@ public class BlurPass : ScriptableRenderPass
 
         // _Source does not need mip maps
         RenderTextureDescriptor sourceDesc = camTexDesc;
-        // sourceDesc.msaaSamples     = 2;
         sourceDesc.mipCount          = 0;
         sourceDesc.useMipMap         = false;
-        // sourceDesc.enableRandomWrite = false;
 
         // Source texture
         cmd.GetTemporaryRT(_sourceId, sourceDesc, FilterMode.Bilinear);
@@ -152,12 +150,6 @@ public class BlurPass : ScriptableRenderPass
             }
             case BlurType.Kawase:
             {
-                var rtDesc = cameraTextureDescriptor;
-                rtDesc.mipCount  = 0;
-                rtDesc.useMipMap = false;
-                rtDesc.enableRandomWrite = true;
-                rtDesc.bindMS            = true;
-
                 cmd.GetTemporaryRT(_blurId, camTexDesc, FilterMode.Bilinear);
 
                 cmd.GetTemporaryRT(_finalId, camTexDesc, FilterMode.Bilinear);

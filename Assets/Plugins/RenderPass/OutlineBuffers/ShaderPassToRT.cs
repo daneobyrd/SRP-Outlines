@@ -152,7 +152,7 @@ public class ShaderPassToRT : ScriptableRenderPass
         var camera = renderingData.cameraData.camera;
         var cullingResults = renderingData.cullResults;
 
-        cameraData.antialiasing = AntialiasingMode.None;
+        renderingData.cameraData.antialiasing = AntialiasingMode.None;
         
         SortingCriteria sortingCriteria = renderQueueType == RenderQueueType.Opaque
             ? renderingData.cameraData.defaultOpaqueSortFlags
