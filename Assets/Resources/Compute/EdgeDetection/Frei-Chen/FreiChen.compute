@@ -1,0 +1,87 @@
+﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+
+#pragma kernel KFreiChen                           KERNEL_SIZE=8   MAIN_FREI_CHEN=KFreiChen
+
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
+#include "FreiChenFilters.hlsl"
+
+CBUFFER_START(cbuff)
+float4 _Size; // x: src width, y: src height, zw: unused
+CBUFFER_END
+
+TEXTURE2D(Source);
+RW_TEXTURE2D(float4, Result);
+
+const static int2 sample_offsets[9] =
+{
+    int2(-1, 1), int2(0, 1), int2(1, 1),
+    int2(-1, 0), int2(0, 0), int2(1, 0),
+    int2(-1, -1), int2(0, -1), int2(1, -1)
+};
+
+float ApplyMask(float3x3 input, float3x3 cnvMask)
+{
+    const float dp3 = dot(cnvMask[0], input[0])
+                    + dot(cnvMask[1], input[1])
+                    + dot(cnvMask[2], input[2]);
+    return dp3 * dp3;
+}
+
+[numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
+void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID,                             // ID of thread group; range depends on Dispatch call.
+                    uint2 groupThreadId : SV_GroupThreadID,                 // ID of thread in a thread group; range depends on numthreads.
+                    uint3 dispatchThreadId : SV_DispatchThreadID)           // = SV_GroupID * numthreads + SV_GroupThreadID.
+{
+    const float2 texelSize = float2(1.0 / _Size.xy);
+    const float2 uv = float2(dispatchThreadId.xy * texelSize);
+
+    static float cnv_float[9];
+
+    static const float3x3 G[9] =
+    {
+        G0, G1, G2,
+        G3, G4, G5,
+        G6, G7, G8
+    };
+
+    static float3 pixel_sample;
+    static float3x3 intensity;
+
+    UNITY_UNROLL
+    for (int i = 0; i < 3; ++i)
+    {
+        int k = 0;
+        for (int j = 0; j < 3; ++j)
+        {
+            intensity = length(Source[uint2(dispatchThreadId.xy + sample_offsets[k])]);
+            k++;
+        }
+    }
+    /*
+    /* fetch the 3x3 neighbourhood and use the RGB vector's length as intensity value #1#
+    UNITY_UNROLL
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            pixel_sample = SAMPLE_TEXTURE2D_LOD(Source, sampler_LinearClamp, int2(uv) + int2(i - 1, j - 1), 0).rgb;
+            intensity[i][j] = Luminance(pixel_sample);
+        }
+    }
+    */
+
+    /* calculate the convolution values for all the masks */
+    UNITY_UNROLL
+    for (int n = 0; n < 9; n++)
+    {
+        cnv_float[n] = ApplyMask(intensity, g[n]);
+    }
+
+
+    float M = (cnv_float[0] + cnv_float[1]) + (cnv_float[2] + cnv_float[3]);
+    float S = (cnv_float[4] + cnv_float[5]) + (cnv_float[6] + cnv_float[7]) + (cnv_float[8] + M);
+
+    Result[dispatchThreadId.xy] = float4(float3(sqrt(M / S), 0, 0),
+                                         SAMPLE_TEXTURE2D_LOD(Source, sampler_LinearClamp, uv, 0).a);
+}

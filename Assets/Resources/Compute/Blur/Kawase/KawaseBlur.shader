@@ -39,7 +39,8 @@ Shader "Custom/RenderFeature/KawaseBlur"
             };
 
             CBUFFER_START(UnityPerMaterial)
-            sampler2D _MainTex;
+            TEXTURE2D(_MainTex);
+            SAMPLER(sampler_MainTex);
             // sampler2D _CameraOpaqueTexture;
             float4 _MainTex_TexelSize;
             float4 _MainTex_ST;
@@ -61,11 +62,11 @@ Shader "Custom/RenderFeature/KawaseBlur"
                 float i = _offset;
 
                 float4 col;
-                col.rgb = tex2D(_MainTex, input.uv).rgb;
-                col.rgb += tex2D(_MainTex, input.uv + float2(i, i) * res).rgb;
-                col.rgb += tex2D(_MainTex, input.uv + float2(i, -i) * res).rgb;
-                col.rgb += tex2D(_MainTex, input.uv + float2(-i, i) * res).rgb;
-                col.rgb += tex2D(_MainTex, input.uv + float2(-i, -i) * res).rgb;
+                col.rgb =  SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv).rgb;
+                col.rgb += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv + float2(i, i) * res).rgb;
+                col.rgb += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv + float2(i, -i) * res).rgb;
+                col.rgb += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv + float2(-i, i) * res).rgb;
+                col.rgb += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv + float2(-i, -i) * res).rgb;
                 col.rgb /= 5.0f;
 
                 return col;
