@@ -64,3 +64,18 @@ cmd.Blit( combinedTargetId, BuiltinRenderTextureType.CurrentActive, _material, 0
 │   3    │          │     3      │
 └────────┴──────────┴────────────┘
 */
+
+
+/*
+var rendererListDesc = new RendererListDesc(_shaderTagIdList.ToArray(), cullingResults, camera)
+{
+    sortingCriteria       = sortingCriteria,
+    rendererConfiguration = drawingSettings.perObjectData,
+    renderQueueRange      = _renderQueueRange,
+    overrideMaterial      = drawingSettings.overrideMaterial,
+    overrideMaterialPassIndex = drawingSettings.overrideMaterialPassIndex,
+    layerMask             = _filteringSettings.layerMask,
+    excludeObjectMotionVectors = _filteringSettings.excludeMotionVectorObjects,
+};
+RendererList rendererList = context.CreateRendererList(rendererListDesc);
+*/
