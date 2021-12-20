@@ -15,15 +15,15 @@ MonoBehaviour:
   debugShaders:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
   m_RendererFeatures:
-  - {fileID: 3026817424008148383}
-  m_RendererFeatureMap: 9ff5f70d696a012a
+  - {fileID: 7654891652829409000}
+  m_RendererFeatureMap: e8eeffa066a33b6a
   m_UseNativeRenderPass: 1
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
   shaders:
     blitPS: {fileID: 4800000, guid: c17132b1f77d20942aa75f8429c0f8bc, type: 3}
     copyDepthPS: {fileID: 4800000, guid: d6dae50ee9e1bfa4db75f19f99355220, type: 3}
-    screenSpaceShadowPS: {fileID: 4800000, guid: 0f854b35a0cf61a429bd5dcfea30eddd, type: 3}
+    screenSpaceShadowPS: {fileID: 0}
     samplingPS: {fileID: 4800000, guid: 04c410c9937594faa893a11dceb85f7e, type: 3}
     stencilDeferredPS: {fileID: 4800000, guid: e9155b26e1bc55942a41e518703fe304, type: 3}
     fallbackErrorPS: {fileID: 4800000, guid: e6e9a19c3678ded42a3bc431ebef7dbd, type: 3}
@@ -49,11 +49,11 @@ MonoBehaviour:
   m_ShadowTransparentReceive: 1
   m_RenderingMode: 0
   m_DepthPrimingMode: 1
-  m_AccurateGbufferNormals: 1
+  m_AccurateGbufferNormals: 0
   m_ClusteredRendering: 0
   m_TileSize: 32
   m_IntermediateTextureMode: 0
---- !u!114 &3026817424008148383
+--- !u!114 &7654891652829409000
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -62,7 +62,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1368294b394042aea756980b82b8e024, type: 3}
+  m_Script: {fileID: 11500000, guid: 562cd248cca8fc6438038ecc07a3f6c9, type: 3}
   m_Name: OutlineRenderer
   m_EditorClassIdentifier: 
   m_Active: 1
@@ -92,15 +92,18 @@ MonoBehaviour:
         createTexture: 0
         renderTextureFormat: 1
     edgeSettings:
-      computeBlur: {fileID: 7200000, guid: c0c764533df04df08e21a87a33108ae5, type: 3}
-      pyramidLevels: 4
-      computeLines: {fileID: 7200000, guid: 7714ed7d91c04d43be38c0df9f3125f7, type: 3}
+      edgeMethod: 0
+      laplacianCompute: {fileID: 7200000, guid: 907242c0e22123142aba99ac30ad1412, type: 3}
+      freiChenCompute: {fileID: 7200000, guid: 505c195acdcb02844b6f5227c274c03d, type: 3}
       blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
       outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
+    blurSettings:
+      type: 0
+      gaussianCompute: {fileID: 7200000, guid: 2ff91b8fe5014fb4c9a057320db3824e, type: 3}
+      kawaseCompute: {fileID: 7200000, guid: 62b28c43f674f5f48a013c26c83acbef, type: 3}
+      pyramidLevels: 5
     outlineProperties:
       outerThreshold: 0.25
       innerThreshold: 0.25
       rotations: 8
       depthPush: 0.000001
-      outerLUT: {fileID: 2800000, guid: 6d470e62de90c4342a9ffa868238a6c9, type: 3}
-      innerLUT: {fileID: 2800000, guid: 199332b6792c5ae4a893300213de51f5, type: 3}

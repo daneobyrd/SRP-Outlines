@@ -32,28 +32,19 @@ Shader "Example/OutlineSource"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                // The uv variable contains the UV coordinate on the texture for the
-                // given vertex.
                 float2 uv : TEXCOORD0;
             };
 
             struct Varyings
             {
                 float4 positionHCS : SV_POSITION;
-                // The uv variable contains the UV coordinate on the texture for the
-                // given vertex.
                 float2 uv : TEXCOORD0;
             };
 
-            // This macro declares _BaseMap as a Texture2D object.
             TEXTURE2D(_BaseMap);
-            // This macro declares the sampler for the _BaseMap texture.
             SAMPLER(sampler_BaseMap);
 
             CBUFFER_START(UnityPerMaterial)
-            // The following line declares the _BaseMap_ST variable, so that you
-            // can use the _BaseMap variable in the fragment shader. The _ST
-            // suffix is necessary for the tiling and offset function to work.
             float4 _BaseMap_ST;
             CBUFFER_END
 
@@ -61,13 +52,11 @@ Shader "Example/OutlineSource"
             {
                 Varyings OUT;
                 OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                // The TRANSFORM_TEX macro performs the tiling and offset
-                // transformation.
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
                 return OUT;
             }
 
-            half4 frag(Varyings IN) : SV_Target
+            half4 frag(Varyings IN) : SV_Target0
             {
                 // The SAMPLE_TEXTURE2D marco samples the texture with the given
                 // sampler.
@@ -116,6 +105,8 @@ Shader "Example/OutlineSource"
             // This macro declares the sampler for the _BaseMap texture.
             SAMPLER(sampler_Discontinuity);
 
+            // TEXTURE2D(_CameraMotionVectorTexture);
+
             CBUFFER_START(UnityPerMaterial)
             float4 _Discontinuity_ST;
             CBUFFER_END
@@ -124,16 +115,12 @@ Shader "Example/OutlineSource"
             {
                 Varyings OUT;
                 OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                // The TRANSFORM_TEX macro performs the tiling and offset
-                // transformation.
                 OUT.uv = TRANSFORM_TEX(IN.uv, _Discontinuity);
                 return OUT;
             }
 
             half4 frag(Varyings IN) : SV_Target
             {
-                // The SAMPLE_TEXTURE2D marco samples the texture with the given
-                // sampler.
                 half4 color = SAMPLE_TEXTURE2D(_Discontinuity, sampler_Discontinuity, IN.uv);
                 return color;
             }
