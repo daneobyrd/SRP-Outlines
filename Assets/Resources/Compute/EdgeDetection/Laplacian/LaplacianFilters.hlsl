@@ -110,7 +110,7 @@ float4 ApplyLaplacian_9x9(float4 sample_9x9[81], float filter[10]) // outer rim 
 │ -1 │ -1 │ -1 │ Forming a output range from -8 to 8 (Zero-Summing).               │
 └────┴────┴────┴───────────────────────────────────────────────────────────────────┘
 */
- static float laplacian_3x3_0[9] =
+static float laplacian_3x3_0[9] =
 {
     -1, -1, -1,
     -1,  8, -1,
@@ -122,6 +122,13 @@ float4 ApplyLaplacian_9x9(float4 sample_9x9[81], float filter[10]) // outer rim 
 └──────────────┴───────────────────────────────────────────────────────────────┘
 */
 static float laplace_3x3_0[] = {8, -1, -1};
+
+static float laplacian_3x3_0a[9] =
+{
+     1,  1,  1,
+     1, -8,  1,
+     1,  1,  1,
+};
 
 #elif LAPLACIAN_KERNEL == 31
 

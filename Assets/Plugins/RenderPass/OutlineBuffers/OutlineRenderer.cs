@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.Serialization;
 
 #region Enums
 
@@ -82,7 +83,8 @@ public class EdgeDetectionSettings
     public ComputeShader laplacianCompute;
     public ComputeShader freiChenCompute;
 
-    [Header("Blit to Screen")] public Material blitMaterial;
+    [Header("Blit to Screen")]
+    public Material blitMaterial;
     public Shader outlineEncoder;
 }
 
@@ -92,7 +94,10 @@ public class BlurSettings
     public BlurType type;
     public ComputeShader gaussianCompute;
     public ComputeShader kawaseCompute;
-    [Range(2, 5)] public int pyramidLevels = 5;
+    
+    [Range(3, 5)] public int blurPasses = 5;
+    public float threshold;
+    public float intensity;
 }
 
 [Serializable]
@@ -190,7 +195,8 @@ public class OutlineRenderer : ScriptableRendererFeature
                     BlurType.Kawase   => blur.kawaseCompute,
                     _                 => throw new ArgumentOutOfRangeException()
                 };
-                _blurPass.Init(linework.colorSubTarget.textureName, blur.type, blurCompute, blur.pyramidLevels);
+                _blurPass.Init(linework.colorSubTarget.textureName, blur.type, blurCompute,
+                               blur.blurPasses, blur.threshold, blur.intensity);
                 renderer.EnqueuePass(_blurPass);
 
                 outlineSource = "_FinalBlur";

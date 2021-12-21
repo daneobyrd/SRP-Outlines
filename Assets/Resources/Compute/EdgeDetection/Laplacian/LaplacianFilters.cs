@@ -1,6 +1,6 @@
 ﻿// Some laplacian kernels: https://legacy.imagemagick.org/Usage/convolve/#laplacian
 
-public class aplacianFilters
+public class laplacianFilters
 {
     private uint _arraySize;
 

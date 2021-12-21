@@ -103,7 +103,7 @@ MonoBehaviour:
       kawaseCompute: {fileID: 7200000, guid: 62b28c43f674f5f48a013c26c83acbef, type: 3}
       pyramidLevels: 5
     outlineProperties:
-      outerThreshold: 0.25
-      innerThreshold: 0.25
+      outerThreshold: 0.574
+      innerThreshold: 0.603
       rotations: 8
       depthPush: 0.000001

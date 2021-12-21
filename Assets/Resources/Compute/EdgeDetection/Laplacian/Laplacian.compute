@@ -7,7 +7,7 @@
 #include "LaplacianFilters.hlsl"
 
 CBUFFER_START(cb)
-float4 _Size; // x: src width, y: src height, zw: unused
+real4 _Size; // x: src width, y: src height, zw: unused
 CBUFFER_END
 
 TEXTURE2D(Source);
@@ -27,42 +27,25 @@ void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID,                     // ID of thr
                     uint2 groupThreadId : SV_GroupThreadID,         // ID of thread in a thread group; range depends on numthreads.
                     uint3 dispatchThreadId : SV_DispatchThreadID)   // = SV_GroupID * numthreads + SV_GroupThreadID.
 {
-    /*
-    // Upper-left pixel coordinate of quad that this thread will read
-    int2 threadUL = (groupThreadId << 1) + (groupId << 3) - 4;
-    uint2 uthreadUL = uint2(max(0, threadUL));
-
-    uint2 size = uint2(_Size.xy) - 1u;
-    float4 p00 = Source[min(uthreadUL + uint2(0u, 0u), size)];
-    float4 p10 = Source[min(uthreadUL + uint2(1u, 0u), size)];
-    float4 p11 = Source[min(uthreadUL + uint2(1u, 1u), size)];
-    float4 p01 = Source[min(uthreadUL + uint2(0u, 1u), size)];
-
-    // Store the 4 downsampled pixels in LDS
-    uint destIdx = groupThreadId.x + (groupThreadId.y << 4u);
-    Store2Pixels(destIdx, p00, p10);
-    Store2Pixels(destIdx + 8u, p01, p11);
-
-    GroupMemoryBarrierWithGroupSync();
+    const real2 texelSize = real2(1.0 / _Size.xy);
+    const real2 uv = real2(dispatchThreadId.xy * texelSize);
     
-    uint row = groupThreadId.y << 4u;
-    // uint column = groupThreadId.x << 4u;
-    uint2 currentRowColumn;
-    currentRowColumn.x = row.x + (groupThreadId.x << 1u), row + groupThreadId.x + (groupThreadId.x & 4u);
-    currentRowColumn.y = (groupThreadId.y << 3u) + groupThreadId.x;
-    DetectEdges(dispatchThreadId.xy, currentRowColumn, 9);
-    */
-
-    const float2 texelSize = float2(1.0 / _Size.xy);
-    const float2 uv = float2(dispatchThreadId.xy * texelSize);
-
+    #if LAPLACIAN_KERNEL == 30
     laplacian = laplacian_3x3_0;
-    float3 outline_edge = float3(0, 0, 0);
+    #elif LAPLACIAN_KERNEL == 31
+    laplacian = laplacian_3x3_1;
+    #elif LAPLACIAN_KERNEL == 32
+    laplacian = laplacian_3x3_2;
+    #elif LAPLACIAN_KERNEL == 33
+    laplacian = laplacian_3x3_3;
+    #endif
+
+    float4 outline_edge = float4(0, 0, 0, 0);
     UNITY_UNROLL
     for(int i = 0; i < sample_size; i++)
     {
-        outline_edge += Source.SampleLevel(sampler_LinearClamp, uv + float2(texelSize * offsets[i]), 0).rgb * laplacian[i];
+        outline_edge += Source.SampleLevel(sampler_LinearClamp, uv + real2(texelSize * offsets[i]), 0) * laplacian[i];
     }
     
-    Result[(dispatchThreadId.xy)] = float4(outline_edge, 1);
+    Result[(dispatchThreadId.xy)] = outline_edge;
 }
