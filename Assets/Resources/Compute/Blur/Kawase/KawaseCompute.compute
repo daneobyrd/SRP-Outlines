@@ -10,8 +10,8 @@ Here: https://www.intel.com/content/www/us/en/developer/articles/technical/an-in
 #pragma kernel KBlur
 #pragma kernel KBlurUpsample
 
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
+#include "Assets/Resources/Compute/Reference/Direct3D Rendering/LerpUtils.hlsl"
 
 TEXTURE2D(_Source);
 RW_TEXTURE2D(float4, _Result);
@@ -70,10 +70,10 @@ void KBlurUpsample(uint2 groupId : SV_GroupID,
     float2 id = dispatchThreadId.xy;
 
     // Regular upsample
-    // _Result[id.xy] = SAMPLE_TEXTURE2D_LOD(_Source, sampler_LinearClamp, id * texelSize, 0);
+    _Result[id.xy] = SAMPLE_TEXTURE2D_LOD(_Source, sampler_LinearClamp, id * texelSize, 0);
 
     // Threshold and upsample
-    float4 src = _Source.SampleLevel(sampler_LinearClamp, id * texelSize, 0);
+    // float4 src = _Source.SampleLevel(sampler_LinearClamp, id * texelSize, 0);
     
     // Legacy comments from Daniel-A-Gutierrez    
     // TempSource[id.xy] = step( float4(threshold, threshold, threshold, threshold), src) * src;
@@ -81,7 +81,7 @@ void KBlurUpsample(uint2 groupId : SV_GroupID,
     // Not exactly what I want though because it reduces *all* the component colors that dont meet threshold. so instead
     // use dot like an OR but for floats.
     
-    _Result[id.xy] = step(.001f, dot(step(float4(threshold, threshold, threshold, threshold), src), float4(1, 1, 1, 1))) * src;
+    // _Result[id.xy] = step(.001f, dot(step(float4(threshold, threshold, threshold, threshold), src), float4(1, 1, 1, 1))) * src;
 }
 
 //kawase : 0,1,2,2,3 at displacements 1.5,2.5,2.5,3.5
