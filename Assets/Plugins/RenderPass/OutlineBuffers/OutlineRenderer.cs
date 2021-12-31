@@ -31,41 +31,10 @@ public class CustomPassSettings
     {
         opaquePassSettings = new ShaderPassToRT.ShaderPassToRTSettings(
                 "Linework Opaque Pass", 
-                RenderQueueType.Opaque, 
-                new[]
-                {
-                    new CustomPassTarget(
-                        new List<string> { "Outline" },
-                        "_OutlineOpaqueColor",
-                        CustomPassTargetType.Color, 
-                        true,
-                        RenderTextureFormat.ARGBFloat)
-                },
-                new CustomPassTarget(
-                    new List<string> {"Outline"},
-                    "_OutlineOpaqueDepth",
-                    CustomPassTargetType.Depth, 
-                    false)
-        );
+                RenderQueueType.Opaque);
         transparentPassSettings = new ShaderPassToRT.ShaderPassToRTSettings(
             "Linework Transparent Pass",
-            RenderQueueType.Transparent,
-            new[]
-            {
-                new CustomPassTarget(
-                    new List<string> { "Outline" },
-                    "_OutlineTransparentColor",
-                    CustomPassTargetType.Color, 
-                    true,
-                    RenderTextureFormat.ARGBFloat)
-            },
-            new CustomPassTarget(
-                new List<string> {"Outline"},
-                "_OutlineTransparentDepth",
-                CustomPassTargetType.Depth, 
-                false)
-            );
-
+            RenderQueueType.Transparent);
     }
 }
 

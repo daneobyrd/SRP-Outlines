@@ -34,8 +34,7 @@ public class ShaderPassToRT : ScriptableRenderPass
         public CustomPassTarget[] customColorTargets;
         public CustomPassTarget customDepthTarget;
 
-        public ShaderPassToRTSettings(string name, RenderQueueType queueType, CustomPassTarget[] colorTargets,
-                                      CustomPassTarget depthTarget)
+        public ShaderPassToRTSettings(string name, RenderQueueType queueType)
         {
             profilerTag       = name;
             renderQueueType   = queueType;
@@ -44,9 +43,8 @@ public class ShaderPassToRT : ScriptableRenderPass
             depthBufferBits   = 16;
 
             // RenderTargets
-            customColorTargets = colorTargets;
-            customDepthTarget  = depthTarget;
-            /*
+            // customColorTargets = colorTargets;
+            // customDepthTarget  = depthTarget;
             customColorTargets = new[]
             {
                 new CustomPassTarget(new List<string> {"Outline"},
@@ -61,7 +59,6 @@ public class ShaderPassToRT : ScriptableRenderPass
                                      "_CustomDepth",
                                      CustomPassTargetType.Depth,
                                      false);
-                                     */
         }
     }
 
