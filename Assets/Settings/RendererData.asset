@@ -48,7 +48,7 @@ MonoBehaviour:
     zFailOperation: 0
   m_ShadowTransparentReceive: 1
   m_RenderingMode: 0
-  m_DepthPrimingMode: 1
+  m_DepthPrimingMode: 0
   m_AccurateGbufferNormals: 0
   m_ClusteredRendering: 0
   m_TileSize: 32
@@ -66,44 +66,68 @@ MonoBehaviour:
   m_Name: OutlineRenderer
   m_EditorClassIdentifier: 
   m_Active: 1
-  settings:
-    profilerTag: OutlineRenderer
-    renderPassEvent: 300
-    debugTargetView: 0
-    filterSettings:
+  profilerTag: OutlineRenderer
+  debugTargetView: 0
+  customPass:
+    opaquePassSettings:
+      enabled: 1
+      profilerTag: Linework Opaque Pass
       renderQueueType: 0
-      layerMask:
-        serializedVersion: 2
-        m_Bits: 2147483647
-      lightLayerMask: -1
-    lineworkSettings:
-      colorSubTarget:
-        subTargetType: 0
+      colorFormat: 11
+      depthBufferBits: 16
+      customColorTargets:
+      - customPassTargetType: 0
         lightModeTags:
         - Outline
-        textureName: _OutlineOpaque
-        createTexture: 1
+        textureName: _OutlineOpaqueColor
+        RTIntId: 807
+        enabled: 1
         renderTextureFormat: 11
-      depthSubTarget:
-        subTargetType: 1
+      customDepthTarget:
+        customPassTargetType: 1
+        lightModeTags:
+        - OutlineDepth
+        textureName: _OutlineOpaqueDepth
+        RTIntId: 808
+        enabled: 0
+        renderTextureFormat: 1
+    transparentPassSettings:
+      enabled: 0
+      profilerTag: Linework Transparent Pass
+      renderQueueType: 1
+      colorFormat: 11
+      depthBufferBits: 16
+      customColorTargets:
+      - customPassTargetType: 0
         lightModeTags:
         - Outline
-        textureName: _OutlineDepth
-        createTexture: 0
+        textureName: _OutlineTransparentColor
+        RTIntId: 809
+        enabled: 1
+        renderTextureFormat: 11
+      customDepthTarget:
+        customPassTargetType: 1
+        lightModeTags:
+        - Outline
+        textureName: _OutlineTransparentDepth
+        RTIntId: 810
+        enabled: 0
         renderTextureFormat: 1
-    edgeSettings:
-      edgeMethod: 0
-      laplacianCompute: {fileID: 7200000, guid: 907242c0e22123142aba99ac30ad1412, type: 3}
-      freiChenCompute: {fileID: 7200000, guid: 505c195acdcb02844b6f5227c274c03d, type: 3}
-      blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
-      outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
-    blurSettings:
-      type: 1
-      gaussianCompute: {fileID: 7200000, guid: 2ff91b8fe5014fb4c9a057320db3824e, type: 3}
-      kawaseCompute: {fileID: 7200000, guid: 62b28c43f674f5f48a013c26c83acbef, type: 3}
-      pyramidLevels: 5
-    outlineProperties:
-      outerThreshold: 0.574
-      innerThreshold: 0.603
-      rotations: 8
-      depthPush: 0.000001
+  blur:
+    type: 1
+    gaussianCompute: {fileID: 7200000, guid: 2ff91b8fe5014fb4c9a057320db3824e, type: 3}
+    kawaseCompute: {fileID: 7200000, guid: 62b28c43f674f5f48a013c26c83acbef, type: 3}
+    blurPasses: 5
+    threshold: 0
+    intensity: 0
+  edge:
+    edgeMethod: 2
+    laplacianCompute: {fileID: 7200000, guid: 907242c0e22123142aba99ac30ad1412, type: 3}
+    freiChenCompute: {fileID: 7200000, guid: 505c195acdcb02844b6f5227c274c03d, type: 3}
+    blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
+    outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
+  shaderProps:
+    outerThreshold: 0.25
+    innerThreshold: 0.25
+    rotations: 8
+    depthPush: 0.000001
