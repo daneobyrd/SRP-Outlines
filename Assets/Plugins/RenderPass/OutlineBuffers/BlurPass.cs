@@ -4,7 +4,6 @@
 // ║  ║  ║  ├──┼──┤
 // ╚══╩══╝  └──┴──┘
 
-
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -31,10 +30,10 @@ public class BlurPass : ScriptableRenderPass
     private readonly int _tempBlurId2 = Shader.PropertyToID("_tempBlur2");
     private readonly int _finalId = Shader.PropertyToID("_FinalBlur");
 
-    private RenderTargetIdentifier sourceColorTarget => new(_sourceId); // _OutlineOpaque
-    private RenderTargetIdentifier downsampleTarget  => new(_tempBlurId1);
-    private RenderTargetIdentifier blurTarget        => new(_tempBlurId2);
-    private RenderTargetIdentifier finalTarget       => new(_finalId);
+    private RenderTargetIdentifier SourceColorTarget => new(_sourceId); // _OutlineOpaque
+    private RenderTargetIdentifier DownsampleTarget  => new(_tempBlurId1);
+    private RenderTargetIdentifier BlurTarget        => new(_tempBlurId2);
+    private RenderTargetIdentifier FinalTarget       => new(_finalId);
 
     #endregion
 
@@ -71,7 +70,6 @@ public class BlurPass : ScriptableRenderPass
         camTexDesc.depthBufferBits   = (int) DepthBits.None;
         camTexDesc.enableRandomWrite = true;
 
-
         // _Source does not need mip maps
         RenderTextureDescriptor sourceDesc = camTexDesc;
         sourceDesc.mipCount  = 0;
@@ -95,7 +93,14 @@ public class BlurPass : ScriptableRenderPass
                 break;
             }
             case BlurType.Kawase:
-                cmd.GetTemporaryRT(_finalId, camTexDesc, FilterMode.Bilinear);
+                // camTexDesc.mipCount  = _passes;
+                // camTexDesc.useMipMap = true; // Testing using different mip level for subsequent blurs
+
+                var finalBlurRTDesc = camTexDesc;
+                finalBlurRTDesc.mipCount  = 0;
+                finalBlurRTDesc.useMipMap = false;
+
+                cmd.GetTemporaryRT(_finalId, finalBlurRTDesc, FilterMode.Bilinear);
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -110,7 +115,7 @@ public class BlurPass : ScriptableRenderPass
     {
         CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
 
-        RenderTextureDescriptor opaqueDesc = renderingData.cameraData.cameraTargetDescriptor;
+        var opaqueDesc = renderingData.cameraData.cameraTargetDescriptor;
         var screenSize = new Vector2Int(opaqueDesc.width, opaqueDesc.height);
         opaqueDesc.enableRandomWrite = true;
 
@@ -118,17 +123,17 @@ public class BlurPass : ScriptableRenderPass
         {
             case BlurType.Gaussian:
                 RenderGaussianPyramid(cmd, screenSize,
-                                      sourceColorTarget,
-                                      downsampleTarget,
-                                      blurTarget,
-                                      finalTarget);
+                                      SourceColorTarget,
+                                      DownsampleTarget,
+                                      BlurTarget,
+                                      FinalTarget);
                 break;
             case BlurType.Kawase:
                 RenderKawaseBlur(cmd, screenSize,
-                                 sourceColorTarget,
-                                 downsampleTarget,
-                                 blurTarget,
-                                 finalTarget);
+                                 SourceColorTarget,
+                                 DownsampleTarget,
+                                 BlurTarget,
+                                 FinalTarget);
                 break;
             default:
                 _blurType = BlurType.Kawase;
@@ -381,7 +386,7 @@ public class BlurPass : ScriptableRenderPass
         cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(size.x, size.y, 0, 0));
 
         cmd.SetComputeFloatParam(_computeShader, "offset", 1.5f);
-        cmd.SetComputeTextureParam(_computeShader, kBlur, "_Source", Texture2D.blackTexture);
+        // cmd.SetComputeTextureParam(_computeShader, kBlur, "_Source", Texture2D.blackTexture);
         cmd.SetComputeTextureParam(_computeShader, kBlur, "_Source", tempRT1);
         cmd.SetComputeTextureParam(_computeShader, kBlur, "_Result", tempRT2);
 
@@ -420,7 +425,7 @@ public class BlurPass : ScriptableRenderPass
         numthreadsY = Mathf.CeilToInt(size.y / 8f);
 
         // Default
-        var upSrcRT = tempRT1;
+        var upsampleRT = tempRT1;
         // Odd no. of passes
         if (_passes % 2 != 0)
         {
@@ -428,13 +433,13 @@ public class BlurPass : ScriptableRenderPass
         else
         {
             // Even no.of passes
-            upSrcRT = tempRT2;
+            upsampleRT = tempRT2;
         }
 
         cmd.SetComputeVectorParam(_computeShader, "_Size", new Vector4(size.x << 1, size.y << 1, 0, 0));
         cmd.SetComputeFloatParam(_computeShader, "threshold", _threshold);
         cmd.SetComputeFloatParam(_computeShader, "intensity", _intensity);
-        cmd.SetComputeTextureParam(_computeShader, kBlurUpsample, "_Source", upSrcRT);
+        cmd.SetComputeTextureParam(_computeShader, kBlurUpsample, "_Source", upsampleRT);
         cmd.SetComputeTextureParam(_computeShader, kBlurUpsample, "_Result", finalRT);
 
         cmd.DispatchCompute(_computeShader, kBlurUpsample, numthreadsX, numthreadsY, 1);

@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-[Serializable]
-public enum CustomTargetType
+public enum CustomPassTargetType
 {
     Color,
     Depth,
@@ -12,46 +11,48 @@ public enum CustomTargetType
 }
 
 [Serializable]
-public class PassSubTarget
+public class CustomPassTarget
 {
-    public CustomTargetType customTargetType;
+    public CustomPassTargetType customPassTargetType;
     public List<string> lightModeTags;
     public string textureName;
-    [NonSerialized] public int renderTargetInt;
-    [NonSerialized] public RenderTargetIdentifier targetIdentifier;
-    public bool createTexture;
+    [NonSerialized] public int RTIntId;
+    [NonSerialized] public RenderTargetIdentifier RTIdentifier;
+    public bool enabled;
     public RenderTextureFormat renderTextureFormat;
 
-    public PassSubTarget(List<string> lightModeTags, string texName, CustomTargetType type, bool createTexture, RenderTextureFormat rtFormat)
+    // public CustomPassTarget() { }
+
+    public CustomPassTarget(List<string> lightModeTags, string texName, CustomPassTargetType type, bool enabled, RenderTextureFormat rtFormat)
     {
-        customTargetType      = type;
+        customPassTargetType      = type;
         this.lightModeTags = lightModeTags;
         textureName        = texName;
-        renderTargetInt    = Shader.PropertyToID(textureName);
-        targetIdentifier   = new RenderTargetIdentifier(renderTargetInt);
-        this.createTexture = createTexture;
-        renderTextureFormat = customTargetType switch
+        RTIntId    = Shader.PropertyToID(textureName);
+        RTIdentifier   = new RenderTargetIdentifier(RTIntId);
+        this.enabled = enabled;
+        renderTextureFormat = customPassTargetType switch
         {
-            CustomTargetType.Color     => rtFormat,
-            CustomTargetType.Depth     => RenderTextureFormat.Depth,
-            CustomTargetType.Shadowmap => RenderTextureFormat.Shadowmap,
-            _                       => rtFormat
+            CustomPassTargetType.Color     => rtFormat,
+            CustomPassTargetType.Depth     => RenderTextureFormat.Depth,
+            CustomPassTargetType.Shadowmap => RenderTextureFormat.Shadowmap,
+            _                              => renderTextureFormat
         };
     }
 
-    public PassSubTarget(List<string> lightModeTags, string texName, CustomTargetType type, bool createTexture)
+    public CustomPassTarget(List<string> lightModeTags, string texName, CustomPassTargetType type, bool enabled)
     {
-        customTargetType      = type;
+        customPassTargetType      = type;
         this.lightModeTags = lightModeTags;
         textureName        = texName;
-        renderTargetInt    = Shader.PropertyToID(textureName);
-        targetIdentifier   = new RenderTargetIdentifier(renderTargetInt);
-        this.createTexture = createTexture;
-        renderTextureFormat = customTargetType switch
+        RTIntId    = Shader.PropertyToID(textureName);
+        RTIdentifier   = new RenderTargetIdentifier(RTIntId);
+        this.enabled = enabled;
+        renderTextureFormat = customPassTargetType switch
         {
-            CustomTargetType.Color     => RenderTextureFormat.Default,
-            CustomTargetType.Depth     => RenderTextureFormat.Depth,
-            CustomTargetType.Shadowmap => RenderTextureFormat.Shadowmap,
+            CustomPassTargetType.Color     => RenderTextureFormat.Default,
+            CustomPassTargetType.Depth     => RenderTextureFormat.Depth,
+            CustomPassTargetType.Shadowmap => RenderTextureFormat.Shadowmap,
             _                       => RenderTextureFormat.Default
         };
     }

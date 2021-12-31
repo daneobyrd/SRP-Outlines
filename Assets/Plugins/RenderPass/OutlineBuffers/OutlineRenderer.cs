@@ -9,15 +9,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.Serialization;
-
-#region Enums
-
-public enum RenderQueueType
-{
-    Opaque = 0,
-    Transparent = 1
-}
 
 public enum DebugTargetView
 {
@@ -28,51 +19,53 @@ public enum DebugTargetView
     OutlinesOnly = 4
 }
 
-#endregion
-
 #region Settings Fields
 
 [Serializable]
-public class OutlineSettings
+public class CustomPassSettings
 {
-    [HideInInspector] public string profilerTag = nameof(OutlineRenderer);
-    public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
-    public DebugTargetView debugTargetView;
-    public FilterSettings filterSettings = new();
-    public LineworkSettings lineworkSettings = new();
-    public EdgeDetectionSettings edgeSettings = new();
-    public BlurSettings blurSettings = new();
-    public OutlineShaderProperties outlineProperties = new();
-}
+    public ShaderPassToRT.ShaderPassToRTSettings opaquePassSettings;
+    public ShaderPassToRT.ShaderPassToRTSettings transparentPassSettings;
 
-[Serializable]
-public class FilterSettings
-{
-    public RenderQueueType renderQueueType;
-    public LayerMask layerMask;
-    [Range(-1, 7)] public int lightLayerMask;
-
-    public FilterSettings()
+    public CustomPassSettings()
     {
-        renderQueueType = RenderQueueType.Opaque;
-        layerMask       = 0;
-        lightLayerMask  = -1;
-    }
-}
+        opaquePassSettings = new ShaderPassToRT.ShaderPassToRTSettings(
+                "Linework Opaque Pass", 
+                RenderQueueType.Opaque, 
+                new[]
+                {
+                    new CustomPassTarget(
+                        new List<string> { "Outline" },
+                        "_OutlineOpaqueColor",
+                        CustomPassTargetType.Color, 
+                        true,
+                        RenderTextureFormat.ARGBFloat)
+                },
+                new CustomPassTarget(
+                    new List<string> {"Outline"},
+                    "_OutlineOpaqueDepth",
+                    CustomPassTargetType.Depth, 
+                    false)
+        );
+        transparentPassSettings = new ShaderPassToRT.ShaderPassToRTSettings(
+            "Linework Transparent Pass",
+            RenderQueueType.Transparent,
+            new[]
+            {
+                new CustomPassTarget(
+                    new List<string> { "Outline" },
+                    "_OutlineTransparentColor",
+                    CustomPassTargetType.Color, 
+                    true,
+                    RenderTextureFormat.ARGBFloat)
+            },
+            new CustomPassTarget(
+                new List<string> {"Outline"},
+                "_OutlineTransparentDepth",
+                CustomPassTargetType.Depth, 
+                false)
+            );
 
-[Serializable]
-public class LineworkSettings
-{
-    public PassSubTarget colorSubTarget;
-    public PassSubTarget depthSubTarget;
-
-    public LineworkSettings()
-    {
-        colorSubTarget =
-            new PassSubTarget(new List<string> {"Outline"}, "_OutlineOpaque", SubTargetType.Color, true,
-                              RenderTextureFormat.ARGBFloat);
-        depthSubTarget =
-            new PassSubTarget(new List<string> {"Outline"}, "_OutlineDepth", SubTargetType.Depth, false);
     }
 }
 
@@ -83,8 +76,7 @@ public class EdgeDetectionSettings
     public ComputeShader laplacianCompute;
     public ComputeShader freiChenCompute;
 
-    [Header("Blit to Screen")]
-    public Material blitMaterial;
+    [Header("Blit to Screen")] public Material blitMaterial;
     public Shader outlineEncoder;
 }
 
@@ -94,7 +86,7 @@ public class BlurSettings
     public BlurType type;
     public ComputeShader gaussianCompute;
     public ComputeShader kawaseCompute;
-    
+
     [Range(3, 5)] public int blurPasses = 5;
     public float threshold;
     public float intensity;
@@ -103,10 +95,10 @@ public class BlurSettings
 [Serializable]
 public class OutlineShaderProperties
 {
-    [Tooltip("Object Threshold."), Range(0.0000001f, 1f)]
+    [Tooltip("Object Threshold."), Range(0.0000001f, 1.4f)]
     public float outerThreshold = 0.25f;
 
-    [Tooltip("Inner Threshold."), Range(0.0000001f, 1f)]
+    [Tooltip("Inner Threshold."), Range(0.0000001f, 1.4f)]
     public float innerThreshold = 0.25f;
 
     [Tooltip("Rotations.")] public int rotations = 8;
@@ -120,27 +112,25 @@ public class OutlineShaderProperties
 
 public class OutlineRenderer : ScriptableRendererFeature
 {
-    public OutlineSettings settings = new();
+    [HideInInspector] public string profilerTag = nameof(OutlineRenderer);
+    public DebugTargetView debugTargetView;
 
-    #region Private Settings
+    public CustomPassSettings customPasses = new();
+    public BlurSettings blur = new();
+    public EdgeDetectionSettings edge = new();
+    public OutlineShaderProperties shaderProps = new();
 
-    private FilterSettings          filter      => settings.filterSettings;
-    private LineworkSettings        linework    => settings.lineworkSettings;
-    private EdgeDetectionSettings   edge        => settings.edgeSettings;
-    private BlurSettings            blur        => settings.blurSettings;
-    private OutlineShaderProperties shaderProps => settings.outlineProperties;
-
-    #endregion
-
-    private ShaderPassToRT _lineworkPass;
+    private ShaderPassToRT _lineworkOpaquePass;
+    private ShaderPassToRT _lineworkTransparentPass;
     private BlurPass _blurPass;
     private FullscreenEdgeDetection _computeLines;
-    private Shader outlineEncoderShader => settings.edgeSettings.outlineEncoder;
 
-    private Material outlineEncoderMaterial
+    private Shader OutlineEncoderShader => edge.outlineEncoder;
+
+    private Material OutlineEncoderMaterial
     {
-        get => settings.edgeSettings.blitMaterial;
-        set => settings.edgeSettings.blitMaterial = value;
+        get => edge.blitMaterial;
+        set => edge.blitMaterial = value;
     }
 
     private static readonly int OuterThreshold = Shader.PropertyToID("_OuterThreshold");
@@ -152,9 +142,18 @@ public class OutlineRenderer : ScriptableRendererFeature
 
     public override void Create()
     {
-        _lineworkPass = new ShaderPassToRT(settings, "Linework Pass", settings.renderPassEvent, 24);
+        if (customPasses.opaquePassSettings.enabled)
+        {
+            _lineworkOpaquePass      = new ShaderPassToRT(customPasses.opaquePassSettings);
+        }
+
+        if (customPasses.transparentPassSettings.enabled)
+        {
+            _lineworkTransparentPass = new ShaderPassToRT(customPasses.transparentPassSettings);
+        }
+
         _blurPass     = new BlurPass("Blur Pass");
-        _computeLines = new FullscreenEdgeDetection(RenderPassEvent.BeforeRenderingTransparents, "Outline Encoder");
+        _computeLines = new FullscreenEdgeDetection(RenderPassEvent.AfterRenderingPostProcessing, "Outline Encoder");
 
         GetMaterial();
     }
@@ -165,7 +164,7 @@ public class OutlineRenderer : ScriptableRendererFeature
         {
             Debug.LogErrorFormat(
                 "{0}.AddRenderPasses(): Missing material. Make sure to add a blit material, or make sure {1} exists.",
-                GetType().Name, outlineEncoderShader);
+                GetType().Name, OutlineEncoderShader);
             return;
         }
 
@@ -180,30 +179,49 @@ public class OutlineRenderer : ScriptableRendererFeature
 
         #endregion
 
+        ComputeShader blurCompute;
         ComputeShader edgeCompute = null;
+        var opaqueSettings = _lineworkOpaquePass.settings;
+        var transparentSettings = _lineworkTransparentPass.settings;
+
         string outlineSource = null;
 
-        _lineworkPass.ShaderTagSetup(linework.depthSubTarget.createTexture);
-        renderer.EnqueuePass(_lineworkPass);
-        
+        if (opaqueSettings.enabled)
+        {
+            _lineworkOpaquePass.ShaderTagSetup();
+            renderer.EnqueuePass(_lineworkOpaquePass);
+        }
+
+        if (transparentSettings.enabled)
+        {
+            _lineworkTransparentPass.ShaderTagSetup();
+            renderer.EnqueuePass(_lineworkTransparentPass);
+        }
+
         switch (edge.edgeMethod)
         {
             case EdgeDetectionMethod.Laplacian:
-                var blurCompute = blur.type switch
+                blurCompute = blur.type switch
                 {
                     BlurType.Gaussian => blur.gaussianCompute,
                     BlurType.Kawase   => blur.kawaseCompute,
                     _                 => throw new ArgumentOutOfRangeException()
                 };
-                _blurPass.Init(linework.colorSubTarget.textureName, blur.type, blurCompute,
-                               blur.blurPasses, blur.threshold, blur.intensity);
+
+                _blurPass.Init(opaqueSettings.customColorTargets[0].textureName,
+                               blur.type,
+                               blurCompute,
+                               blur.blurPasses,
+                               blur.threshold,
+                               blur.intensity);
+
                 renderer.EnqueuePass(_blurPass);
 
                 outlineSource = "_FinalBlur";
                 edgeCompute   = edge.laplacianCompute;
                 break;
             case EdgeDetectionMethod.FreiChen:
-                outlineSource = linework.colorSubTarget.textureName;
+                outlineSource = opaqueSettings.customColorTargets[0].textureName;
                 edgeCompute   = edge.freiChenCompute;
                 break;
             case EdgeDetectionMethod.Sobel:
@@ -212,20 +230,23 @@ public class OutlineRenderer : ScriptableRendererFeature
                 throw new ArgumentOutOfRangeException();
         }
 
-        _computeLines.Setup(outlineEncoderMaterial, outlineSource, renderer.cameraColorTarget, edgeCompute,
+        _computeLines.Setup(OutlineEncoderMaterial,
+                            outlineSource,
+                            renderer.cameraColorTarget,
+                            edgeCompute,
                             edge.edgeMethod);
         renderer.EnqueuePass(_computeLines);
     }
 
     private bool GetMaterial()
     {
-        if (outlineEncoderMaterial && settings.edgeSettings.blitMaterial)
+        if (OutlineEncoderMaterial && edge.blitMaterial)
         {
             return true;
         }
 
-        if (outlineEncoderShader == null || !settings.edgeSettings.blitMaterial) return false;
-        outlineEncoderMaterial = CoreUtils.CreateEngineMaterial(outlineEncoderShader);
+        if (OutlineEncoderShader == null || !edge.blitMaterial) return false;
+        OutlineEncoderMaterial = CoreUtils.CreateEngineMaterial(OutlineEncoderShader);
         return true;
     }
     /*

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -16,15 +17,12 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
     private ComputeShader _computeShader;
     private EdgeDetectionMethod _method;
 
-    private int _sourceId;                        // _BlurredUpsampleResults or _OutlineOpaque (Debug)
+    private int _sourceId;                        // _BlurredUpsampleResults or _OutlineOpaqueColor (Debug)
     private RenderTargetIdentifier _sourceTarget; // => new(_sourceIntId);
 
     private static int                    outlineId     => Shader.PropertyToID("_OutlineTexture");
     private static RenderTargetIdentifier outlineTarget => new(outlineId);
-
-    private static int blitId => Shader.PropertyToID("_SourceTexture");
-    private static RenderTargetIdentifier _blitTempTarget;
-
+    
     private RenderTargetIdentifier _cameraTarget; // = BuiltinRenderTextureType.CameraTarget;
 
     public FullscreenEdgeDetection(RenderPassEvent evt, string name)
@@ -57,8 +55,7 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
 
         cmd.GetTemporaryRT(outlineId, camTexDesc, FilterMode.Point);
 
-        cmd.GetTemporaryRT(blitId, camTexDesc);
-        cmd.GetTemporaryRT(-1, cameraTextureDescriptor);
+        // cmd.GetTemporaryRT(-1, cameraTextureDescriptor);
     }
 
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -83,39 +80,37 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
 
             #region Compute Edges
 
-            var kLaplacian = _computeShader.FindKernel("KLaplacian");
-            cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
-            cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Source", _sourceTarget, 0);
-            cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Result", outlineTarget, 0);
-            cmd.DispatchCompute(_computeShader, kLaplacian, Mathf.CeilToInt(width / 32f),
-                                Mathf.CeilToInt(height / 32f), 1);
-            /*
             switch (_method)
             {
                 case EdgeDetectionMethod.Laplacian:
                 {
                     var kLaplacian = _computeShader.FindKernel("KLaplacian");
+                    var numthreadsX = Mathf.CeilToInt(width / 32f);
+                    var numthreadsY = Mathf.CeilToInt(height / 32f);
+
                     cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
                     cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Source", _sourceTarget, 0);
                     cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Result", outlineTarget, 0);
-                    cmd.DispatchCompute(_computeShader, kLaplacian, Mathf.CeilToInt(width / 32f),
-                                        Mathf.CeilToInt(height / 32f), 1);
+                    cmd.DispatchCompute(_computeShader, kLaplacian,numthreadsX, numthreadsY, 1);
                     break;
                 }
                 case EdgeDetectionMethod.FreiChen:
                 {
                     var kFreiChen = _computeShader.FindKernel("KFreiChen");
+                    var numthreadsX = Mathf.CeilToInt(width / 8f);
+                    var numthreadsY = Mathf.CeilToInt(height / 8f);
+                    
                     cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
-                    cmd.SetComputeTextureParam(_computeShader, kFreiChen, "Source", "_CameraColorAttachmentA", 0);
+                    cmd.SetComputeTextureParam(_computeShader, kFreiChen, "Source", _sourceTarget, 0);
                     cmd.SetComputeTextureParam(_computeShader, kFreiChen, "Result", outlineTarget, 0);
-                    cmd.DispatchCompute(_computeShader, kFreiChen, Mathf.CeilToInt(width / 8f),
-                                        Mathf.CeilToInt(height / 8f), 1);
+                    cmd.DispatchCompute(_computeShader, kFreiChen, numthreadsX, numthreadsY, 1);
                     break;
                 }
                 case EdgeDetectionMethod.Sobel:
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
-            */
 
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Set global texture _OutlineTexture with Computed edge data.
@@ -128,9 +123,6 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
             // Blit _OutlineTexture to the screen
             // ---------------------------------------------------------------------------------------------------------------------------------------
 
-
-            cmd.SetGlobalTexture(blitId, _cameraTarget);
-            // cmd.SetRenderTarget(_cameraTarget);
             cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
             // The RenderingUtils.fullscreenMesh argument specifies that the mesh to draw is a quad.
             cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
@@ -147,6 +139,6 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
     {
         if (_sourceId != -1) cmd.ReleaseTemporaryRT(_sourceId);
         if (outlineId != -1) cmd.ReleaseTemporaryRT(outlineId);
-        if (blitId != -1) cmd.ReleaseTemporaryRT(blitId);
+        // cmd.ReleaseTemporaryRT(-1);
     }
 }
