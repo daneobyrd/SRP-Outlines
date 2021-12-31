@@ -26,7 +26,7 @@ because:
     - we want to avoid breaking SRP batcher's batching because SRP batcher is per shader variant batching, not per shader
     - all modern GPU(include newer mobile devices) can handle static uniform branching with "almost" no performance cost
 */
-Shader "SimpleURPToonLitExample(With Outline)"
+Shader "NewURPToonLit"
 {
     Properties
     {
@@ -52,7 +52,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
         [NoScaleOffset]_EmissionMap("_EmissionMap", 2D) = "white" {}
         _EmissionMapChannelMask("_EmissionMapChannelMask", Vector) = (1,1,1,0)
 
-/*
+
         [Header(Occlusion)]
         [Toggle]_UseOcclusion("_UseOcclusion (on/off Occlusion completely)", Float) = 0
         _OcclusionStrength("_OcclusionStrength", Range(0.0, 1.0)) = 1.0
@@ -60,7 +60,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
         _OcclusionMapChannelMask("_OcclusionMapChannelMask", Vector) = (1,0,0,0)
         _OcclusionRemapStart("_OcclusionRemapStart", Range(0,1)) = 0
         _OcclusionRemapEnd("_OcclusionRemapEnd", Range(0,1)) = 1
-*/
+
 
         [Header(Lighting)]
         _IndirectLightMinColor("_IndirectLightMinColor", Color) = (0.1,0.1,0.1,1) // can prevent completely black if lightprobe not baked
@@ -147,7 +147,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             // When doing custom shaders you most often want to copy and paste these #pragmas
             // These multi_compile variants are stripped from the build depending on:
             // 1) Settings in the URP Asset assigned in the GraphicsSettings at build time
-            // e.g If you disabled AdditionalLights in the asset then all _ADDITIONA_LIGHTS variants
+            // e.g If you disabled AdditionalLights in the asset then all _ADDITIONAL_LIGHTS variants
             // will be stripped from build
             // 2) Invalid combinations are stripped. e.g variants with _MAIN_LIGHT_SHADOWS_CASCADE
             // but not _MAIN_LIGHT_SHADOWS are invalid and therefore stripped.
@@ -168,7 +168,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             // (no special #define)
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "NewURPToonLit_Shared.hlsl"
 
             ENDHLSL
         }
@@ -222,7 +222,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             #define ToonShaderIsOutline
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "NewURPToonLit_Shared.hlsl"
 
             ENDHLSL
         }
@@ -252,7 +252,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             #define ToonShaderApplyShadowBiasFix
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "NewURPToonLit_Shared.hlsl"
 
             ENDHLSL
         }
@@ -282,7 +282,7 @@ Shader "SimpleURPToonLitExample(With Outline)"
             #define ToonShaderIsOutline
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
-            #include "SimpleURPToonLitOutlineExample_Shared.hlsl"
+            #include "NewURPToonLit_Shared.hlsl"
 
             ENDHLSL
         }
