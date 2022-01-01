@@ -45,11 +45,18 @@ public class ShaderPassToRT : ScriptableRenderPass
             // RenderTargets
             customColorTargets = new[]
             {
-                new CustomPassTarget(new List<string> {"Outline"},
-                                     "_CustomColor",
+                new CustomPassTarget(new List<string> { "Outline" },
+                                     "_OutlineOpaqueColor",
                                      CustomPassTargetType.Color,
                                      true,
-                                     colorFormat)
+                                     colorFormat),
+                new CustomPassTarget(),
+                new CustomPassTarget(),
+                new CustomPassTarget(),
+                new CustomPassTarget(),
+                new CustomPassTarget(),
+                new CustomPassTarget(),
+                new CustomPassTarget()
             };
             
             customDepthTarget =
@@ -181,7 +188,7 @@ public class ShaderPassToRT : ScriptableRenderPass
         context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref settings.FilteringSettings);
 
         // Test: Make custom pass textures available after temp RT is released
-        foreach (var colorTarget in settings.customColorTargets)
+        foreach (var colorTarget in CustomColorAttachments)
         {
             if (!colorTarget.enabled) continue;
             cmd.SetGlobalTexture(colorTarget.textureName, colorTarget.RTIdentifier);
@@ -193,7 +200,7 @@ public class ShaderPassToRT : ScriptableRenderPass
 
     public override void FrameCleanup(CommandBuffer cmd)
     {
-        foreach (var colorTarget in settings.customColorTargets)
+        foreach (var colorTarget in CustomColorAttachments)
         {
             if (colorTarget.enabled) cmd.ReleaseTemporaryRT(colorTarget.RTIntId);
         }

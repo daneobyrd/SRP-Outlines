@@ -21,7 +21,16 @@ public class CustomPassTarget
     public bool enabled;
     public RenderTextureFormat renderTextureFormat;
 
-    // public CustomPassTarget() { }
+    public CustomPassTarget()
+    {
+        customPassTargetType = CustomPassTargetType.Color;
+        lightModeTags        = new List<string> { "SRPDefaultUnlit" };
+        textureName          = "_CustomColor";
+        RTIntId              = Shader.PropertyToID(textureName);
+        RTIdentifier         = new RenderTargetIdentifier(RTIntId);
+        enabled              = false;
+        renderTextureFormat  = RenderTextureFormat.ARGBFloat;
+    }
 
     public CustomPassTarget(List<string> lightModeTags, string texName, CustomPassTargetType type, bool enabled, RenderTextureFormat rtFormat)
     {
