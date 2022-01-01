@@ -43,8 +43,6 @@ public class ShaderPassToRT : ScriptableRenderPass
             depthBufferBits   = 16;
 
             // RenderTargets
-            // customColorTargets = colorTargets;
-            // customDepthTarget  = depthTarget;
             customColorTargets = new[]
             {
                 new CustomPassTarget(new List<string> {"Outline"},
@@ -115,7 +113,7 @@ public class ShaderPassToRT : ScriptableRenderPass
     public void ShaderTagSetup()
     {
         // For each custom color Render Target, add all non-duplicate LightMode tags to _shaderTagIdList
-        foreach (var colorTarget in settings.customColorTargets)
+        foreach (var colorTarget in CustomColorAttachments)
         {
             // for colorTagId, add new ShaderTagId(tempTag) given that colorTagId is not already in _shaderTagIdList.
             foreach (var colorTagId in colorTarget.lightModeTags.Select(tempTag => new ShaderTagId(tempTag))

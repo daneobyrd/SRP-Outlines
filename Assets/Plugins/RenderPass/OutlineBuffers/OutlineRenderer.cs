@@ -29,12 +29,8 @@ public class CustomPassSettings
 
     public CustomPassSettings()
     {
-        opaquePassSettings = new ShaderPassToRT.ShaderPassToRTSettings(
-                "Linework Opaque Pass", 
-                RenderQueueType.Opaque);
-        transparentPassSettings = new ShaderPassToRT.ShaderPassToRTSettings(
-            "Linework Transparent Pass",
-            RenderQueueType.Transparent);
+        opaquePassSettings = new ShaderPassToRT.ShaderPassToRTSettings("Linework Opaque Pass", RenderQueueType.Opaque);
+        transparentPassSettings = new ShaderPassToRT.ShaderPassToRTSettings("Linework Transparent Pass", RenderQueueType.Transparent);
     }
 }
 
@@ -150,23 +146,29 @@ public class OutlineRenderer : ScriptableRendererFeature
 
         ComputeShader blurCompute;
         ComputeShader edgeCompute = null;
-        var opaqueSettings = _lineworkOpaquePass.settings;
-        var transparentSettings = _lineworkTransparentPass.settings;
 
-        string outlineSource = null;
-
-        if (opaqueSettings.enabled)
+        ShaderPassToRT.ShaderPassToRTSettings opaqueSettings = null;
+        ShaderPassToRT.ShaderPassToRTSettings transparentSettings = null;
+        
+        var opaqueEnabled = customPasses.opaquePassSettings.enabled;
+        if (opaqueEnabled) { opaqueSettings = _lineworkOpaquePass.settings; }
+        
+        if (opaqueSettings is {enabled: true})
         {
             _lineworkOpaquePass.ShaderTagSetup();
             renderer.EnqueuePass(_lineworkOpaquePass);
         }
 
-        if (transparentSettings.enabled)
+        var transparentEnabled = customPasses.transparentPassSettings.enabled;
+        if (transparentEnabled) { transparentSettings = _lineworkTransparentPass.settings; }
+        
+        if (transparentSettings is {enabled: true})
         {
             _lineworkTransparentPass.ShaderTagSetup();
             renderer.EnqueuePass(_lineworkTransparentPass);
         }
 
+        string outlineSource = null;
         switch (edge.edgeMethod)
         {
             case EdgeDetectionMethod.Laplacian:
@@ -177,7 +179,7 @@ public class OutlineRenderer : ScriptableRendererFeature
                     _                 => throw new ArgumentOutOfRangeException()
                 };
 
-                _blurPass.Init(opaqueSettings.customColorTargets[0].textureName,
+                _blurPass.Init(opaqueSettings?.customColorTargets[0].textureName,
                                blur.type,
                                blurCompute,
                                blur.blurPasses,
@@ -190,7 +192,7 @@ public class OutlineRenderer : ScriptableRendererFeature
                 edgeCompute   = edge.laplacianCompute;
                 break;
             case EdgeDetectionMethod.FreiChen:
-                outlineSource = opaqueSettings.customColorTargets[0].textureName;
+                outlineSource = opaqueSettings?.customColorTargets[0].textureName;
                 edgeCompute   = edge.freiChenCompute;
                 break;
             case EdgeDetectionMethod.Sobel:
