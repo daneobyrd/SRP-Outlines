@@ -28,6 +28,9 @@ public class ShaderPassToRTSettings
     
     // TODO: Figure out the right way to display FilteringSettings in the inspector.
     public FilteringSettings FilteringSettings;
+
+    public LayerMask layerMask;
+    public uint lightLayerMask;
     
     public RenderTextureFormat colorFormat;
     public int depthBufferBits;
@@ -44,8 +47,11 @@ public class ShaderPassToRTSettings
         depthBufferBits = 16;
 
         // RenderTargets
-        customColorTargets = new CustomPassTarget[] { };
-        customDepthTarget  = new CustomPassTarget();
+        customColorTargets = new[]
+        {
+            new CustomPassTarget(new List<string> { "Outline" }, "_CustomOpaqueColor", CustomPassTargetType.Color, true, colorFormat)
+        };
+        customDepthTarget  = new CustomPassTarget(new List<string> { "Outline" }, "_CustomOpaqueDepth", CustomPassTargetType.Color, false);
     }
 }
 
@@ -67,7 +73,7 @@ public class ShaderPassToRT : ScriptableRenderPass
             ? RenderQueueRange.opaque
             : RenderQueueRange.transparent;
 
-        _settings.FilteringSettings = new FilteringSettings(renderQueueRange, default, default);
+        _settings.FilteringSettings = new FilteringSettings(renderQueueRange, _settings.layerMask, _settings.lightLayerMask);
     }
 
     public void ShaderTagSetup()
@@ -141,11 +147,13 @@ public class ShaderPassToRT : ScriptableRenderPass
         context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _settings.FilteringSettings);
 
         // Test: Make custom pass textures available after temp RT is released
+        /*
         foreach (CustomPassTarget colorTarget in _settings.customColorTargets)
         {
             if (!colorTarget.enabled) continue;
             cmd.SetGlobalTexture(colorTarget.RTIntId, colorTarget.RTIdentifier);
         }
+        */
 
         context.ExecuteCommandBuffer(cmd);
         CommandBufferPool.Release(cmd);
@@ -153,11 +161,12 @@ public class ShaderPassToRT : ScriptableRenderPass
 
     public override void FrameCleanup(CommandBuffer cmd)
     {
-        foreach (var colorTarget in _settings.customColorTargets)
-        {
-            if (colorTarget.enabled) cmd.ReleaseTemporaryRT(colorTarget.RTIntId);
-        }
+        // foreach (var colorTarget in _settings.customColorTargets)
+        // {
+        //     if (colorTarget.enabled) cmd.ReleaseTemporaryRT(colorTarget.RTIntId);
+        // }
 
+        if (_settings.customColorTargets[0].enabled) cmd.ReleaseTemporaryRT(_settings.customColorTargets[0].RTIntId);
         if (_settings.customDepthTarget.enabled) cmd.ReleaseTemporaryRT(_settings.customDepthTarget.RTIntId);
     }
 }

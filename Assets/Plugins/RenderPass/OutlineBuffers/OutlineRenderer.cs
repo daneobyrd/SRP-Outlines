@@ -139,8 +139,8 @@ public class OutlineRenderer : ScriptableRendererFeature
 
         #endregion
 
-        ComputeShader blurCompute;
-        ComputeShader edgeCompute = null;
+        // ComputeShader blurCompute;
+        // ComputeShader edgeCompute = null;
         
         var opaqueSettings = customPasses.opaquePassSettings;
         if (opaqueSettings.enabled)
@@ -156,6 +156,7 @@ public class OutlineRenderer : ScriptableRendererFeature
             renderer.EnqueuePass(_lineworkTransparentPass);
         }
 
+        /*
         string outlineSource = null;
         switch (edge.edgeMethod)
         {
@@ -192,6 +193,7 @@ public class OutlineRenderer : ScriptableRendererFeature
 
         _computeLines.Setup(OutlineEncoderMaterial, outlineSource, renderer.cameraColorTarget, edgeCompute, edge.edgeMethod);
         renderer.EnqueuePass(_computeLines);
+    */
     }
 
     private bool GetMaterial()

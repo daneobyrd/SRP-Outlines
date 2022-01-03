@@ -21,6 +21,7 @@ public class CustomPassTarget
     public bool enabled;
     public RenderTextureFormat renderTextureFormat;
 
+    /*
     public CustomPassTarget()
     {
         customPassTargetType = CustomPassTargetType.Color;
@@ -31,6 +32,7 @@ public class CustomPassTarget
         enabled              = false;
         renderTextureFormat  = RenderTextureFormat.ARGBFloat;
     }
+    */
 
     public CustomPassTarget(List<string> lightModeTags, string texName, CustomPassTargetType type, bool enabled, RenderTextureFormat rtFormat)
     {
