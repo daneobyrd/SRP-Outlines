@@ -178,15 +178,6 @@
       },
       "url": "https://packages.unity.com"
     },
-    "remy-unity.sg-node-library": {
-      "version": "git@github.com:RemyUnity/sg-node-library.git",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {
-        "com.unity.shadergraph": "7.1.6"
-      },
-      "hash": "784225ad9d00e6261695dc5bde9e396afd1a9a90"
-    },
     "com.unity.modules.ai": {
       "version": "1.0.0",
       "depth": 0,
