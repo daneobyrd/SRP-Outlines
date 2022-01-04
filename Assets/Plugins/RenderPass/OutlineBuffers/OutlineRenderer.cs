@@ -23,19 +23,6 @@ public enum DebugTargetView
 #region Settings Fields
 
 [Serializable]
-public class CustomPassSettings
-{
-    public ShaderPassToRTSettings opaquePassSettings;
-    public ShaderPassToRTSettings transparentPassSettings;
-
-    public CustomPassSettings()
-    {
-        opaquePassSettings = new ShaderPassToRTSettings("Linework Opaque Pass", RenderQueueType.Opaque);
-        transparentPassSettings = new ShaderPassToRTSettings("Linework Transparent Pass", RenderQueueType.Transparent);
-    }
-}
-
-[Serializable]
 public class EdgeDetectionSettings
 {
     public EdgeDetectionMethod edgeMethod;
@@ -81,7 +68,8 @@ public class OutlineRenderer : ScriptableRendererFeature
     [HideInInspector] public string profilerTag = nameof(OutlineRenderer);
     public DebugTargetView debugTargetView;
 
-    public CustomPassSettings customPasses = new();
+    public ShaderPassToRTSettings opaqueSettings = new("Linework Opaque Pass", RenderQueueType.Opaque);
+    public ShaderPassToRTSettings transparentSettings = new("Linework Transparent Pass", RenderQueueType.Transparent);
     public BlurSettings blur = new();
     public EdgeDetectionSettings edge = new();
     public OutlineShaderProperties shaderProps = new();
@@ -108,9 +96,15 @@ public class OutlineRenderer : ScriptableRendererFeature
 
     public override void Create()
     {
-        _lineworkOpaquePass      = new ShaderPassToRT(customPasses.opaquePassSettings);
+        if (opaqueSettings.enabled)
+        {
+            _lineworkOpaquePass      = new ShaderPassToRT(opaqueSettings);
+        }
 
-        _lineworkTransparentPass = new ShaderPassToRT(customPasses.transparentPassSettings);
+        if (transparentSettings.enabled)
+        {
+            _lineworkTransparentPass = new ShaderPassToRT(transparentSettings);
+        }
 
         _blurPass     = new BlurPass("Blur Pass");
         _computeLines = new FullscreenEdgeDetection(RenderPassEvent.AfterRenderingPostProcessing, "Outline Encoder");
@@ -139,24 +133,23 @@ public class OutlineRenderer : ScriptableRendererFeature
 
         #endregion
 
-        // ComputeShader blurCompute;
-        // ComputeShader edgeCompute = null;
+        ComputeShader blurCompute;
+        ComputeShader edgeCompute = null;
         
-        var opaqueSettings = customPasses.opaquePassSettings;
+        
         if (opaqueSettings.enabled)
         {
             _lineworkOpaquePass.ShaderTagSetup();
             renderer.EnqueuePass(_lineworkOpaquePass);
         }
 
-        var transparentSettings = customPasses.transparentPassSettings;
         if (transparentSettings.enabled)
         {
             _lineworkTransparentPass.ShaderTagSetup();
             renderer.EnqueuePass(_lineworkTransparentPass);
         }
 
-        /*
+        
         string outlineSource = null;
         switch (edge.edgeMethod)
         {
@@ -193,7 +186,6 @@ public class OutlineRenderer : ScriptableRendererFeature
 
         _computeLines.Setup(OutlineEncoderMaterial, outlineSource, renderer.cameraColorTarget, edgeCompute, edge.edgeMethod);
         renderer.EnqueuePass(_computeLines);
-    */
     }
 
     private bool GetMaterial()

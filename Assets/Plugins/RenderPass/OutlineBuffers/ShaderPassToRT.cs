@@ -29,9 +29,12 @@ public class ShaderPassToRTSettings
     // TODO: Figure out the right way to display FilteringSettings in the inspector.
     public FilteringSettings FilteringSettings;
 
-    public LayerMask layerMask;
-    public uint lightLayerMask;
+    [Header("Filtering Settings")]
+    public LayerMask layerMask = 1;
+    [Range(-1, 7)]
+    public int lightLayerMask = -1;
     
+    [Header("Render Texture Settings")]
     public RenderTextureFormat colorFormat;
     public int depthBufferBits;
 
@@ -73,7 +76,17 @@ public class ShaderPassToRT : ScriptableRenderPass
             ? RenderQueueRange.opaque
             : RenderQueueRange.transparent;
 
-        _settings.FilteringSettings = new FilteringSettings(renderQueueRange, _settings.layerMask, _settings.lightLayerMask);
+        uint renderingLayerMask = 0;
+        if (_settings.lightLayerMask == -1)
+        {
+            renderingLayerMask = uint.MaxValue;
+        }
+        else
+        {
+            renderingLayerMask = (uint)_settings.lightLayerMask;
+        }
+
+        _settings.FilteringSettings = new FilteringSettings(renderQueueRange, _settings.layerMask, renderingLayerMask);
     }
 
     public void ShaderTagSetup()
@@ -144,6 +157,8 @@ public class ShaderPassToRT : ScriptableRenderPass
 
         DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIdList, ref renderingData, sortingCriteria);
 
+        renderingData.cameraData.antialiasing = AntialiasingMode.None;
+        
         context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _settings.FilteringSettings);
 
         // Test: Make custom pass textures available after temp RT is released
@@ -161,12 +176,11 @@ public class ShaderPassToRT : ScriptableRenderPass
 
     public override void FrameCleanup(CommandBuffer cmd)
     {
-        // foreach (var colorTarget in _settings.customColorTargets)
-        // {
-        //     if (colorTarget.enabled) cmd.ReleaseTemporaryRT(colorTarget.RTIntId);
-        // }
+        foreach (var colorTarget in _settings.customColorTargets)
+        {
+            if (colorTarget.enabled) cmd.ReleaseTemporaryRT(colorTarget.RTIntId);
+        }
 
-        if (_settings.customColorTargets[0].enabled) cmd.ReleaseTemporaryRT(_settings.customColorTargets[0].RTIntId);
         if (_settings.customDepthTarget.enabled) cmd.ReleaseTemporaryRT(_settings.customDepthTarget.RTIntId);
     }
 }
