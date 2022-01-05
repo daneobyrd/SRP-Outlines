@@ -26,38 +26,36 @@ public class ShaderPassToRTSettings
     public string profilerTag;
     public RenderQueueType renderQueueType;
     
-    // TODO: Figure out the right way to display FilteringSettings in the inspector.
-    public FilteringSettings FilteringSettings;
+    public FilteringSettings FilteringSettings; // Not serializable.
 
-    [Header("Filtering Settings")]
+    [Header("Filters")]
     public LayerMask layerMask = 1;
-    [Range(-1, 7)]
-    public int lightLayerMask = -1;
+    public LightLayerEnum lightLayerMask;
     
     [Header("Render Texture Settings")]
     public RenderTextureFormat colorFormat;
     public int depthBufferBits;
 
-    public CustomPassTarget[] customColorTargets;
-    public CustomPassTarget customDepthTarget;
+    public CustomColorTarget[] customColorTargets;
+    public CustomDepthTarget customDepthTarget;
 
     public ShaderPassToRTSettings(string name, RenderQueueType queueType)
     {
         profilerTag     = name;
         renderQueueType = queueType;
-        // FilteringSettings ;
         colorFormat     = RenderTextureFormat.ARGBFloat;
         depthBufferBits = 16;
 
         // RenderTargets
-        customColorTargets = new[]
+        customColorTargets = new CustomColorTarget[]
         {
-            new CustomPassTarget(new List<string> { "Outline" }, "_CustomOpaqueColor", CustomPassTargetType.Color, true, colorFormat)
+            new(true, "_CustomOpaqueColor", new List<string> { "Outline" }, colorFormat)
         };
-        customDepthTarget  = new CustomPassTarget(new List<string> { "Outline" }, "_CustomOpaqueDepth", CustomPassTargetType.Color, false);
+        customDepthTarget = new CustomDepthTarget(false, "_CustomOpaqueDepth", new List<string> { "Outline" });
     }
 }
 
+/// <inheritdoc />
 [Serializable]
 public class ShaderPassToRT : ScriptableRenderPass
 {
@@ -76,17 +74,7 @@ public class ShaderPassToRT : ScriptableRenderPass
             ? RenderQueueRange.opaque
             : RenderQueueRange.transparent;
 
-        uint renderingLayerMask = 0;
-        if (_settings.lightLayerMask == -1)
-        {
-            renderingLayerMask = uint.MaxValue;
-        }
-        else
-        {
-            renderingLayerMask = (uint)_settings.lightLayerMask;
-        }
-
-        _settings.FilteringSettings = new FilteringSettings(renderQueueRange, _settings.layerMask, renderingLayerMask);
+        _settings.FilteringSettings = new FilteringSettings(renderQueueRange, _settings.layerMask, (uint)_settings.lightLayerMask);
     }
 
     public void ShaderTagSetup()
@@ -95,12 +83,14 @@ public class ShaderPassToRT : ScriptableRenderPass
         foreach (var colorTarget in _settings.customColorTargets)
         {
             // for colorTagId, add new ShaderTagId(tempTag) given that colorTagId is not already in _shaderTagIdList.
-            foreach (var colorTagId in colorTarget.lightModeTags.Select(tempTag => new ShaderTagId(tempTag))
+            foreach (var colorTagId in colorTarget.lightModeTags
+                                                  .Select(tempTag => new ShaderTagId(tempTag))
                                                   .Where(colorTagID => !_shaderTagIdList.Contains(colorTagID)))
             {
                 _shaderTagIdList.Add(colorTagId);
             }
         }
+        // Duplicate tags might not be an issue but this is checking for them as a precaution.
 
         if (!_settings.customDepthTarget.enabled) return;
         foreach (var depthTagId in _settings.customDepthTarget.lightModeTags)
@@ -116,7 +106,6 @@ public class ShaderPassToRT : ScriptableRenderPass
         var height = camTexDesc.height;
         camTexDesc.colorFormat     = _settings.colorFormat;
         camTexDesc.depthBufferBits = _settings.depthBufferBits;
-        camTexDesc.useMipMap       = false;
 
         List<RenderTargetIdentifier> configuredColorAttachments = new();
 
@@ -124,26 +113,26 @@ public class ShaderPassToRT : ScriptableRenderPass
         foreach (var colorTarget in _settings.customColorTargets)
         {
             if (!colorTarget.enabled) continue;
-            cmd.GetTemporaryRT(colorTarget.RTIntId, camTexDesc, FilterMode.Point);
-            configuredColorAttachments.Add(colorTarget.RTIdentifier);
+            cmd.GetTemporaryRT(colorTarget.NameID, camTexDesc, FilterMode.Point);
+            configuredColorAttachments.Add(colorTarget.RTID);
         }
 
         if (_settings.customDepthTarget.enabled)
         {
-            cmd.GetTemporaryRT(_settings.customDepthTarget.RTIntId, width, height, _settings.depthBufferBits, FilterMode.Point,
+            cmd.GetTemporaryRT(_settings.customDepthTarget.NameID, width, height, _settings.depthBufferBits, FilterMode.Point,
                                RenderTextureFormat.Depth);
         }
 
         if (configuredColorAttachments.Count == 0 && !_settings.customDepthTarget.enabled) return;
         if (_settings.customDepthTarget.enabled)
         {
-            ConfigureTarget(configuredColorAttachments.ToArray(), _settings.customDepthTarget.RTIdentifier);
-            ConfigureClear(ClearFlag.All, clearColor);
+            ConfigureTarget(configuredColorAttachments.ToArray(), _settings.customDepthTarget.RTID);
+            // ConfigureClear(ClearFlag.All, clearColor);
         }
         else
         {
             ConfigureTarget(configuredColorAttachments.ToArray());
-            ConfigureClear(ClearFlag.Color, clearColor);
+            // ConfigureClear(ClearFlag.Color, clearColor);
         }
     }
 
@@ -151,14 +140,12 @@ public class ShaderPassToRT : ScriptableRenderPass
     {
         CommandBuffer cmd = CommandBufferPool.Get(_settings.profilerTag);
 
-        SortingCriteria sortingCriteria = _settings.renderQueueType == RenderQueueType.Opaque
-            ? renderingData.cameraData.defaultOpaqueSortFlags
-            : SortingCriteria.CommonTransparent;
+        SortingCriteria sortingCriteria =
+            _settings.renderQueueType == RenderQueueType.Opaque ? renderingData.cameraData.defaultOpaqueSortFlags
+                                                                : SortingCriteria.CommonTransparent;
 
         DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIdList, ref renderingData, sortingCriteria);
-
-        renderingData.cameraData.antialiasing = AntialiasingMode.None;
-        
+       
         context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _settings.FilteringSettings);
 
         // Test: Make custom pass textures available after temp RT is released
@@ -178,9 +165,9 @@ public class ShaderPassToRT : ScriptableRenderPass
     {
         foreach (var colorTarget in _settings.customColorTargets)
         {
-            if (colorTarget.enabled) cmd.ReleaseTemporaryRT(colorTarget.RTIntId);
+            if (colorTarget.enabled) cmd.ReleaseTemporaryRT(colorTarget.NameID);
         }
 
-        if (_settings.customDepthTarget.enabled) cmd.ReleaseTemporaryRT(_settings.customDepthTarget.RTIntId);
+        if (_settings.customDepthTarget.enabled) cmd.ReleaseTemporaryRT(_settings.customDepthTarget.NameID);
     }
 }

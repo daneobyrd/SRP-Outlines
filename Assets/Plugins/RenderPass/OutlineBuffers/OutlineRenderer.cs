@@ -107,7 +107,7 @@ public class OutlineRenderer : ScriptableRendererFeature
         }
 
         _blurPass     = new BlurPass("Blur Pass");
-        _computeLines = new FullscreenEdgeDetection(RenderPassEvent.AfterRenderingPostProcessing, "Outline Encoder");
+        _computeLines = new FullscreenEdgeDetection(RenderPassEvent.BeforeRenderingPostProcessing, "Outline Encoder");
 
         GetMaterial();
     }
@@ -133,8 +133,6 @@ public class OutlineRenderer : ScriptableRendererFeature
 
         #endregion
 
-        ComputeShader blurCompute;
-        ComputeShader edgeCompute = null;
         
         
         if (opaqueSettings.enabled)
@@ -149,22 +147,29 @@ public class OutlineRenderer : ScriptableRendererFeature
             renderer.EnqueuePass(_lineworkTransparentPass);
         }
 
-        
+        const string gaussian = "Assets/Resources/Compute/Blur/Pyramid/ColorPyramid";
+        const string kawase = "Assets/Resources/Compute/Blur/KawaseCS";
+        ComputeShader blurCS;
+
+        const string laplacian = "Assets/Resources/Compute/EdgeDetection/Laplacian/Laplacian";
+        const string freiChen = "Assets/Resources/Compute/EdgeDetection/Frei-Chen/FreiChen";
+        ComputeShader edgeCS = null;
         string outlineSource = null;
+        
         switch (edge.edgeMethod)
         {
             // Only use Blur Pass for Laplacian
             case EdgeDetectionMethod.Laplacian:
-                blurCompute = blur.type switch
+                blurCS = blur.type switch
                 {
-                    BlurType.Gaussian => blur.gaussianCompute,
-                    BlurType.Kawase   => blur.kawaseCompute,
-                    _                 => throw new ArgumentOutOfRangeException()
+                    BlurType.Gaussian => (ComputeShader)Resources.Load(gaussian),
+                    BlurType.Kawase   => (ComputeShader)Resources.Load(kawase),
+                    _                 => (ComputeShader)Resources.Load(kawase)
                 };
 
                 _blurPass.Init(opaqueSettings.customColorTargets[0].textureName,
                                blur.type,
-                               blurCompute,
+                               blurCS,
                                blur.blurPasses,
                                blur.threshold,
                                blur.intensity);
@@ -172,19 +177,20 @@ public class OutlineRenderer : ScriptableRendererFeature
                 renderer.EnqueuePass(_blurPass);
 
                 outlineSource = "_FinalBlur";
-                edgeCompute   = edge.laplacianCompute;
+                edgeCS        = (ComputeShader)Resources.Load(laplacian);
                 break;
             case EdgeDetectionMethod.FreiChen:
                 outlineSource = opaqueSettings.customColorTargets[0].textureName;
-                edgeCompute   = edge.freiChenCompute;
+                edgeCS        = (ComputeShader)Resources.Load(freiChen);
                 break;
             case EdgeDetectionMethod.Sobel:
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
+        
 
-        _computeLines.Setup(OutlineEncoderMaterial, outlineSource, renderer.cameraColorTarget, edgeCompute, edge.edgeMethod);
+        _computeLines.Setup(OutlineEncoderMaterial, outlineSource, renderer.cameraColorTarget, edgeCS, edge.edgeMethod);
         renderer.EnqueuePass(_computeLines);
     }
 
