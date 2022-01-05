@@ -26,8 +26,6 @@ public enum DebugTargetView
 public class EdgeDetectionSettings
 {
     public EdgeDetectionMethod edgeMethod;
-    public ComputeShader laplacianCompute;
-    public ComputeShader freiChenCompute;
 
     [Header("Blit to Screen")] public Material blitMaterial;
     public Shader outlineEncoder;
@@ -37,8 +35,6 @@ public class EdgeDetectionSettings
 public class BlurSettings
 {
     public BlurType type;
-    public ComputeShader gaussianCompute;
-    public ComputeShader kawaseCompute;
 
     [Range(3, 5)] public int blurPasses = 5;
     public float threshold;

@@ -67,12 +67,12 @@
             float _DepthPush;
 
             CBUFFER_START(UnityPerMaterial)
-            TEXTURE2D(_SourceTex);
-            SAMPLER(sampler_SourceTex);
-            float4 _SourceTex_ST;
+                // TEXTURE2D(_SourceTex);
+                // SAMPLER(sampler_SourceTex);
+                // float4 _SourceTex_ST;
 
-            float4 _OuterLines;
-            float4 _InnerLines;
+                float4 _OuterLines;
+                float4 _InnerLines;
             CBUFFER_END
 
             TEXTURE2D(_OutlineOpaqueColor);

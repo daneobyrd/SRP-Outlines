@@ -160,7 +160,8 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID,                   // ID of threa
                     uint2 groupThreadId : SV_GroupThreadID,       // ID of thread in a thread group; range depends on numthreads.
                     uint3 dispatchThreadId : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
 {
-    if (SAMPLE_TEXTURE2D_LOD(Source, sampler_LinearClamp, dispatchThreadId.xy, 0).r == 0.0)
+    // if (SAMPLE_TEXTURE2D_LOD(Source, sampler_LinearClamp, dispatchThreadId.xy, 0).r == 0.0)
+    if (Source.Load(dispatchThreadId).r == 0.0)
     {
         Result[dispatchThreadId.xy] = 0;
     }

@@ -179,6 +179,7 @@ Shader "NewURPToonLit"
         // -also color is tinted
         // -Cull Front instead of Cull Back because Cull Front is a must for all extra pass outline method
 
+/*
         Pass 
         {
             Name "Outline"
@@ -227,6 +228,7 @@ Shader "NewURPToonLit"
             ENDHLSL
         }
  
+*/
 
         // ShadowCaster pass. Used for rendering URP's shadowmaps
         Pass

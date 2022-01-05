@@ -22,6 +22,6 @@ Material:
     m_Ints: []
     m_Floats: []
     m_Colors:
-    - _InnerLines: {r: 0, g: 0.99058723, b: 1, a: 1}
-    - _OuterLines: {r: 1, g: 0.027380643, b: 0, a: 1}
+    - _InnerLines: {r: 0.01393652, g: 0, b: 1, a: 1}
+    - _OuterLines: {r: 1, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []

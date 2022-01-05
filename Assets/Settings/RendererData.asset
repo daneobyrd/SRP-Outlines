@@ -15,58 +15,57 @@ MonoBehaviour:
   m_Active: 0
   profilerTag: OutlineRenderer
   debugTargetView: 0
-  customPasses:
-    opaquePassSettings:
-      enabled: 1
-      profilerTag: Linework Opaque Pass
-      renderQueueType: 0
-      colorFormat: 11
-      depthBufferBits: 16
-      customColorTargets:
-      - customPassTargetType: 0
-        lightModeTags:
-        - Outline
-        textureName: _OutlineOpaqueColor
-        enabled: 1
-        renderTextureFormat: 11
-      customDepthTarget:
-        customPassTargetType: 1
-        lightModeTags:
-        - Outline
-        textureName: _OutlineOpaqueDepth
-        enabled: 0
-        renderTextureFormat: 1
-    transparentPassSettings:
+  opaqueSettings:
+    enabled: 1
+    profilerTag: Linework Opaque Pass
+    renderQueueType: 0
+    layerMask:
+      serializedVersion: 2
+      m_Bits: 2147483647
+    lightLayerMask: -1
+    colorFormat: 11
+    depthBufferBits: 16
+    customColorTargets:
+    - enabled: 1
+      textureName: _OutlineOpaqueColor
+      lightModeTags:
+      - UniversalForward
+      renderTextureFormat: 11
+    customDepthTarget:
       enabled: 0
-      profilerTag: Linework Transparent Pass
-      renderQueueType: 1
-      colorFormat: 11
-      depthBufferBits: 16
-      customColorTargets:
-      - customPassTargetType: 0
-        lightModeTags:
-        - Outline
-        textureName: _OutlineTransparentColor
-        enabled: 1
-        renderTextureFormat: 11
-      customDepthTarget:
-        customPassTargetType: 1
-        lightModeTags:
-        - Outline
-        textureName: _OutlineTransparentDepth
-        enabled: 0
-        renderTextureFormat: 1
+      textureName: _CustomOpaqueDepth
+      lightModeTags:
+      - Outline
+      renderTextureFormat: 1
+  transparentSettings:
+    enabled: 0
+    profilerTag: Linework Transparent Pass
+    renderQueueType: 1
+    layerMask:
+      serializedVersion: 2
+      m_Bits: 1
+    lightLayerMask: -1
+    colorFormat: 11
+    depthBufferBits: 16
+    customColorTargets:
+    - enabled: 1
+      textureName: _CustomOpaqueColor
+      lightModeTags:
+      - Outline
+      renderTextureFormat: 11
+    customDepthTarget:
+      enabled: 0
+      textureName: _CustomOpaqueDepth
+      lightModeTags:
+      - Outline
+      renderTextureFormat: 1
   blur:
-    type: 0
-    gaussianCompute: {fileID: 7200000, guid: 2ff91b8fe5014fb4c9a057320db3824e, type: 3}
-    kawaseCompute: {fileID: 7200000, guid: 62b28c43f674f5f48a013c26c83acbef, type: 3}
+    type: 1
     blurPasses: 5
     threshold: 0
     intensity: 0
   edge:
-    edgeMethod: 0
-    laplacianCompute: {fileID: 7200000, guid: 907242c0e22123142aba99ac30ad1412, type: 3}
-    freiChenCompute: {fileID: 7200000, guid: 505c195acdcb02844b6f5227c274c03d, type: 3}
+    edgeMethod: 2
     blitMaterial: {fileID: 2100000, guid: 9fea7dba0d37b61489e813b674641bcc, type: 2}
     outlineEncoder: {fileID: 4800000, guid: 1717b872c73d493e88bdc95249cedfc1, type: 3}
   shaderProps:

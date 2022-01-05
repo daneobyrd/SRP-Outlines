@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
+[Serializable]
 public enum EdgeDetectionMethod
 {
     Laplacian = 0,
@@ -10,8 +11,10 @@ public enum EdgeDetectionMethod
     FreiChen = 2
 }
 
+/// <inheritdoc />
 public class FullscreenEdgeDetection : ScriptableRenderPass
 {
+    private string _profilerTag;
     private Material _material;
 
     private ComputeShader _computeShader;
@@ -20,15 +23,16 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
     private int _sourceId;                        // _BlurredUpsampleResults or _OutlineOpaqueColor (Debug)
     private RenderTargetIdentifier _sourceTarget; // => new(_sourceIntId);
 
-    private static int                    outlineId     => Shader.PropertyToID("_OutlineTexture");
-    private static RenderTargetIdentifier outlineTarget => new(outlineId);
+    private static int OutlineId => Shader.PropertyToID("_OutlineTexture");
+    private static RenderTargetIdentifier OutlineTarget => new(OutlineId);
     
-    private RenderTargetIdentifier _cameraTarget; // = BuiltinRenderTextureType.CameraTarget;
+    // private RenderTargetIdentifier _cameraTarget; // = BuiltinRenderTextureType.CameraTarget;
 
     public FullscreenEdgeDetection(RenderPassEvent evt, string name)
     {
-        base.profilingSampler = new ProfilingSampler(name);
-        renderPassEvent       = evt;
+        // base.profilingSampler = new ProfilingSampler(name);
+        _profilerTag = name;
+        renderPassEvent = evt;
     }
 
     public void Setup(Material initMaterial, string sourceTexture, RenderTargetIdentifier cameraColor,
@@ -37,10 +41,22 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
         _material      = initMaterial;
         _sourceId      = Shader.PropertyToID(sourceTexture);
         _sourceTarget  = new RenderTargetIdentifier(_sourceId);
-        _cameraTarget  = new RenderTargetIdentifier(cameraColor, 0, CubemapFace.Unknown, -1);
+        // _cameraTarget  = new RenderTargetIdentifier(cameraColor, 0, CubemapFace.Unknown, -1);
         _computeShader = computeShader;
         _method        = method;
     }
+    
+    public void Setup(Material initMaterial, int sourceID, RenderTargetIdentifier cameraColor,
+                      ComputeShader computeShader, EdgeDetectionMethod method)
+    {
+        _material      = initMaterial;
+        _sourceId      = sourceID;
+        _sourceTarget  = new RenderTargetIdentifier(_sourceId);
+        // _cameraTarget  = new RenderTargetIdentifier(cameraColor, 0, CubemapFace.Unknown, -1);
+        _computeShader = computeShader;
+        _method        = method;
+    }
+
 
     public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
     {
@@ -53,7 +69,7 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
 
         cmd.GetTemporaryRT(_sourceId, camTexDesc, FilterMode.Point);
 
-        cmd.GetTemporaryRT(outlineId, camTexDesc, FilterMode.Point);
+        cmd.GetTemporaryRT(OutlineId, camTexDesc, FilterMode.Point);
 
         // cmd.GetTemporaryRT(-1, cameraTextureDescriptor);
     }
@@ -61,16 +77,17 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         ref CameraData cameraData = ref renderingData.cameraData;
-
         var camera = cameraData.camera;
         // if (camera.cameraType != CameraType.Game)
         //     return;
         if (_material == null)
             return;
 
-        CommandBuffer cmd = CommandBufferPool.Get();
-        using (new ProfilingScope(cmd, base.profilingSampler))
-        {
+        // CommandBuffer cmd = CommandBufferPool.Get();
+        CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
+
+        // using (new ProfilingScope(cmd, base.profilingSampler))
+        // {
             RenderTextureDescriptor cameraTargetDescriptor = cameraData.cameraTargetDescriptor;
             var width = cameraTargetDescriptor.width;
             var height = cameraTargetDescriptor.height;
@@ -90,7 +107,7 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
 
                     cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
                     cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Source", _sourceTarget, 0);
-                    cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Result", outlineTarget, 0);
+                    cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Result", OutlineTarget, 0);
                     cmd.DispatchCompute(_computeShader, kLaplacian,numthreadsX, numthreadsY, 1);
                     break;
                 }
@@ -102,7 +119,7 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
                     
                     cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
                     cmd.SetComputeTextureParam(_computeShader, kFreiChen, "Source", _sourceTarget, 0);
-                    cmd.SetComputeTextureParam(_computeShader, kFreiChen, "Result", outlineTarget, 0);
+                    cmd.SetComputeTextureParam(_computeShader, kFreiChen, "Result", OutlineTarget, 0);
                     cmd.DispatchCompute(_computeShader, kFreiChen, numthreadsX, numthreadsY, 1);
                     break;
                 }
@@ -115,7 +132,7 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Set global texture _OutlineTexture with Computed edge data.
             // ---------------------------------------------------------------------------------------------------------------------------------------
-            cmd.SetGlobalTexture(outlineId, outlineTarget, RenderTextureSubElement.Color);
+            cmd.SetGlobalTexture(OutlineId, OutlineTarget, RenderTextureSubElement.Color);
 
             #endregion
 
@@ -127,18 +144,18 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
             // The RenderingUtils.fullscreenMesh argument specifies that the mesh to draw is a quad.
             cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
             cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
-        }
+        // }
 
         context.ExecuteCommandBuffer(cmd);
-        cmd.Clear();
+        // cmd.Clear();
 
         CommandBufferPool.Release(cmd);
     }
 
-    public override void FrameCleanup(CommandBuffer cmd)
+    public override void OnCameraCleanup(CommandBuffer cmd)
     {
         if (_sourceId != -1) cmd.ReleaseTemporaryRT(_sourceId);
-        if (outlineId != -1) cmd.ReleaseTemporaryRT(outlineId);
+        if (OutlineId != -1) cmd.ReleaseTemporaryRT(OutlineId);
         // cmd.ReleaseTemporaryRT(-1);
     }
 }
