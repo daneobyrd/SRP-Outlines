@@ -143,12 +143,12 @@ public class OutlineRenderer : ScriptableRendererFeature
             renderer.EnqueuePass(_lineworkTransparentPass);
         }
 
-        const string gaussian = "Assets/Resources/Compute/Blur/Pyramid/ColorPyramid";
-        const string kawase = "Assets/Resources/Compute/Blur/KawaseCS";
+        const string gaussian = "Compute/Blur/ColorPyramid";
+        const string kawase = "Compute/Blur/KawaseCS";
         ComputeShader blurCS;
 
-        const string laplacian = "Assets/Resources/Compute/EdgeDetection/Laplacian/Laplacian";
-        const string freiChen = "Assets/Resources/Compute/EdgeDetection/Frei-Chen/FreiChen";
+        const string laplacian = "Compute/EdgeDetection/Laplacian/Laplacian";
+        const string freiChen = "Compute/EdgeDetection/Frei-Chen/FreiChen";
         ComputeShader edgeCS = null;
         string outlineSource = null;
         

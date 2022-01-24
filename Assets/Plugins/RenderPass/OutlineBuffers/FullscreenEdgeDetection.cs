@@ -125,8 +125,8 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
                 }
                 case EdgeDetectionMethod.Sobel:
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                // default:
+                //     throw new ArgumentOutOfRangeException();
             }
 
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

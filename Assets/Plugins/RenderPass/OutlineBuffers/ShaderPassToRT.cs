@@ -24,15 +24,17 @@ public class ShaderPassToRTSettings
 {
     public bool enabled;
     public string profilerTag;
-    public RenderQueueType renderQueueType;
     
     public FilteringSettings FilteringSettings; // Not serializable.
 
     [Header("Filters")]
+    public RenderQueueType renderQueueType;
     public LayerMask layerMask = 1;
     public LightLayerEnum lightLayerMask;
-    
+
     [Header("Render Texture Settings")]
+    public RenderTextureDescriptor CameraRTDescriptor; 
+    // Not Serializable
     public RenderTextureFormat colorFormat;
     public int depthBufferBits;
 
@@ -49,9 +51,9 @@ public class ShaderPassToRTSettings
         // RenderTargets
         customColorTargets = new CustomColorTarget[]
         {
-            new(true, "_CustomOpaqueColor", new List<string> { "Outline" }, colorFormat)
+            new(true, "_OutlineOpaqueColor", new List<string> { "Outline" }, colorFormat)
         };
-        customDepthTarget = new CustomDepthTarget(false, "_CustomOpaqueDepth", new List<string> { "Outline" });
+        customDepthTarget = new CustomDepthTarget(false, "_OutlineOpaqueDepth", new List<string> { "Outline" });
     }
 }
 
@@ -59,13 +61,9 @@ public class ShaderPassToRTSettings
 [Serializable]
 public class ShaderPassToRT : ScriptableRenderPass
 {
-    #region Variables
-
     private ShaderPassToRTSettings _settings; 
     private List<ShaderTagId> _shaderTagIdList = new();
     
-    #endregion
-
     public ShaderPassToRT(ShaderPassToRTSettings passSettings)
     {
         _settings = passSettings;
@@ -101,9 +99,10 @@ public class ShaderPassToRT : ScriptableRenderPass
 
     public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
     {
-        RenderTextureDescriptor camTexDesc = cameraTextureDescriptor;
+        var camTexDesc /*= _settings.CameraRTDescriptor*/ = cameraTextureDescriptor;
         var width = camTexDesc.width;
         var height = camTexDesc.height;
+        camTexDesc.msaaSamples     = 1;
         camTexDesc.colorFormat     = _settings.colorFormat;
         camTexDesc.depthBufferBits = _settings.depthBufferBits;
 
@@ -119,20 +118,20 @@ public class ShaderPassToRT : ScriptableRenderPass
 
         if (_settings.customDepthTarget.enabled)
         {
-            cmd.GetTemporaryRT(_settings.customDepthTarget.NameID, width, height, _settings.depthBufferBits, FilterMode.Point,
-                               RenderTextureFormat.Depth);
+            // renderTextureFormat is auto-set to depth by CustomDepthTarget constructor
+            cmd.GetTemporaryRT(_settings.customDepthTarget.NameID, width, height, _settings.depthBufferBits, FilterMode.Point, _settings.customDepthTarget.renderTextureFormat);
         }
 
         if (configuredColorAttachments.Count == 0 && !_settings.customDepthTarget.enabled) return;
         if (_settings.customDepthTarget.enabled)
         {
             ConfigureTarget(configuredColorAttachments.ToArray(), _settings.customDepthTarget.RTID);
-            // ConfigureClear(ClearFlag.All, clearColor);
+            ConfigureClear(ClearFlag.All, clearColor);
         }
         else
         {
             ConfigureTarget(configuredColorAttachments.ToArray());
-            // ConfigureClear(ClearFlag.Color, clearColor);
+            ConfigureClear(ClearFlag.Color, clearColor);
         }
     }
 

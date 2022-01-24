@@ -161,7 +161,7 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID,                   // ID of threa
                     uint3 dispatchThreadId : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
 {
     // if (SAMPLE_TEXTURE2D_LOD(Source, sampler_LinearClamp, dispatchThreadId.xy, 0).r == 0.0)
-    if (Source.Load(dispatchThreadId).r == 0.0)
+    if (LOAD_TEXTURE2D_LOD(Source, dispatchThreadId.xy, 0).r == 0.0)
     {
         Result[dispatchThreadId.xy] = 0;
     }
@@ -191,24 +191,24 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID,                   // ID of threa
         // static float4 sq_cnv[2];
 
         UNITY_UNROLL
-        for (int k = 0; k < 9; ++k)
+        for (int i = 0; i < 9; ++i)
         {
-            float4 pixel_sample = Source[uint2(dispatchThreadId.xy + sample_offsets[k])];
-            // float4 pixel_sample = SAMPLE_TEXTURE2D_LOD(Source, sampler_PointClamp, float2(uint2(dispatchThreadId.xy + sample_offsets[k]) * texelSize),                                                   0);
-            r_intensity[k] = length(pixel_sample.x);
-            g_intensity[k] = length(pixel_sample.y);
-            b_intensity[k] = length(pixel_sample.z);
-            a_intensity[k] = length(pixel_sample.w);
+            float4 pixel_sample = Source[uint2(dispatchThreadId.xy + sample_offsets[i])];
+            // float4 pixel_sample = SAMPLE_TEXTURE2D_LOD(Source, sampler_PointClamp, float2(uint2(dispatchThreadId.xy + sample_offsets[k]) * texelSize), 0);
+            r_intensity[i] = length(pixel_sample.x);
+            g_intensity[i] = length(pixel_sample.y);
+            b_intensity[i] = length(pixel_sample.z);
+            a_intensity[i] = length(pixel_sample.w);
 
-            intensity[k] = float4(r_intensity[k], g_intensity[k], b_intensity[k], a_intensity[k]);
-            sq_i[k] = pow(intensity[k], 2);
+            intensity[i] = float4(r_intensity[i], g_intensity[i], b_intensity[i], a_intensity[i]);
+            sq_i[i] = pow(intensity[i], 2);
         }
         
         /* calculate the convolution values for all the masks */
         UNITY_UNROLL
-        for (int n = 0; n < 9; n++)
+        for (int j = 0; j < 9; j++)
         {
-            ApplyFreiChen(intensity, G[n], cnv[n]);
+            ApplyFreiChen(intensity, G[j], cnv[j]);
         }
 
         const float4 M = (cnv[0] + cnv[1]) + (cnv[2] + cnv[3]);

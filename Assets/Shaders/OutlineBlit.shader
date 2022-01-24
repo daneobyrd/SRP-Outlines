@@ -92,10 +92,10 @@
                 float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, uv);
 
                 float4 outlineMask;
-                outlineMask.x = step(outlineTex.x, _OuterThreshold);
-                outlineMask.y = step(outlineTex.y, _InnerThreshold);
-                outlineMask.z = step(outlineTex.z, _InnerThreshold);
-                outlineMask.w = step(outlineTex.w, _OuterThreshold);
+                outlineMask.x = SharpenAlpha(outlineTex.x, _OuterThreshold);
+                outlineMask.y = SharpenAlpha(outlineTex.y, _InnerThreshold);
+                outlineMask.z = SharpenAlpha(outlineTex.z, _InnerThreshold);
+                outlineMask.w = SharpenAlpha(outlineTex.w, _OuterThreshold);
                 
                 // outlineMask.x = Smootherstep01(outlineTex.x);
                 // outlineMask.y = Smootherstep01(outlineTex.y);
