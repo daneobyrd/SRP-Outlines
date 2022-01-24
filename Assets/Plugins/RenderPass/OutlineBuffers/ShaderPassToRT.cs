@@ -38,6 +38,7 @@ public class ShaderPassToRTSettings
     public RenderTextureFormat colorFormat;
     public int depthBufferBits;
 
+    // TODO: Replace with list of CustomPassTargets that accept CustomColorTargets and (one) CustomDepthTarget.
     public CustomColorTarget[] customColorTargets;
     public CustomDepthTarget customDepthTarget;
 
