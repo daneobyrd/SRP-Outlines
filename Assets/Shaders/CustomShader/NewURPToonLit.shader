@@ -77,6 +77,8 @@ Shader "NewURPToonLit"
         _ShadowMapColor("_ShadowMapColor", Color) = (1,0.825,0.78)
 
         [Header(Outline)]
+        _OutlineSource("_OutlineSource", 2D) = "white" {}
+        
         _OutlineWidth("_OutlineWidth (World Space)", Range(0,4)) = 1
         _OutlineColor("_OutlineColor", Color) = (0.5,0.5,0.5,1)
         _OutlineZOffset("_OutlineZOffset (View Space)", Range(0,1)) = 0.0001
@@ -133,7 +135,7 @@ Shader "NewURPToonLit"
                 "LightMode" = "UniversalForward"
             }
 
-            // explict render state to avoid confusion
+            // explicit render state to avoid confusion
             // you can expose these render state to material inspector if needed (see URP's Lit.shader)
             Cull Back
             ZTest LEqual
@@ -230,6 +232,69 @@ Shader "NewURPToonLit"
  
 */
 
+        Pass
+        {
+            Name "Outline Source"
+            ZWrite On
+            ZTest LEqual
+            Tags
+            {
+                "RenderPipeline" = "UniversalPipeline"
+                "RenderType" = "Opaque"
+                "UniversalMaterialType" = "Unlit"
+                "Queue" = "Geometry"
+                "LightMode" = "OutlineSource"
+            }
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                // The uv variable contains the UV coordinate on the texture for the
+                // given vertex.
+                float2 uv : TEXCOORD0;
+            };
+
+            struct Varyings
+            {
+                float4 positionHCS : SV_POSITION;
+                // The uv variable contains the UV coordinate on the texture for the
+                // given vertex.
+                float2 uv : TEXCOORD0;
+            };
+
+            // This macro declares _BaseMap as a Texture2D object.
+            TEXTURE2D(_OutlineSource);
+            // This macro declares the sampler for the _BaseMap texture.
+            SAMPLER(sampler_OutlineSource);
+
+            // TEXTURE2D(_CameraMotionVectorTexture);
+
+            CBUFFER_START(UnityPerMaterial)
+            float4 _OutlineSource_ST;
+            CBUFFER_END
+
+            Varyings vert(Attributes IN)
+            {
+                Varyings OUT;
+                OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
+                OUT.uv = TRANSFORM_TEX(IN.uv, _OutlineSource);
+                return OUT;
+            }
+
+            half4 frag(Varyings IN) : SV_Target
+            {
+                half4 color = SAMPLE_TEXTURE2D(_OutlineSource, sampler_OutlineSource, IN.uv);
+                return color;
+            }
+            ENDHLSL
+        }
+        
         // ShadowCaster pass. Used for rendering URP's shadowmaps
         Pass
         {
@@ -281,7 +346,7 @@ Shader "NewURPToonLit"
             #pragma fragment BaseColorAlphaClipTest // we only need to do Clip(), no need color shading
 
             // because Outline area should write to depth also, define "ToonShaderIsOutline" to inject outline related code into VertexShaderWork()
-            #define ToonShaderIsOutline
+            // #define ToonShaderIsOutline
 
             // all shader logic written inside this .hlsl, remember to write all #define BEFORE writing #include
             #include "NewURPToonLit_Shared.hlsl"

@@ -19,7 +19,7 @@ static const int2 sample_offsets[9] =
     int2(-1, -1), int2(0, -1), int2(1, -1)
 };
 
-void ApplyFreiChen(float4 input[9], float3x3 cnvMask, out float4 cnv_result)
+void apply_frei_chen(float4 input[9], float3x3 cnvMask, out float4 cnv_result)
 {
     // [0 - 8] Red Channel
     const float dot3_r = dot(cnvMask[0], float3(input[0].r, input[1].r, input[2].r))
@@ -72,7 +72,6 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID, // ID of thread group; range dep
     static float4 intensity[9];
 
     static float4 cnv[9];
-    static float4 approx_cnv[5];
 
     UNITY_UNROLL
     for (int k = 0; k < 9; ++k)
@@ -90,7 +89,7 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID, // ID of thread group; range dep
     UNITY_UNROLL
     for (int n = 0; n < 9; n++)
     {
-        ApplyFreiChen(intensity, G[n], cnv[n]);
+        apply_frei_chen(intensity, G[n], cnv[n]);
     }
 
     const float4 M = (cnv[0] + cnv[1]) + (cnv[2] + cnv[3]);

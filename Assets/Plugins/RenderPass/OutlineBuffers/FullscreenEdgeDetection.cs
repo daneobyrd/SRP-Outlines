@@ -8,7 +8,8 @@ public enum EdgeDetectionMethod
 {
     Laplacian = 0,
     Sobel = 1,
-    FreiChen = 2
+    FreiChen = 2,
+    AltFreiChen = 3
 }
 
 /// <inheritdoc />
@@ -16,18 +17,17 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
 {
     private string _profilerTag;
     private Material _material;
+    private int _passIndex;
 
     private ComputeShader _computeShader;
     private EdgeDetectionMethod _method;
 
-    private int _sourceId;                        // _BlurredUpsampleResults or _OutlineOpaqueColor (Debug)
-    private RenderTargetIdentifier _sourceTarget; // => new(_sourceIntId);
+    private int _sourceId;                        // _BlurredUpsampleResults or _OutlineOpaqueColor
+    private RenderTargetIdentifier _sourceTarget;
 
-    private static int OutlineId => Shader.PropertyToID("_OutlineTexture");
-    private static RenderTargetIdentifier OutlineTarget => new(OutlineId);
+    private static int outlineId => Shader.PropertyToID("_OutlineTexture");
+    private static RenderTargetIdentifier outlineTarget => new(outlineId);
     
-    // private RenderTargetIdentifier _cameraTarget; // = BuiltinRenderTextureType.CameraTarget;
-
     public FullscreenEdgeDetection(RenderPassEvent evt, string name)
     {
         // base.profilingSampler = new ProfilingSampler(name);
@@ -35,28 +35,27 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
         renderPassEvent = evt;
     }
 
-    public void Setup(Material initMaterial, string sourceTexture, RenderTargetIdentifier cameraColor,
-                      ComputeShader computeShader, EdgeDetectionMethod method)
+    public void Setup( string sourceTexture, ComputeShader computeShader, EdgeDetectionMethod method)
     {
-        _material      = initMaterial;
-        _sourceId      = Shader.PropertyToID(sourceTexture);
-        _sourceTarget  = new RenderTargetIdentifier(_sourceId);
-        // _cameraTarget  = new RenderTargetIdentifier(cameraColor, 0, CubemapFace.Unknown, -1);
-        _computeShader = computeShader;
-        _method        = method;
+        _sourceId          = Shader.PropertyToID(sourceTexture);
+        _sourceTarget      = new RenderTargetIdentifier(_sourceId);
+        _computeShader     = computeShader;
+        _method            = method;
     }
     
-    public void Setup(Material initMaterial, int sourceID, RenderTargetIdentifier cameraColor,
-                      ComputeShader computeShader, EdgeDetectionMethod method)
+    public void Setup( int sourceID, ComputeShader computeShader, EdgeDetectionMethod method)
     {
-        _material      = initMaterial;
-        _sourceId      = sourceID;
-        _sourceTarget  = new RenderTargetIdentifier(_sourceId);
-        // _cameraTarget  = new RenderTargetIdentifier(cameraColor, 0, CubemapFace.Unknown, -1);
-        _computeShader = computeShader;
-        _method        = method;
+        _sourceId          = sourceID;
+        _sourceTarget      = new RenderTargetIdentifier(_sourceId);
+        _computeShader     = computeShader;
+        _method            = method;
     }
 
+    public void InitMaterial(Material initMaterial, int passIndex)
+    {
+        _material  = initMaterial;
+        _passIndex = passIndex;
+    }
 
     public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
     {
@@ -66,19 +65,17 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
         camTexDesc.msaaSamples       = 1;
         camTexDesc.depthBufferBits   = 0;
         camTexDesc.enableRandomWrite = true;
+        // camTexDesc.sRGB              = _sourceColorSpace == RenderTextureReadWrite.sRGB;
 
         cmd.GetTemporaryRT(_sourceId, camTexDesc, FilterMode.Point);
 
-        cmd.GetTemporaryRT(OutlineId, camTexDesc, FilterMode.Point);
-
-        // cmd.GetTemporaryRT(-1, cameraTextureDescriptor);
+        cmd.GetTemporaryRT(outlineId, camTexDesc, FilterMode.Point);
     }
 
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         ref CameraData cameraData = ref renderingData.cameraData;
-        var camera = cameraData.camera;
-        // if (camera.cameraType != CameraType.Game)
+        // if (cameraData.camera.cameraType != CameraType.Game)
         //     return;
         if (_material == null)
             return;
@@ -94,68 +91,74 @@ public class FullscreenEdgeDetection : ScriptableRenderPass
             cameraTargetDescriptor.depthBufferBits   = 0;
             cameraTargetDescriptor.enableRandomWrite = true;
             var camSize = new Vector4(width, height, 0, 0);
-
+            
+            
             #region Compute Edges
 
+            string methodString = null;
+            Vector2Int numthreads = default;
+            
             switch (_method)
             {
                 case EdgeDetectionMethod.Laplacian:
                 {
-                    var kLaplacian = _computeShader.FindKernel("KLaplacian");
-                    var numthreadsX = Mathf.CeilToInt(width / 32f);
-                    var numthreadsY = Mathf.CeilToInt(height / 32f);
-
-                    cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
-                    cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Source", _sourceTarget, 0);
-                    cmd.SetComputeTextureParam(_computeShader, kLaplacian, "Result", OutlineTarget, 0);
-                    cmd.DispatchCompute(_computeShader, kLaplacian,numthreadsX, numthreadsY, 1);
+                    methodString = "KLaplacian";
+                    numthreads.x = Mathf.CeilToInt(width / 32f);
+                    numthreads.y = Mathf.CeilToInt(height / 32f);
                     break;
                 }
                 case EdgeDetectionMethod.FreiChen:
                 {
-                    var kFreiChen = _computeShader.FindKernel("KFreiChen");
-                    var numthreadsX = Mathf.CeilToInt(width / 8f);
-                    var numthreadsY = Mathf.CeilToInt(height / 8f);
-                    
-                    cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
-                    cmd.SetComputeTextureParam(_computeShader, kFreiChen, "Source", _sourceTarget, 0);
-                    cmd.SetComputeTextureParam(_computeShader, kFreiChen, "Result", OutlineTarget, 0);
-                    cmd.DispatchCompute(_computeShader, kFreiChen, numthreadsX, numthreadsY, 1);
+                    methodString = "KFreiChen";
+                    numthreads.x = Mathf.CeilToInt(width / 8f);
+                    numthreads.y = Mathf.CeilToInt(height / 8f);
                     break;
                 }
                 case EdgeDetectionMethod.Sobel:
+                    methodString = "KSobel";
+                    break;
+                case EdgeDetectionMethod.AltFreiChen:
+                    methodString = "KAltFreiChen";
+                    numthreads.x = Mathf.CeilToInt(width / 8f);
+                    numthreads.y = Mathf.CeilToInt(height / 8f);
                     break;
                 // default:
                 //     throw new ArgumentOutOfRangeException();
             }
+            
+            var edgeKernel = _computeShader.FindKernel(methodString);
+            // var colorspace = _sourceColorSpace == RenderTextureReadWrite.sRGB ? 2 : 1;
+            
+            cmd.SetComputeVectorParam(_computeShader, "_Size", camSize);
+            // cmd.SetComputeIntParam(_computeShader, "_TextureColorMode", colorspace );
+            cmd.SetComputeTextureParam(_computeShader, edgeKernel, "Source", _sourceTarget, 0);
+            cmd.SetComputeTextureParam(_computeShader, edgeKernel, "Result", outlineTarget, 0);
+            cmd.DispatchCompute(_computeShader, edgeKernel, numthreads.x, numthreads.y, 1);
+
 
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
             // Set global texture _OutlineTexture with Computed edge data.
             // ---------------------------------------------------------------------------------------------------------------------------------------
-            cmd.SetGlobalTexture(OutlineId, OutlineTarget, RenderTextureSubElement.Color);
+            cmd.SetGlobalTexture(outlineId, outlineTarget, RenderTextureSubElement.Color);
 
             #endregion
 
             // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-            // Blit _OutlineTexture to the screen
+            // Draw _OutlineTexture to the screen
             // ---------------------------------------------------------------------------------------------------------------------------------------
-
+            cmd.SetRenderTarget(outlineTarget);
             cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
             // The RenderingUtils.fullscreenMesh argument specifies that the mesh to draw is a quad.
             cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _material);
-            cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
         // }
 
         context.ExecuteCommandBuffer(cmd);
-        // cmd.Clear();
-
         CommandBufferPool.Release(cmd);
     }
 
     public override void OnCameraCleanup(CommandBuffer cmd)
     {
         if (_sourceId != -1) cmd.ReleaseTemporaryRT(_sourceId);
-        if (OutlineId != -1) cmd.ReleaseTemporaryRT(OutlineId);
-        // cmd.ReleaseTemporaryRT(-1);
+        if (outlineId != -1) cmd.ReleaseTemporaryRT(outlineId);
     }
 }

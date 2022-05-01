@@ -6,22 +6,6 @@ namespace UnityEngine.Rendering.Universal
     [System.Serializable]
     public class ObjectIDCustomPass : MonoBehaviour
     {
-        // private void OnEnable()
-        // {
-        //     RenderPipelineManager.beginCameraRendering += WriteLogMessage;
-        // }
-        //
-        // private void OnDisable()
-        // {
-        //     RenderPipelineManager.beginCameraRendering -= WriteLogMessage;
-        // }
-        //
-        // void WriteLogMessage(ScriptableRenderContext context, Camera camera)
-        // {
-        //     // Write text to the console
-        //     Debug.Log($"Beginning rendering the camera: {camera.name}");
-        // }
-
         /// <summary>
         /// Used to assign an ObjectID (in the form of a color) to every renderer in the scene.
         /// If a scene uses dynamic objects or procedural object placement, then the user script should call

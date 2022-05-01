@@ -18,6 +18,7 @@ public enum BlurType
 /// <inheritdoc />
 public class BlurPass : ScriptableRenderPass
 {
+    private bool _enabled;
     private string _profilerTag;
     private ComputeShader _computeShader;
     private BlurType _blurType;

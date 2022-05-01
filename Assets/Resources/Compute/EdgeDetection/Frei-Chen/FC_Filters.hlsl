@@ -1,6 +1,8 @@
-﻿// https://www.rasterGrid.com/bloG/2011/01/frei-chen-edGe-detector/
+﻿#ifndef FREI_CHEN_FILTERS
+#define FREI_CHEN_FILTERS
+// https://www.rasterGrid.com/bloG/2011/01/frei-chen-edGe-detector/
 
-/*           Frei-Chen G0
+/*        Horizontal Gradient
  *         ┌────┬────┬────┐
  *         │  1 │ √2 │  1 │
  *     1   ├────┼────┼────┤
@@ -12,11 +14,11 @@
 static float3x3 G0 =
 {
    0.3535534,   0.5,  0.3535534,
-   0,           0,          0,  
-   -0.3535534,  -0.5, -0.3535534
+   0,             0,          0,  
+   -0.3535534, -0.5, -0.3535534
 };
 
-/*           Frei-Chen G1
+/*         Vertical Gradient
  *         ┌────┬────┬────┐
  *         │  1 │  0 │ -1 │
  *     1   ├────┼────┼────┤
@@ -32,7 +34,7 @@ static float3x3 G1 =
     0.3535534,  -0.5, -0.3535534 
 };
 
-/*           Frei-Chen G2
+/*          Vertical Ripple
  *         ┌────┬────┬────┐
  *         │  0 │ -1 │ √2 │
  *     1   ├────┼────┼────┤
@@ -48,7 +50,7 @@ static float3x3 G2 =
     -0.5,       0.3535534, 0.0
 };
 
-/*           Frei-Chen G3                  
+/*         Horizontal Ripple                 
  *         ┌────┬────┬────┐              
  *         │ √2 │ -1 │  0 │              
  *     1   ├────┼────┼────┤              
@@ -64,7 +66,7 @@ static float3x3 G3 =
      0,          0.3535534, -0.5
 };
 
-/*           Frei-Chen G4                  
+/*           Vertical Line                
  *         ┌────┬────┬────┐              
  *         │  0 │  1 │  0 │              
  *     1   ├────┼────┼────┤              
@@ -80,7 +82,7 @@ static float3x3 G4 =
      0.0,  0.5,  0.0
 };
 
-/*         Frei-Chen G5                  
+/*       Horizontal Line                
  *       ┌────┬────┬────┐              
  *       │ -1 │  0 │  1 │              
  *   1   ├────┼────┼────┤              
@@ -96,7 +98,7 @@ static float3x3 G5 =
      0.5,  0.0, -0.5
 };
 
-/*         Frei-Chen G6                  
+/*   Vertical Discrete Laplacian                 
  *       ┌────┬────┬────┐              
  *       │  1 │ -2 │  1 │              
  *   1   ├────┼────┼────┤              
@@ -113,7 +115,7 @@ static float3x3 G6 =
 };
 
 /*
- *         Frei-Chen G7                  
+ *  Horizontal Discrete Laplacian                
  *       ┌────┬────┬────┐              
  *       │ -2 │  1 │ -2 │              
  *   1   ├────┼────┼────┤              
@@ -129,7 +131,7 @@ static float3x3 G7 =
     -0.3333333, 0.1666667, -0.3333333
 };
 
-/*        Frei-Chen G8                  
+/*       Constant Area                 
  *      ┌────┬────┬────┐              
  *      │  1 │  1 │  1 │              
  *   1  ├────┼────┼────┤              
@@ -171,3 +173,4 @@ static float3x3 g[9] =
      g6, g7, g8  
 };
 */
+#endif
