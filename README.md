@@ -1,21 +1,17 @@
 # SRP-Outlines
 
-This is a **Unity 2021.2.5f1** project using the **Universal Render Pipeline** (12.1.1) and utilizing features of the Scriptable Render Pipeline to create a fullscreen outline effect.
+This is a **Unity 2021.3.0f1** project using the **Universal Render Pipeline** (v. 12.1.6) and utilizing features of the Scriptable Render Pipeline to create a fullscreen outline effect.
 
-The important files can be found in `Assets/Resources/`. You can find different compute shaders I am using and my SRP feature/passes there. Currently I have additional reference and draft files within the compute folder.
+Compute shaders are located in `Assets/Resources`.
+Scriptable Render Passes are located in `Assets/Plugins/RenderPass`.
 
 Most recent work is in the `dev` branch.
 
-[v3.0](https://github.com/UnityTechnologies/PhotoMode/releases/tag/v3.0) of Unity's [PhotoMode](https://github.com/UnityTechnologies/PhotoMode) package can be found in `Assets/Plugins/PhotoMode`.
+Currently there are two filters being used for edge detection:
 
-I've included the Unity's outdated Blit, DrawFullscreenFeature, from Unity's [Universal Rendering Examples](https://github.com/Unity-Technologies/UniversalRenderingExamples/tree/master/Assets/Scripts/Runtime/RenderPasses) repo in `Assets/Plugins/DrawFullscreenFeature`.
-I have been using the RenderObjectsPass for reference here and there but my scriptable render passes are not 1:1 in structure or implementation to any of the reference scripts.
+• Laplacian
+• Frei-Chen
 
-_The original file and related files can be found at the following paths:_
-
-    RenderObjects.cs
-    ---------- \Packages\com.unity.render-pipelines.universal\Runtime\RendererFeatures
-    RenderObjectsPass.cs 
-    ---------- \Packages\com.unity.render-pipelines.universal\Runtime\Passes
-    RenderObjectsPassFeatureEditor.cs 
-    ---------- \Packages\com.unity.render-pipelines.universal\Editor\RendererFeatures
+Resources:
+https://cse442-17f.github.io/Sobel-Laplacian-and-Canny-Edge-Detection-Algorithms/
+https://www.rastergrid.com/blog/2011/01/frei-chen-edge-detector/
