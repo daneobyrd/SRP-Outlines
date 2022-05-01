@@ -255,16 +255,12 @@ Shader "NewURPToonLit"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                // The uv variable contains the UV coordinate on the texture for the
-                // given vertex.
                 float2 uv : TEXCOORD0;
             };
 
             struct Varyings
             {
                 float4 positionHCS : SV_POSITION;
-                // The uv variable contains the UV coordinate on the texture for the
-                // given vertex.
                 float2 uv : TEXCOORD0;
             };
 
