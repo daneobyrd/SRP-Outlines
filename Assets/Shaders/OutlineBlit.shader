@@ -23,7 +23,7 @@
     {
         Tags
         {
-            "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "LightMode" = "SRPDefaultUnlit"
+            "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline"
         }
         // 0: Color Only
         Pass
@@ -77,7 +77,7 @@
             Name "OutlineColorAndDepth"
             ZWrite On
             ZTest Always
-            Blend One Zero
+            Blend Off
             Cull Off
 
             HLSLPROGRAM
@@ -107,7 +107,7 @@
 
                 const float outline_depth = SAMPLE_TEXTURE2D(_OutlineOpaqueDepth, sampler_LinearClamp, input.texcoord.xy).r;
 
-                const float silhouette = (sign(outline_depth));
+                const float silhouette = ceil(saturate(outline_depth));
 
                 float4 channel_mask;
                 channel_mask.r = SharpenAlpha(outline_tex.r, _OuterThreshold);
@@ -130,9 +130,8 @@
                 
                 PixelData pd;
                 // Out = ((1 - edge) * original) + (edge * lerp(original, OutlineColor,  OutlineColor.a));
-                pd.color = ((1 - outline_mask) * cameraColor) + (outline_mask * lerp(cameraColor, combined_outline, final_mask));
-                // pd.color =  lerp(cameraColor, overlay, outline_mask);
-                // pd.color.rgb = (input.normal * 0.5 + 0.5);
+                // pd.color = ((1 - outline_mask) * cameraColor) + (outline_mask * lerp(cameraColor, combined_outline, final_mask));
+                pd.color =  silhouette;
                 pd.depth = scene_depth;
                 return pd;
             }

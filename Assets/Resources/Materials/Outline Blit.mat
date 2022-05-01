@@ -23,9 +23,9 @@ Material:
     m_Ints: []
     m_Floats: []
     m_Colors:
-    - _BlueChannelLines: {r: 0, g: 0, b: 0, a: 1}
-    - _GreenChannelLines: {r: 0, g: 0, b: 0, a: 1}
+    - _BlueChannelLines: {r: 0, g: 0, b: 1, a: 1}
+    - _GreenChannelLines: {r: 0, g: 1, b: 0, a: 1}
     - _InnerLines: {r: 0.8705883, g: 0.92549026, b: 0.93725497, a: 1}
     - _OuterLines: {r: 0.19607842, g: 0.3098039, b: 0.3098039, a: 1}
-    - _RedChannelLines: {r: 0, g: 0, b: 0, a: 1}
+    - _RedChannelLines: {r: 1, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
