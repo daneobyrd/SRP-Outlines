@@ -1,0 +1,370 @@
+﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+
+#pragma kernel KFreiChen                           KERNEL_SIZE=8   MAIN_FREI_CHEN=KFreiChen
+#pragma kernel KAltFreiChen                           KERNEL_SIZE=8   ALT_FREI_CHEN=KAltFreiChen
+
+#include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
+#include "FC_Filters.hlsl"
+#include "FC_General.hlsl"
+#include "Convolution.hlsl"
+
+TEXTURE2D(Source);
+RW_TEXTURE2D(float4, Result);
+
+CBUFFER_START(cbuff)
+float4 _Size; // x: src width, y: src height, zw: unused
+CBUFFER_END
+
+static int2 sample_offsets[9] =
+{
+    int2(-1, 1), int2(0, 1), int2(1, 1),
+    int2(-1, 0), int2(0, 0), int2(1, 0),
+    int2(-1, -1), int2(0, -1), int2(1, -1)
+};
+
+void pack_array_into_f3x3(float4 input[9], out float3x3 r3x3, out float3x3 g3x3, out float3x3 b3x3, out float3x3 a3x3 )
+{
+    r3x3 = float3x3
+    (
+        input[0].r, input[1].r, input[2].r,
+        input[3].r, input[4].r, input[5].r,
+        input[6].r, input[7].r, input[8].r
+    );
+
+    g3x3 = float3x3
+    (
+        input[0].g, input[1].g, input[2].g,
+        input[3].g, input[4].g, input[5].g,
+        input[6].g, input[7].g, input[8].g
+    );
+
+    b3x3 = float3x3
+    (
+        input[0].b, input[1].b, input[2].b,
+        input[3].b, input[4].b, input[5].b,
+        input[6].b, input[7].b, input[8].b
+    );
+
+    a3x3 = float3x3
+    (
+        input[0].a, input[1].a, input[2].a,
+        input[3].a, input[4].a, input[5].a,
+        input[6].a, input[7].a, input[8].a
+    );
+}
+void pack_array_into_f4x4(float4 input[16], out float4x4 r4x4, out float4x4 g4x4, out float4x4 b4x4, out float4x4 a4x4 )
+{
+    r4x4 = float4x4
+    (
+        input[0].r,  input[1].r,  input[2].r,  input[3].r,
+        input[4].r,  input[5].r,  input[6].r,  input[7].r,
+        input[8].r,  input[9].r,  input[10].r, input[11].r,
+        input[12].r, input[13].r, input[14].r, input[15].r
+    );
+    
+    g4x4 = float4x4
+    (
+        input[0].g,  input[1].g,  input[2].g,  input[3].g,
+        input[4].g,  input[5].g,  input[6].g,  input[7].g,
+        input[8].g,  input[9].g,  input[10].g, input[11].g,
+        input[12].g, input[13].g, input[14].g, input[15].g
+    );
+
+    b4x4 = float4x4
+    (
+        input[0].b,  input[1].b,  input[2].b,  input[3].b,
+        input[4].b,  input[5].b,  input[6].b,  input[7].b,
+        input[8].b,  input[9].b,  input[10].b, input[11].b,
+        input[12].b, input[13].b, input[14].b, input[15].b
+    );
+
+    a4x4 = float4x4
+    (
+        input[0].a,  input[1].a,  input[2].a,  input[3].a,
+        input[4].a,  input[5].a,  input[6].a,  input[7].a,
+        input[8].a,  input[9].a,  input[10].a, input[11].a,
+        input[12].a, input[13].a, input[14].a, input[15].a
+    );
+}
+
+void get_px_intensity_9(int2 coord, int2 pixel_offsets[9], out float4 intensity[9])
+{
+    UNITY_UNROLL
+    for (int i = 0; i < 9; ++i)
+    {
+        float4 pixel_sample = Source[(coord.xy + pixel_offsets[i])];
+            intensity[i].r = length(pixel_sample.r);
+            intensity[i].g = length(pixel_sample.g);
+            intensity[i].b = length(pixel_sample.b);
+            intensity[i].a = length(pixel_sample.a);
+    }
+}
+void get_px_intensity_16(int2 coord, int2 pixel_offsets[16], out float4 intensity[16])
+{
+    UNITY_UNROLL
+    for (int i = 0; i < 16; ++i)
+    {
+        float4 pixel_sample = Source[(coord.xy + pixel_offsets[i])];
+            intensity[i].r = length(pixel_sample.r);
+            intensity[i].g = length(pixel_sample.g);
+            intensity[i].b = length(pixel_sample.b);
+            intensity[i].a = length(pixel_sample.a);
+    }
+}
+
+void apply_frei_chen(float4 input[9], float3x3 cnvMask, out float4 cnv_result)
+{
+    float3x3 r_f3x3, g_f3x3, b_f3x3, a_f3x3;
+    pack_array_into_f3x3(input, r_f3x3, g_f3x3, b_f3x3, a_f3x3);
+    
+    // Dot product is perfect for convolution
+    // A = (a1, a2, a3 ... aN);
+    // B = (b1, b2, b3 ... bN);
+    // A•B = (a1b1 + a2b2 + a3b3 + ... aNbN);
+
+    // Red Channel
+    const float dot3_r = dot(cnvMask[0], r_f3x3[0])
+                        + dot(cnvMask[1], r_f3x3[1])
+                        + dot(cnvMask[2], r_f3x3[2]);
+    float dp3_r = dot3_r * dot3_r;
+
+    // Green Channel
+    const float dot3_g = dot(cnvMask[0], g_f3x3[0])
+                        + dot(cnvMask[1], g_f3x3[1])
+                        + dot(cnvMask[2], g_f3x3[2]);
+    float dp3_g = dot3_g * dot3_g;
+
+    // Blue Channel
+    const float dot3_b = dot(cnvMask[0], b_f3x3[0])
+                        + dot(cnvMask[1], b_f3x3[1])
+                        + dot(cnvMask[2], b_f3x3[2]);
+    float dp3_b = dot3_b * dot3_b;
+
+    // Alpha Channel
+    const float dot3_a = dot(cnvMask[0], a_f3x3[0])
+                        + dot(cnvMask[1], a_f3x3[1])
+                        + dot(cnvMask[2], a_f3x3[2]);
+    float dp3_a = dot3_a * dot3_a;
+
+
+    cnv_result = float4(dp3_r, dp3_g, dp3_b, dp3_a);
+}
+void partial_frei_chen(float4 input[16], float4x4 cnvMask, out float4 partial_dot_fc)
+{
+    float4x4 r4x4, g4x4, b4x4, a4x4;
+    pack_array_into_f4x4(input, r4x4, g4x4, b4x4, a4x4);
+
+    // Dot product is perfect for convolution
+    // A = (a1, a2, a3 ... aN);
+    // B = (b1, b2, b3 ... bN);
+    // A•B = (a1b1 + a2b2 + a3b3 + ... aNbN);
+
+    // Red Channel
+    const float dot4_r = dot(cnvMask[0], r4x4[0])
+        + dot(cnvMask[1], r4x4[1])
+        + dot(cnvMask[2], r4x4[2])
+        + dot(cnvMask[3], r4x4[3]);
+
+    // float dp4_r = dot4_r * dot4_r;
+
+    // Green Channel
+    const float dot4_g = dot(cnvMask[0], g4x4[0])
+        + dot(cnvMask[1], g4x4[1])
+        + dot(cnvMask[2], g4x4[2])
+        + dot(cnvMask[3], g4x4[3]);
+
+    // float dp4_g = dot4_g * dot4_g;
+
+    // Blue Channel
+    const float dot4_b = dot(cnvMask[0], b4x4[0])
+        + dot(cnvMask[1], b4x4[1])
+        + dot(cnvMask[2], b4x4[2])
+        + dot(cnvMask[3], b4x4[3]);
+
+    // float dp4_b = dot4_b * dot4_b;
+
+    // Alpha Channel
+    const float dot4_a = dot(cnvMask[0], a4x4[0])
+        + dot(cnvMask[1], a4x4[1])
+        + dot(cnvMask[2], a4x4[2])
+        + dot(cnvMask[3], a4x4[3]);
+
+    // float dp4_a = dot4_a * dot4_a;
+
+    partial_dot_fc = float4(dot4_r, dot4_g, dot4_b, dot4_a);
+}
+void partial_frei_chen_float(float4 input[16], float cnvCross, float4 cnvCenter, out float4 partial_dot_fc)
+{
+    float4x4 r4x4, g4x4, b4x4, a4x4;
+    pack_array_into_f4x4(input, r4x4, g4x4, b4x4, a4x4);
+    
+    // Dot product is perfect for convolution
+    // A = (a1, a2, a3 ... aN);
+    // B = (b1, b2, b3 ... bN);
+    // A•B = (a1b1 + a2b2 + a3b3 + ... aNbN);
+
+    // Red Channel
+    const float dot4_r = dot(cnvCross, r4x4[0])
+                        + dot(cnvCross, r4x4[1])
+                        + dot(cnvCross, r4x4[2])
+                        + dot(cnvCross, r4x4[3])
+                        + mul(cnvCross, cnvCenter.r);
+    
+    // Green Channel
+    const float dot4_g = dot(cnvCross, g4x4[0])
+                        + dot(cnvCross, g4x4[1])
+                        + dot(cnvCross, g4x4[2])
+                        + dot(cnvCross, g4x4[3])
+                        + mul(cnvCross, cnvCenter.g);
+    
+    // Blue Channel
+    const float dot4_b = dot(cnvCross, b4x4[0])
+                        + dot(cnvCross, b4x4[1])
+                        + dot(cnvCross, b4x4[2])
+                        + dot(cnvCross, b4x4[3])
+                        + mul(cnvCross, cnvCenter.b);
+    
+    // Alpha Channel
+    const float dot4_a = dot(cnvCross, a4x4[0])
+                        + dot(cnvCross, a4x4[1])
+                        + dot(cnvCross, a4x4[2])
+                        + dot(cnvCross, a4x4[3])
+                        + mul(cnvCross, cnvCenter.a);
+    
+    partial_dot_fc = float4(dot4_r, dot4_g, dot4_b, dot4_a);
+}
+
+static const float p_m_fl = 0.1111;
+
+static const float4x4 p_00[3] =
+{
+    p_b_m00, p_l_m00, p_m_4x4
+};
+
+static const float4x4 p_05[3] =
+{
+    p_b_m05, p_l_m05, p_m_4x4
+};
+
+static const float4x4 p_45[3] =
+{
+    p_b_m45, p_l_m45, p_m_4x4
+};
+
+static const float4x4 p_50[3] =
+{
+    p_b_m50, p_l_m50, p_m_4x4
+};
+
+// The pixels in the cross-hairs area all have the same values in the specific kernel I am using - generalized frei-chen. 
+float p_cross[3] =
+{
+    0, -0.1111, p_m_fl
+};
+
+[numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
+void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID,                   // ID of thread group; range depends on Dispatch call.
+                    uint2 groupThreadId : SV_GroupThreadID,       // ID of thread in a thread group; range depends on numthreads.
+                    uint3 dispatchThreadId : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
+{
+    const float4 source_rgb = LOAD_TEXTURE2D_LOD(Source, dispatchThreadId.xy, 0);
+    if (source_rgb.r && source_rgb.g && source_rgb.r == 0)
+    {
+        Result[dispatchThreadId.xy] = 0;
+        return;
+    }
+    // float2 texelSize = float2(1.0 / _Size.xy);
+    // float2 uv = float2(float2(dispatchThreadId.xy) * texelSize);
+
+    static float3x3 G[9] =
+    {
+        G0, G1, G2,
+        G3, G4, G5,
+        G6, G7, G8
+    };
+
+    static float4 intensity[9];
+    static float4 cnv[9];
+
+    get_px_intensity_9(dispatchThreadId.xy, sample_offsets, intensity);
+
+    /* calculate the convolution values for all the masks */
+    UNITY_UNROLL
+    for (int j = 0; j < 9; j++)
+    {
+        apply_frei_chen(intensity, G[j], cnv[j]);
+    }
+
+    const float4 M = (cnv[0] + cnv[1]) + (cnv[2] + cnv[3]);
+    const float4 S = (cnv[4] + cnv[5]) + (cnv[6] + cnv[7]) + (cnv[8] + M);
+    const float4 sqrt_ms = sqrt(M / S);
+    const float4 fc = (float4(acos(sqrt_ms)));
+    
+    Result[dispatchThreadId.xy] = fc;
+}
+
+[numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
+void ALT_FREI_CHEN(uint2 groupId : SV_GroupID, // ID of thread group; range depends on Dispatch call.
+                   uint2 groupThreadId : SV_GroupThreadID,                   // ID of thread in a thread group; range depends on numthreads.
+                   uint3 dispatchThreadId : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
+{
+    // if (SAMPLE_TEXTURE2D_LOD(Source, sampler_LinearClamp, dispatchThreadId.xy, 0).r == 0.0)
+    const float4 source_rgb = LOAD_TEXTURE2D_LOD(Source, dispatchThreadId.xy, 0);
+    /*
+    if (source_rgb.r && source_rgb.g && source_rgb.r == 0)
+     {
+        Result[dispatchThreadId.xy] = 0;
+        return;
+    }
+    */
+
+    // float2 texelSize = float2(1.0 / _Size.xy);
+    // float2 uv = float2(float2(dispatchThreadId.xy) * texelSize);
+
+    float4 cnv[3];
+    
+    // 4x4 section at Top Left of 9x9 grid
+    float4 intensity_TL[16];
+    get_px_intensity_16(int2(dispatchThreadId.xy), top_left_sample, intensity_TL);
+    
+    // 4x4 section at Top Right of 9x9 grid
+    float4 intensity_TR[16];
+    get_px_intensity_16(int2(dispatchThreadId.xy), top_right_sample, intensity_TR);
+    
+    // 4x4 section at Bottom Left of 9x9 grid
+    float4 intensity_BL[16];
+    get_px_intensity_16(int2(dispatchThreadId.xy), bottom_left_sample, intensity_BL);
+    
+    // 4x4 section at Bottom Right of 9x9 grid
+    float4 intensity_BR[16];
+    get_px_intensity_16(int2(dispatchThreadId.xy), bottom_right_sample, intensity_BR);
+    
+    // "Cross-hair" section spanning 9x9 grid
+    float4 cross_intensity[16];
+    get_px_intensity_16(int2(dispatchThreadId.xy), cross_sample, cross_intensity);
+
+    const float4 center_intensity = length(source_rgb);
+    
+    UNITY_UNROLL
+    for (int m = 0; m < 3; m++)
+    {
+        float4 partial_dot_fc[5];
+        partial_frei_chen(intensity_TL, p_00[m], partial_dot_fc[0]);
+        partial_frei_chen(intensity_TR, p_05[m], partial_dot_fc[1]);
+        partial_frei_chen(intensity_BL, p_45[m], partial_dot_fc[2]);
+        partial_frei_chen(intensity_BR, p_50[m], partial_dot_fc[3]);
+        partial_frei_chen_float(cross_intensity, p_cross[m], center_intensity, partial_dot_fc[4]);
+
+        const float4 dot4_fc = partial_dot_fc[0] + partial_dot_fc[1] + partial_dot_fc[2] + partial_dot_fc[3] + partial_dot_fc[4];
+        cnv[m] = SafePositivePow(dot4_fc, 2);
+        // cnv[m] = dot4_fc;
+    }
+
+
+    const float4 M = cnv[0];
+    const float4 S = cnv[1] + cnv[2] + cnv[0];
+    const float4 sqrt_ms = sqrt(M / S);
+    const float4 fc_general = float4(acos(sqrt_ms));
+    
+    Result[dispatchThreadId.xy] = fc_general;
+}

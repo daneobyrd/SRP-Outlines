@@ -1,0 +1,51 @@
+﻿#pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+
+#pragma kernel KLaplacian                           GROUP_SIZE=32   MAIN_LAPLACIAN=KLaplacian
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
+#include "LaplacianFilters.hlsl"
+
+CBUFFER_START(cb)
+real4 _Size; // x: src width, y: src height, zw: unused
+CBUFFER_END
+
+TEXTURE2D(Source);
+RW_TEXTURE2D(float4, Result);
+
+const static int sample_size = 9;
+float laplacian[9];
+const static int2 offsets[9] =
+{
+    int2(-1, 1),  int2(0, 1),  int2(1, 1),
+    int2(-1, 0),  int2(0, 0),  int2(1, 0),
+    int2(-1, -1), int2(0, -1), int2(1, -1)
+};
+
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]                             // Image should ba multiple of 32
+void MAIN_LAPLACIAN(uint2 groupId : SV_GroupID,                     // ID of thread group; range depends on Dispatch call.
+                    uint2 groupThreadId : SV_GroupThreadID,         // ID of thread in a thread group; range depends on numthreads.
+                    uint3 dispatchThreadId : SV_DispatchThreadID)   // = SV_GroupID * numthreads + SV_GroupThreadID.
+{
+    const real2 texelSize = real2(1.0 / _Size.xy);
+    const real2 uv = real2(dispatchThreadId.xy * texelSize);
+    
+    #if LAPLACIAN_KERNEL == 30
+    laplacian = laplacian_3x3_0;
+    #elif LAPLACIAN_KERNEL == 31
+    laplacian = laplacian_3x3_1;
+    #elif LAPLACIAN_KERNEL == 32
+    laplacian = laplacian_3x3_2;
+    #elif LAPLACIAN_KERNEL == 33
+    laplacian = laplacian_3x3_3;
+    #endif
+
+    float4 outline_edge = float4(0, 0, 0, 0);
+    UNITY_UNROLL
+    for(int i = 0; i < sample_size; i++)
+    {
+        outline_edge += Source.SampleLevel(sampler_LinearClamp, uv + real2(texelSize * offsets[i]), 0) * laplacian[i];
+    }
+    
+    Result[(dispatchThreadId.xy)] = outline_edge;
+}

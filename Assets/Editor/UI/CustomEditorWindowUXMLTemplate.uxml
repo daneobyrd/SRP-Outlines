@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <RenderTextureFormatDropdownField label="Color format" name="RenderTextureFormatDropdownField" style="flex-grow: 0; flex-shrink: 1;" />
+    <ui:Button text="Log Color Format Index (Monobehaviour)" display-tooltip-when-elided="true" name="LogColorFormatButton" style="width: 300px; margin-left: auto; margin-right: auto;" />
+</ui:UXML>

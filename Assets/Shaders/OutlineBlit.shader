@@ -1,167 +1,142 @@
 ﻿Shader "OutlineBlit"
 {
+    HLSLINCLUDE
+    #pragma target 5.0
+    #pragma editor_sync_compilation
+    #pragma multi_compile_fragment _ _LINEAR_TO_SRGB_CONVERSION
+    // #pragma multi_compile _ _USE_DRAW_PROCEDURAL
+    // #pragma multi_compile_fragment _ DEBUG_DISPLAY
+
+    #include "MyBlitColorAndDepth.hlsl"
+    #include "OutlineShaderProperties.hlsl"
+
+    ENDHLSL
+
     Properties
     {
-        //        _MainTex ("MainTex", 2D) = "clear" {}
-        //        _SourceTex ("SourceTex", 2D) = "clear" {}
-        //        _OuterThreshold ("Outer Threshold", float) = 1.0
-        //        _InnerThreshold ("Inner Threshold", float) = 1.0
-        //        _Rotations ("Rotations", int) = 6
-        //        _DepthPush ("Depth Push", float) = 0.0
-        //        _OuterLUT ("Outer LUT", 2D) = "white" {}
-        //        _InnerLUT ("Inner Lut", 2D) = "white" {}
+        //        _SourceTex ("Source Texture", Any) = "white" { }
+        [HDR] _RedChannelLines("R Lines", Color) = (0.1960784, 0.3098039, 0.3098039, 1)
+        [HDR] _GreenChannelLines("G Lines", Color) = (0.8705883, 0.9254903, 0.937255, 1)
+        [HDR] _BlueChannelLines("B Lines", Color) = (0, 0.9254903, 0.937255, 1)
     }
     SubShader
     {
         Tags
         {
-            "RenderPipeline" = "UniversalPipeline"
+            "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "LightMode" = "SRPDefaultUnlit"
         }
+        // 0: Color Only
         Pass
         {
-            Name "OutlineBlit"
-            ZWrite Off ZTest Always Blend Off Cull Off
+            Name "OutlineColor"
+            ZWrite Off
+            ZTest Always
+            Blend Off
+            Cull Off
+            //            ZWrite On
+            //            ZTest LEqual
+            //            Blend One Zero
+            //            Cull Back
 
             HLSLPROGRAM
             // #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
-            #pragma exclude_renderers gles
-            #pragma target 5.0
-            #pragma vertex FullscreenVert
-            #pragma fragment Fragment
-            #pragma multi_compile_fragment _ _LINEAR_TO_SRGB_CONVERSION
-            #pragma multi_compile _ _USE_DRAW_PROCEDURAL
-            #pragma multi_compile_fragment _ DEBUG_DISPLAY
+            // #pragma exclude_renderers gles
+            #pragma vertex Vert
+            #pragma fragment FragmentColorOnly
 
-            // #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
-            
-            TEXTURE2D_X(_CameraOpaqueTexture);
-            SAMPLER(sampler_CameraOpaqueTexture);
-
-            SamplerState sampler_LinearClamp;
-
-            float _OuterThreshold;
-            float _InnerThreshold;
-
-            TEXTURE2D_X(_SourceTex);
-            SAMPLER(sampler_SourceTex);
-
-            TEXTURE2D_X(_OutlineOpaque);
-            TEXTURE2D_X(_OutlineDepth);
-            
-            TEXTURE2D_X(_BlurUpsampleTex);
-            TEXTURE2D_X(_OutlineTexture);
-
-            float4 Frag(Varyings input, SamplerState s)
-            {
-            #if defined(USE_TEXTURE2D_X_AS_ARRAY) && defined(BLIT_SINGLE_SLICE)
-                return SAMPLE_TEXTURE2D_ARRAY_LOD(_SourceTex, s, input.uv, 0, 0);
-            #endif
-
-                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                return SAMPLE_TEXTURE2D_X_LOD(_SourceTex, s, input.uv, 0);
-            }
-
-            
-            // Combine textures in blit shader
-            
-            float4 Fragment(Varyings input) : SV_Target
+            float4 FragmentColorOnly(Varyings input) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                float2 uv = input.uv;
 
-                float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_LinearClamp, uv);
-                float outlineMask = saturate(step(outlineTex.x, _OuterThreshold) + step(outlineTex.y, _InnerThreshold) + outlineTex.z);
-                float4 camColor = SAMPLE_TEXTURE2D_X(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, input.uv);
-                float4 color = lerp(camColor, -outlineMask, outlineMask);
-                return color;
+                float2 uv = input.texcoord;
+                float4 outlineTex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, uv.xy);
+
+                float4 outlineMask;
+                outlineMask.x = SharpenAlpha(outlineTex.x, _OuterThreshold);
+                outlineMask.y = SharpenAlpha(outlineTex.y, _InnerThreshold);
+                outlineMask.z = SharpenAlpha(outlineTex.z, _InnerThreshold);
+                outlineMask.w = SharpenAlpha(outlineTex.w, _OuterThreshold);
+
+                const float camera_mask = normalize(outlineMask.x + outlineMask.y + outlineMask.z);
+
+                const float4 outerColor = lerp(0, _RLines, outlineMask.x);
+                const float4 innerColor = lerp(0, _GLines, outlineMask.y);
+                const float4 bColor = lerp(0, _BLines, outlineMask.z);
+
+                const float4 outlineColor = lerp(lerp(bColor, innerColor, camera_mask), outerColor, camera_mask);
+                const float4 cameraColor = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, uv.xy);
+
+                float4 finalColor = lerp(cameraColor, outlineColor, camera_mask);
+                return finalColor;
             }
-            
-            
-            // Combine textures in compute shader
-            /*
-            float4 Fragment(Varyings input) : SV_Target
+            ENDHLSL
+        }
+        // Color and Depth
+        Pass
+        {
+            Name "OutlineColorAndDepth"
+            ZWrite On
+            ZTest Always
+            Blend One Zero
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment FragmentColorAndDepth
+
+            struct PixelData
+            {
+                float4 color : SV_Target;
+                float depth : SV_Depth;
+            };
+
+            PixelData FragmentColorAndDepth(Varyings input)
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                const float2 uv = input.uv;
-                float4 color = SAMPLE_TEXTURE2D_X(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, uv);
-                return color;
+
+                float2 uv = input.texcoord;
+                float4 outline_tex = SAMPLE_TEXTURE2D(_OutlineTexture, sampler_OutlineTexture, uv.xy);
+                
+                real scene_depth;
+                #if UNITY_REVERSED_Z
+                scene_depth = SampleSceneDepth(input.texcoord.xy);
+                #else
+                    // Adjust z to match NDC for OpenGL
+                    real depth = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(UV));
+                #endif
+
+                const float outline_depth = SAMPLE_TEXTURE2D(_OutlineOpaqueDepth, sampler_LinearClamp, input.texcoord.xy).r;
+
+                const float silhouette = (sign(outline_depth));
+
+                float4 channel_mask;
+                channel_mask.r = SharpenAlpha(outline_tex.r, _OuterThreshold);
+                channel_mask.g = SharpenAlpha(outline_tex.g, _InnerThreshold);
+                channel_mask.b = SharpenAlpha(outline_tex.b, _DepthPush);
+                channel_mask.a = SharpenAlpha(outline_tex.a, _OuterThreshold);
+
+                const float4 outline_mask = (saturate(channel_mask) * silhouette);
+                const float camera_mask = silhouette - sign(length(outline_mask));
+
+                const float4 final_mask = min(outline_mask, silhouette);
+                
+                const float4 r_color = lerp(0,_RLines, outline_mask.r);
+                const float4 g_color = _GLines * channel_mask.g;
+                const float4 b_color = _BLines * channel_mask.b;
+                const float4 a_value = 1 * channel_mask.a;
+                
+                const float4 cameraColor = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, uv.xy);
+                const float4 combined_outline = lerp(lerp(lerp(0, b_color, outline_mask.b), g_color, outline_mask.g), r_color, outline_mask.r);
+                
+                PixelData pd;
+                // Out = ((1 - edge) * original) + (edge * lerp(original, OutlineColor,  OutlineColor.a));
+                pd.color = ((1 - outline_mask) * cameraColor) + (outline_mask * lerp(cameraColor, combined_outline, final_mask));
+                // pd.color =  lerp(cameraColor, overlay, outline_mask);
+                // pd.color.rgb = (input.normal * 0.5 + 0.5);
+                pd.depth = scene_depth;
+                return pd;
             }
-            */
             ENDHLSL
         }
     }
 }
-
-/*
-        // Relocated GaussianPyramid to RenderPass/Blur/GaussianPyramid.compute
-        Tags
-        {
-            "LightMode" = "OutlinePost"
-        }
-        Pass
-        {
-            Name "OutlinePost"
-            HLSLPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #pragma target 5.0
-
-
-            #include "OutlineShared.hlsl"
-
-            CBUFFER_START(UnityPerMaterial)
-            Texture2D<float4> _OutlineOpaqueTexture;
-            sampler2D sampler_OutlineOpaqueTexture;
-            Texture2D<float> _OutlineDepthTexture;
-            sampler2D sampler_OutlineDepthTexture;
-
-            Texture2D<float4> _MainTex;
-            sampler2D sampler_MainTex;
-            // float4 _MainTex_ST;
-            float2 _MainTex_TexelSize;
-            float _gaussian_sigma;
-            int _laplaceKernelType;
-            CBUFFER_END
-
-            float gaussian(float x, float y)
-            {
-                float sigma2 = _gaussian_sigma * _gaussian_sigma;
-                return exp(-(((x * x) + (y * y)) / (2.0 * sigma2))) * (1 / sqrt(TWO_PI * _gaussian_sigma));
-            }
-
-            Varyings vert(Attributes IN)
-            {
-                Varyings OUT;
-                OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.uv = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
-                return OUT;
-            }
-
-            float4 frag(Varyings input) : SV_TARGET
-            {
-                float4 blurColor = (0., 0., 0., 1.);
-
-                float sum = 0.0f;
-                for (int x = -1; x <= 1; ++x)
-                {
-                    for (int y = -1; y <= 1; y++)
-                    {
-                        const float gaus_factor = gaussian(x, y);
-                        sum += gaus_factor;
-                        blurColor += gaus_factor * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex,
-                                                                    input.uv + float2(_MainTex_TexelSize.x * x, _MainTex_TexelSize.y * y));
-                    }
-                }
-
-                blurColor = float4(blurColor.xyz / sum, 1);
-
-
-                return blurColor;
-            }
-            ENDHLSL
-        }
-*/

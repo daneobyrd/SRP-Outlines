@@ -1,0 +1,52 @@
+﻿Step-by-step for void RenderColorGaussianPyramid()
+Mip Level 0 ─→ 1 (Enable COPY_MIP_0)
+   0. bool firstDownsample = true;                                                     
+   Downsample                                                                              
+   1. Set _Size to full-screen                                                         
+   2. Copy _Source (sourceRT) to _Mip0 (blurRT) ───→ Copy TEXTURE2D_X to RW_TEXTURE2D_X
+          Note: if(COPY_MIP_0) then _Mip0 is used as downsample input                  
+   3. Set downsample output (_Destination) as tempDownsampleRT mipLevel: 0             
+   4. Dispatch compute using _Size/2 (dstMipWidth, dstMipHeight)                       
+      - This writes _Mip0 (a copy of sourceRT) to an area half its size.
+  
+   ┌──────────────────────────────┐
+   │ A                       ↙    │
+   │                      ↙       │
+   │                   ↙          │
+   ╔══════════════╗               │
+   ║ B            ║               │
+   ║              ║               │
+   ║              ║               │
+   ╚══════════════╝ ──────────────┘
+  
+   Blur
+   5. Set _Size to the same size as the downsample texture (the area we just wrote to).
+   6. Set blur input (_Source) as tempDownsampleRT mipLevel: 0
+   7. Set blur output (_Destination) as blurRT mipLevel: 1
+   8. Dispatch compute to the same area used for downsampling
+   
+   9. Increase mip level by 1.
+   10. Divide width and height by 2.
+   11. Set firstDownsample = false;
+  
+   ┌──────────────┐       ╔══════════════╗
+   │ B            │       ║ C            ║
+   │              │ ────→ ║              ║
+   │              │       ║              ║
+   └──────────────┘       ╚══════════════╝
+  
+Mip Level 1 ─→ 2 (Disable COPY_MIP_0)
+   1. Set downsample input (_Source) as blurRT (previous blur output) mipLevel: 1
+   2. Set downsample output (_Destination) as tempDownsampleRT mipLevel: 1
+   3. Continue for each mip level
+         
+Upsample
+╔══════════════════════════════╗
+║                          ↗   ║
+║                      ↗       ║
+║                  ↗           ║
+┌──────────────┐               ║
+│              │               ║
+│              │               ║ 
+│              │               ║
+└──────────────┘ ══════════════╝

@@ -89,10 +89,3 @@ void SobelEdgeCS(uint groupIndex: SV_GroupIndex,
     float thickness = 1;
     output[dispatchThreadId.xy] = float4((float3)SobelEdge(dispatchThreadId.xy, threshold, thickness), 1);
 }
-
-// For copy/paste
-// ┌────┬────┐
-// │    │    │
-// ├────┼────┤
-// │    │    │
-// └────┴────┘

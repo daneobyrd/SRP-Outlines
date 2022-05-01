@@ -1,4 +1,7 @@
-﻿// namespace UnityEngine.Rendering.HighDefinition
+﻿// Used in HDRenderPipeline.RenderGraph
+// https://github.com/Unity-Technologies/Graphics/blob/master/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/HDRenderPipeline.RenderGraph.cs
+
+// namespace UnityEngine.Rendering.HighDefinition
 // {
     /*
     class MipGenerator
