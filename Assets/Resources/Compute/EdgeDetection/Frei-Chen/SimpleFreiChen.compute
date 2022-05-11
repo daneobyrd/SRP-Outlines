@@ -12,42 +12,56 @@ CBUFFER_START(cbuff)
 float4 _Size; // x: src width, y: src height, zw: unused
 CBUFFER_END
 
-static const int2 sample_offsets[9] =
+static int2 sample_offsets[9] =
 {
     int2(-1, 1), int2(0, 1), int2(1, 1),
     int2(-1, 0), int2(0, 0), int2(1, 0),
     int2(-1, -1), int2(0, -1), int2(1, -1)
 };
 
-void apply_frei_chen(float4 input[9], float3x3 cnvMask, out float4 cnv_result)
+void apply_frei_chen(float4 input[9], float3x3 cnv_mask, out float4 cnv_result)
 {
     // [0 - 8] Red Channel
-    const float dot3_r = dot(cnvMask[0], float3(input[0].r, input[1].r, input[2].r))
-                        + dot(cnvMask[1], float3(input[3].r, input[4].r, input[5].r))
-                        + dot(cnvMask[2], float3(input[6].r, input[7].r, input[8].r));
+    const float dot3_r = dot(cnv_mask[0], float3(input[0].r, input[1].r, input[2].r))
+                        + dot(cnv_mask[1], float3(input[3].r, input[4].r, input[5].r))
+                        + dot(cnv_mask[2], float3(input[6].r, input[7].r, input[8].r));
     float dp3_r = dot3_r * dot3_r;
 
     // [0 - 8] Green Channel
-    const float dot3_g = dot(cnvMask[0], float3(input[0].g, input[1].g, input[2].g))
-                        + dot(cnvMask[1], float3(input[3].g, input[4].g, input[5].g))
-                        + dot(cnvMask[2], float3(input[6].g, input[7].g, input[8].g));
+    const float dot3_g = dot(cnv_mask[0], float3(input[0].g, input[1].g, input[2].g))
+                        + dot(cnv_mask[1], float3(input[3].g, input[4].g, input[5].g))
+                        + dot(cnv_mask[2], float3(input[6].g, input[7].g, input[8].g));
     float dp3_g = dot3_g * dot3_g;
 
     // [0 - 8] Blue Channel
-    const float dot3_b = dot(cnvMask[0], float3(input[0].b, input[1].b, input[2].b))
-                        + dot(cnvMask[1], float3(input[3].b, input[4].b, input[5].b))
-                        + dot(cnvMask[2], float3(input[6].b, input[7].b, input[8].b));
+    const float dot3_b = dot(cnv_mask[0], float3(input[0].b, input[1].b, input[2].b))
+                        + dot(cnv_mask[1], float3(input[3].b, input[4].b, input[5].b))
+                        + dot(cnv_mask[2], float3(input[6].b, input[7].b, input[8].b));
     float dp3_b = dot3_b * dot3_b;
 
     // [0 - 8] Alpha Channel
-    const float dot3_a = dot(cnvMask[0], float3(input[0].a, input[1].a, input[2].a))
-        + dot(cnvMask[1], float3(input[3].a, input[4].a, input[5].a))
-        + dot(cnvMask[2], float3(input[6].a, input[7].a, input[8].a));
+    const float dot3_a = dot(cnv_mask[0], float3(input[0].a, input[1].a, input[2].a))
+        + dot(cnv_mask[1], float3(input[3].a, input[4].a, input[5].a))
+        + dot(cnv_mask[2], float3(input[6].a, input[7].a, input[8].a));
     float dp3_a = dot3_a * dot3_a;
 
 
     cnv_result = float4(dp3_r, dp3_g, dp3_b, dp3_a);
 }
+
+void get_px_intensity_9(int2 coord, int2 pixel_offsets[9], const float2 texel_size, out float4 intensity[9])
+{
+    UNITY_UNROLL
+    for (uint i = 0; i < 9; ++i)
+    {
+        float4 pixel_sample = SAMPLE_TEXTURE2D_LOD(Source, sampler_PointClamp, float2(int2(coord.xy + pixel_offsets[i]) * texel_size), 0);
+        intensity[i].r = length(pixel_sample.r);
+        intensity[i].g = length(pixel_sample.g);
+        intensity[i].b = length(pixel_sample.b);
+        intensity[i].a = length(pixel_sample.a);
+    }
+}
+
 
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID, // ID of thread group; range depends on Dispatch call.
@@ -55,8 +69,8 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID, // ID of thread group; range dep
                     // ID of thread in a thread group; range depends on numthreads.
                     uint3 dispatchThreadId : SV_DispatchThreadID) // = SV_GroupID * numthreads + SV_GroupThreadID.
 {
-    float2 texelSize = float2(1.0 / _Size.xy);
-    float2 uv = float2(float2(dispatchThreadId.xy) * texelSize);
+    const float2 texel_size = float2(1.0 / _Size.xy);
+    float2 uv = float2(float2(dispatchThreadId.xy) * texel_size);
 
     static float3x3 G[9] =
     {
@@ -65,37 +79,22 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID, // ID of thread group; range dep
         G6, G7, G8
     };
 
-    static float r_intensity[9];
-    static float g_intensity[9];
-    static float b_intensity[9];
-    static float a_intensity[9];
     static float4 intensity[9];
-
     static float4 cnv[9];
 
-    UNITY_UNROLL
-    for (int k = 0; k < 9; ++k)
-    {
-        // pixel_sample = Source[uint2(dispatchThreadId.xy + sample_offsets[k])];
-        float4 pixel_sample = SAMPLE_TEXTURE2D_LOD(Source, sampler_PointClamp, float2(uint2(dispatchThreadId.xy + sample_offsets[k]) * texelSize),                                                   0);
-        r_intensity[k] = length(pixel_sample.x);
-        g_intensity[k] = length(pixel_sample.y);
-        b_intensity[k] = length(pixel_sample.z);
-        a_intensity[k] = length(pixel_sample.w);
-
-        intensity[k] = float4(r_intensity[k], g_intensity[k], b_intensity[k], a_intensity[k]);
-    }
+    get_px_intensity_9(dispatchThreadId.xy, sample_offsets, texel_size, intensity);
+    
     /* calculate the convolution values for all the masks */
     UNITY_UNROLL
-    for (int n = 0; n < 9; n++)
+    for (uint j = 0; j < 9; j++)
     {
-        apply_frei_chen(intensity, G[n], cnv[n]);
+        apply_frei_chen(intensity, G[j], cnv[j]);
     }
 
     const float4 M = (cnv[0] + cnv[1]) + (cnv[2] + cnv[3]);
     const float4 S = (cnv[4] + cnv[5]) + (cnv[6] + cnv[7]) + (cnv[8] + M);
-    const float4 sqrt_ms = sqrt(M / S);
-    const float4 fc = float4(acos(sqrt_ms));
+    const float4 sqrt_MS = sqrt(M / S);
+    const float4 frei_chen = float4(acos(sqrt_MS));
         
-    Result[dispatchThreadId.xy] = fc;
+    Result[dispatchThreadId.xy] = frei_chen;
 }

@@ -15,7 +15,7 @@ CBUFFER_START(cbuff)
 float4 _Size; // x: src width, y: src height, zw: unused
 CBUFFER_END
 
-static int2 sample_offsets[9] =
+static int2 uv_sample_offsets[9] =
 {
     int2(-1, 1), int2(0, 1), int2(1, 1),
     int2(-1, 0), int2(0, 0), int2(1, 0),
@@ -87,24 +87,25 @@ void pack_array_into_f4x4(float4 input[16], out float4x4 r4x4, out float4x4 g4x4
     );
 }
 
-void get_px_intensity_9(int2 coord, int2 pixel_offsets[9], out float4 intensity[9])
+void get_px_intensity_9(int2 coord, int2 pixel_offsets[9], float2 texel_size, out float4 intensity[9])
 {
     UNITY_UNROLL
     for (int i = 0; i < 9; ++i)
     {
-        float4 pixel_sample = Source[(coord.xy + pixel_offsets[i])];
-            intensity[i].r = length(pixel_sample.r);
-            intensity[i].g = length(pixel_sample.g);
-            intensity[i].b = length(pixel_sample.b);
-            intensity[i].a = length(pixel_sample.a);
+        float4 pixel_sample = SAMPLE_TEXTURE2D_LOD(Source, sampler_PointClamp, float2(int2(coord.xy + pixel_offsets[i])) * texel_size, 0);
+        intensity[i].r = length(pixel_sample.r);
+        intensity[i].g = length(pixel_sample.g);
+        intensity[i].b = length(pixel_sample.b);
+        intensity[i].a = length(pixel_sample.a);
     }
 }
-void get_px_intensity_16(int2 coord, int2 pixel_offsets[16], out float4 intensity[16])
+
+void get_px_intensity_16(int2 coord, int2 pixel_offsets[16], float2 texelSize, out float4 intensity[16])
 {
     UNITY_UNROLL
     for (int i = 0; i < 16; ++i)
     {
-        float4 pixel_sample = Source[(coord.xy + pixel_offsets[i])];
+        float4 pixel_sample = SAMPLE_TEXTURE2D_LOD(Source, sampler_PointClamp, float2(int2(coord.xy + pixel_offsets[i])) * texelSize, 0);
             intensity[i].r = length(pixel_sample.r);
             intensity[i].g = length(pixel_sample.g);
             intensity[i].b = length(pixel_sample.b);
@@ -112,7 +113,7 @@ void get_px_intensity_16(int2 coord, int2 pixel_offsets[16], out float4 intensit
     }
 }
 
-void apply_frei_chen(float4 input[9], float3x3 cnvMask, out float4 cnv_result)
+void apply_frei_chen(float4 input[9], float3x3 cnv_mask, out float4 cnv_result)
 {
     float3x3 r_f3x3, g_f3x3, b_f3x3, a_f3x3;
     pack_array_into_f3x3(input, r_f3x3, g_f3x3, b_f3x3, a_f3x3);
@@ -123,33 +124,33 @@ void apply_frei_chen(float4 input[9], float3x3 cnvMask, out float4 cnv_result)
     // A•B = (a1b1 + a2b2 + a3b3 + ... aNbN);
 
     // Red Channel
-    const float dot3_r = dot(cnvMask[0], r_f3x3[0])
-                        + dot(cnvMask[1], r_f3x3[1])
-                        + dot(cnvMask[2], r_f3x3[2]);
+    const float dot3_r = dot(cnv_mask[0], r_f3x3[0])
+                        + dot(cnv_mask[1], r_f3x3[1])
+                        + dot(cnv_mask[2], r_f3x3[2]);
     float dp3_r = dot3_r * dot3_r;
 
     // Green Channel
-    const float dot3_g = dot(cnvMask[0], g_f3x3[0])
-                        + dot(cnvMask[1], g_f3x3[1])
-                        + dot(cnvMask[2], g_f3x3[2]);
+    const float dot3_g = dot(cnv_mask[0], g_f3x3[0])
+                        + dot(cnv_mask[1], g_f3x3[1])
+                        + dot(cnv_mask[2], g_f3x3[2]);
     float dp3_g = dot3_g * dot3_g;
 
     // Blue Channel
-    const float dot3_b = dot(cnvMask[0], b_f3x3[0])
-                        + dot(cnvMask[1], b_f3x3[1])
-                        + dot(cnvMask[2], b_f3x3[2]);
+    const float dot3_b = dot(cnv_mask[0], b_f3x3[0])
+                        + dot(cnv_mask[1], b_f3x3[1])
+                        + dot(cnv_mask[2], b_f3x3[2]);
     float dp3_b = dot3_b * dot3_b;
 
     // Alpha Channel
-    const float dot3_a = dot(cnvMask[0], a_f3x3[0])
-                        + dot(cnvMask[1], a_f3x3[1])
-                        + dot(cnvMask[2], a_f3x3[2]);
+    const float dot3_a = dot(cnv_mask[0], a_f3x3[0])
+                        + dot(cnv_mask[1], a_f3x3[1])
+                        + dot(cnv_mask[2], a_f3x3[2]);
     float dp3_a = dot3_a * dot3_a;
 
 
     cnv_result = float4(dp3_r, dp3_g, dp3_b, dp3_a);
 }
-void partial_frei_chen(float4 input[16], float4x4 cnvMask, out float4 partial_dot_fc)
+void partial_frei_chen(float4 input[16], float4x4 cnv_mask, out float4 partial_dot_fc)
 {
     float4x4 r4x4, g4x4, b4x4, a4x4;
     pack_array_into_f4x4(input, r4x4, g4x4, b4x4, a4x4);
@@ -160,40 +161,40 @@ void partial_frei_chen(float4 input[16], float4x4 cnvMask, out float4 partial_do
     // A•B = (a1b1 + a2b2 + a3b3 + ... aNbN);
 
     // Red Channel
-    const float dot4_r = dot(cnvMask[0], r4x4[0])
-        + dot(cnvMask[1], r4x4[1])
-        + dot(cnvMask[2], r4x4[2])
-        + dot(cnvMask[3], r4x4[3]);
+    const float dot4_r = dot(cnv_mask[0], r4x4[0])
+        + dot(cnv_mask[1], r4x4[1])
+        + dot(cnv_mask[2], r4x4[2])
+        + dot(cnv_mask[3], r4x4[3]);
 
     // float dp4_r = dot4_r * dot4_r;
 
     // Green Channel
-    const float dot4_g = dot(cnvMask[0], g4x4[0])
-        + dot(cnvMask[1], g4x4[1])
-        + dot(cnvMask[2], g4x4[2])
-        + dot(cnvMask[3], g4x4[3]);
+    const float dot4_g = dot(cnv_mask[0], g4x4[0])
+        + dot(cnv_mask[1], g4x4[1])
+        + dot(cnv_mask[2], g4x4[2])
+        + dot(cnv_mask[3], g4x4[3]);
 
     // float dp4_g = dot4_g * dot4_g;
 
     // Blue Channel
-    const float dot4_b = dot(cnvMask[0], b4x4[0])
-        + dot(cnvMask[1], b4x4[1])
-        + dot(cnvMask[2], b4x4[2])
-        + dot(cnvMask[3], b4x4[3]);
+    const float dot4_b = dot(cnv_mask[0], b4x4[0])
+        + dot(cnv_mask[1], b4x4[1])
+        + dot(cnv_mask[2], b4x4[2])
+        + dot(cnv_mask[3], b4x4[3]);
 
     // float dp4_b = dot4_b * dot4_b;
 
     // Alpha Channel
-    const float dot4_a = dot(cnvMask[0], a4x4[0])
-        + dot(cnvMask[1], a4x4[1])
-        + dot(cnvMask[2], a4x4[2])
-        + dot(cnvMask[3], a4x4[3]);
+    const float dot4_a = dot(cnv_mask[0], a4x4[0])
+        + dot(cnv_mask[1], a4x4[1])
+        + dot(cnv_mask[2], a4x4[2])
+        + dot(cnv_mask[3], a4x4[3]);
 
     // float dp4_a = dot4_a * dot4_a;
 
     partial_dot_fc = float4(dot4_r, dot4_g, dot4_b, dot4_a);
 }
-void partial_frei_chen_float(float4 input[16], float cnvCross, float4 cnvCenter, out float4 partial_dot_fc)
+void partial_frei_chen_float(float4 input[16], float cnv_cross, float4 cnv_center, out float4 partial_dot_fc)
 {
     float4x4 r4x4, g4x4, b4x4, a4x4;
     pack_array_into_f4x4(input, r4x4, g4x4, b4x4, a4x4);
@@ -204,32 +205,32 @@ void partial_frei_chen_float(float4 input[16], float cnvCross, float4 cnvCenter,
     // A•B = (a1b1 + a2b2 + a3b3 + ... aNbN);
 
     // Red Channel
-    const float dot4_r = dot(cnvCross, r4x4[0])
-                        + dot(cnvCross, r4x4[1])
-                        + dot(cnvCross, r4x4[2])
-                        + dot(cnvCross, r4x4[3])
-                        + mul(cnvCross, cnvCenter.r);
+    const float dot4_r = dot(cnv_cross, r4x4[0])
+                        + dot(cnv_cross, r4x4[1])
+                        + dot(cnv_cross, r4x4[2])
+                        + dot(cnv_cross, r4x4[3])
+                        + mul(cnv_cross, cnv_center.r);
     
     // Green Channel
-    const float dot4_g = dot(cnvCross, g4x4[0])
-                        + dot(cnvCross, g4x4[1])
-                        + dot(cnvCross, g4x4[2])
-                        + dot(cnvCross, g4x4[3])
-                        + mul(cnvCross, cnvCenter.g);
+    const float dot4_g = dot(cnv_cross, g4x4[0])
+                        + dot(cnv_cross, g4x4[1])
+                        + dot(cnv_cross, g4x4[2])
+                        + dot(cnv_cross, g4x4[3])
+                        + mul(cnv_cross, cnv_center.g);
     
     // Blue Channel
-    const float dot4_b = dot(cnvCross, b4x4[0])
-                        + dot(cnvCross, b4x4[1])
-                        + dot(cnvCross, b4x4[2])
-                        + dot(cnvCross, b4x4[3])
-                        + mul(cnvCross, cnvCenter.b);
+    const float dot4_b = dot(cnv_cross, b4x4[0])
+                        + dot(cnv_cross, b4x4[1])
+                        + dot(cnv_cross, b4x4[2])
+                        + dot(cnv_cross, b4x4[3])
+                        + mul(cnv_cross, cnv_center.b);
     
     // Alpha Channel
-    const float dot4_a = dot(cnvCross, a4x4[0])
-                        + dot(cnvCross, a4x4[1])
-                        + dot(cnvCross, a4x4[2])
-                        + dot(cnvCross, a4x4[3])
-                        + mul(cnvCross, cnvCenter.a);
+    const float dot4_a = dot(cnv_cross, a4x4[0])
+                        + dot(cnv_cross, a4x4[1])
+                        + dot(cnv_cross, a4x4[2])
+                        + dot(cnv_cross, a4x4[3])
+                        + mul(cnv_cross, cnv_center.a);
     
     partial_dot_fc = float4(dot4_r, dot4_g, dot4_b, dot4_a);
 }
@@ -262,6 +263,7 @@ float p_cross[3] =
     0, -0.1111, p_m_fl
 };
 
+
 [numthreads(KERNEL_SIZE, KERNEL_SIZE, 1)]
 void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID,                   // ID of thread group; range depends on Dispatch call.
                     uint2 groupThreadId : SV_GroupThreadID,       // ID of thread in a thread group; range depends on numthreads.
@@ -273,8 +275,8 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID,                   // ID of threa
         Result[dispatchThreadId.xy] = 0;
         return;
     }
-    // float2 texelSize = float2(1.0 / _Size.xy);
-    // float2 uv = float2(float2(dispatchThreadId.xy) * texelSize);
+    float2 texel_size = float2(1.0 / _Size.xy);
+    float2 uv = float2(float2(dispatchThreadId.xy) * texel_size);
 
     static float3x3 G[9] =
     {
@@ -286,7 +288,7 @@ void MAIN_FREI_CHEN(uint2 groupId : SV_GroupID,                   // ID of threa
     static float4 intensity[9];
     static float4 cnv[9];
 
-    get_px_intensity_9(dispatchThreadId.xy, sample_offsets, intensity);
+    get_px_intensity_9(dispatchThreadId.xy, uv_sample_offsets, texel_size, intensity);
 
     /* calculate the convolution values for all the masks */
     UNITY_UNROLL
@@ -318,46 +320,45 @@ void ALT_FREI_CHEN(uint2 groupId : SV_GroupID, // ID of thread group; range depe
     }
     */
 
-    // float2 texelSize = float2(1.0 / _Size.xy);
-    // float2 uv = float2(float2(dispatchThreadId.xy) * texelSize);
+    const float2 texel_size = float2(1.0 / _Size.xy);
+    float2 uv = float2(int2(dispatchThreadId.xy) * texel_size);
 
     float4 cnv[3];
     
     // 4x4 section at Top Left of 9x9 grid
     float4 intensity_TL[16];
-    get_px_intensity_16(int2(dispatchThreadId.xy), top_left_sample, intensity_TL);
+    get_px_intensity_16(int2(dispatchThreadId.xy), top_left_sample, texel_size, intensity_TL);
     
     // 4x4 section at Top Right of 9x9 grid
     float4 intensity_TR[16];
-    get_px_intensity_16(int2(dispatchThreadId.xy), top_right_sample, intensity_TR);
+    get_px_intensity_16(int2(dispatchThreadId.xy), top_right_sample, texel_size, intensity_TR);
     
     // 4x4 section at Bottom Left of 9x9 grid
     float4 intensity_BL[16];
-    get_px_intensity_16(int2(dispatchThreadId.xy), bottom_left_sample, intensity_BL);
+    get_px_intensity_16(int2(dispatchThreadId.xy), bottom_left_sample, texel_size, intensity_BL);
     
     // 4x4 section at Bottom Right of 9x9 grid
     float4 intensity_BR[16];
-    get_px_intensity_16(int2(dispatchThreadId.xy), bottom_right_sample, intensity_BR);
+    get_px_intensity_16(int2(dispatchThreadId.xy), bottom_right_sample,  texel_size,intensity_BR);
     
     // "Cross-hair" section spanning 9x9 grid
     float4 cross_intensity[16];
-    get_px_intensity_16(int2(dispatchThreadId.xy), cross_sample, cross_intensity);
+    get_px_intensity_16(int2(dispatchThreadId.xy), cross_sample, texel_size, cross_intensity);
 
-    const float4 center_intensity = length(source_rgb);
+    const float4 center_intensity = abs(source_rgb);
     
     UNITY_UNROLL
-    for (int m = 0; m < 3; m++)
+    for (uint i = 0; i < 3; i++)
     {
         float4 partial_dot_fc[5];
-        partial_frei_chen(intensity_TL, p_00[m], partial_dot_fc[0]);
-        partial_frei_chen(intensity_TR, p_05[m], partial_dot_fc[1]);
-        partial_frei_chen(intensity_BL, p_45[m], partial_dot_fc[2]);
-        partial_frei_chen(intensity_BR, p_50[m], partial_dot_fc[3]);
-        partial_frei_chen_float(cross_intensity, p_cross[m], center_intensity, partial_dot_fc[4]);
+        partial_frei_chen(intensity_TL, p_00[i], partial_dot_fc[0]);
+        partial_frei_chen(intensity_TR, p_05[i], partial_dot_fc[1]);
+        partial_frei_chen(intensity_BL, p_45[i], partial_dot_fc[2]);
+        partial_frei_chen(intensity_BR, p_50[i], partial_dot_fc[3]);
+        partial_frei_chen_float(cross_intensity, p_cross[i], center_intensity, partial_dot_fc[4]);
 
         const float4 dot4_fc = partial_dot_fc[0] + partial_dot_fc[1] + partial_dot_fc[2] + partial_dot_fc[3] + partial_dot_fc[4];
-        cnv[m] = SafePositivePow(dot4_fc, 2);
-        // cnv[m] = dot4_fc;
+        cnv[i] = PositivePow(dot4_fc, 2);
     }
 
 

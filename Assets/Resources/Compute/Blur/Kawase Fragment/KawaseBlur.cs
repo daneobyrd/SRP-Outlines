@@ -11,7 +11,7 @@ public class KawaseBlur : ScriptableRendererFeature
     public class KawaseBlurSettings
     {
         public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
-        public Material blurMaterial = null;
+        public Material blurMaterial;
 
         [Range(2, 15)] public int blurPasses = 1;
 
@@ -20,7 +20,7 @@ public class KawaseBlur : ScriptableRendererFeature
         public string targetName = "_blurTexture";
     }
 
-    public KawaseBlurSettings settings = new KawaseBlurSettings();
+    public KawaseBlurSettings settings = new();
 
     class CustomRenderPass : ScriptableRenderPass
     {

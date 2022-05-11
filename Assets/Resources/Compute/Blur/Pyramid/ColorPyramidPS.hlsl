@@ -1,6 +1,6 @@
 ﻿#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
-#include "Assets/Plugins/RenderPass/OutlineBuffers/Utils/TextureXR.hlsl"
+#include "Assets/Plugins/ScriptableRenderPass/OutlineBuffers/Utils/TextureXR.hlsl"
 
 TEXTURE2D_X_HALF(_Source);
 SamplerState sampler_LinearClamp;

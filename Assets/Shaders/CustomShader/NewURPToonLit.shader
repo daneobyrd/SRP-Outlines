@@ -327,7 +327,7 @@ Shader "NewURPToonLit"
             Name "DepthOnly"
             Tags{"LightMode" = "OutlineDepthOnly"}
 
-            // more explict render state to avoid confusion
+            // more explicit render state to avoid confusion
             ZWrite On // the only goal of this pass is to write depth!
             ZTest LEqual // early exit at Early-Z stage if possible            
             ColorMask 0 // we don't care about color, we just want to write depth, ColorMask 0 will save some write bandwidth
